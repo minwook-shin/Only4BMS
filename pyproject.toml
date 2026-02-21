@@ -1,0 +1,39 @@
+[project]
+name = "only4bms"
+version = "1.0.0"
+description = "BMS, simplified to 4 lanes. Powered by Pygame."
+readme = "README.md"
+requires-python = ">=3.10"
+
+authors = [
+    { name = "minwook-shin", email = "minwook0106@gmail.com" }
+]
+
+# (필요 시) 유지보수자 정보도 넣을 수 있습니다.
+# maintainers = [{ name = "이름", email = "이메일" }]
+
+dependencies = [
+    "pygame-ce>=2.5.0",
+    "opencv-python>=4.8.0"
+]
+
+# 2. 깃허브 및 관련 링크 추가
+[project.urls]
+"Homepage" = "https://github.com/minwook-shin/only4bms"
+"Repository" = "https://minwook-shin.github.io/only4bms"
+"Bug Tracker" = "https://github.com/minwook-shin/only4bms/issues"
+
+[project.scripts]
+only4bms = "only4bms.main:main"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
