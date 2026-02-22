@@ -5,8 +5,8 @@ import pygame
 
 # ── Judgment configuration (single source of truth) ──────────────────────
 JUDGMENT_DEFS = {
-    "PERFECT": {"threshold_ms": 60,  "color": (0, 255, 255), "display": "PERFECT!"},
-    "GREAT":   {"threshold_ms": 130, "color": (0, 255, 0),   "display": "GREAT!"},
+    "PERFECT": {"threshold_ms": 40,  "color": (0, 255, 255), "display": "PERFECT!"},
+    "GREAT":   {"threshold_ms": 100, "color": (0, 255, 0),   "display": "GREAT!"},
     "GOOD":    {"threshold_ms": 200, "color": (255, 255, 0),  "display": "GOOD"},
     "MISS":    {"threshold_ms": 200, "color": (255, 0, 0),    "display": "MISS"},
 }
@@ -382,12 +382,16 @@ class RhythmGame:
                     self.lane_pressed[i] = False
 
     def process_hit(self, lane):
-        current_time = (time.perf_counter() - self.start_time) * 1000.0
+        # Apply Judge Delay (Offset) to compensate for input/audio lag
+        # A positive delay means the 'true' hit happened earlier than reported by the OS/Pygame
+        delay = self.settings.get('judge_delay', 30.0)
+        current_time = (time.perf_counter() - self.start_time) * 1000.0 - delay
+        
         max_window = JUDGMENT_DEFS["GOOD"]["threshold_ms"] * self.hw_mult
         closest, min_diff = None, float('inf')
 
         for note in self.notes:
-            if note['lane'] == lane and 'hit' not in note and 'miss' not in note:
+            if note['lane'] == lane and 'hit' not in note and 'miss' not in note and not note.get('is_auto'):
                 diff = abs(note['time_ms'] - current_time)
                 if diff < min_diff and diff <= max_window:
                     min_diff = diff
@@ -624,14 +628,22 @@ class RhythmGame:
                         
             import numpy as np
             ai_actions = [0, 0, 0, 0]
+            
+            # Difficulty-specific Human Jitter values
+            ai_jitter = 30.0 if self.ai_difficulty == 'normal' else 2.0
+            
             for lane in range(4):
                 obs = np.ones(3, dtype=np.float32)
                 notes_in_lane = []
                 for note in self.ai_notes:
                     if note['lane'] == lane and 'hit' not in note and 'miss' not in note:
                         time_to_note = note['time_ms'] - current_time
-                        if -miss_window <= time_to_note <= 1000.0:
-                            notes_in_lane.append(time_to_note)
+                        
+                        # Apply jitter to AI perception
+                        perturbed_ttn = time_to_note + np.random.normal(0, ai_jitter)
+                        
+                        if -miss_window <= perturbed_ttn <= 1000.0:
+                            notes_in_lane.append(perturbed_ttn)
                 notes_in_lane.sort()
                 
                 if len(notes_in_lane) > 0:
@@ -652,9 +664,18 @@ class RhythmGame:
                     self.process_ai_hit(lane, current_time)
                 self.ai_lane_pressed[lane] = pressed
 
-        # Auto-miss
+        # Auto-play for is_auto notes & Normal Miss processing
         for note in self.notes:
             if 'hit' not in note and 'miss' not in note:
+                # Handle Auto-Notes (Automatic hit)
+                if note.get('is_auto'):
+                    if current_time >= note['time_ms']:
+                        note['hit'] = True
+                        for sid in note['sample_ids']:
+                            self._play_sound(sid)
+                    continue
+
+                # Handle normal misses
                 if current_time - note['time_ms'] > miss_window:
                     note['miss'] = True
                     self.set_judgment("MISS", note['lane'])
@@ -687,6 +708,10 @@ class RhythmGame:
 
         # BGA
         self._draw_bga(current_time)
+
+        # Real-time VS Bar (Multiplayer only)
+        if self.mode == 'ai_multi':
+            self._draw_score_bar()
 
         # Judgment constants & Pulse
         perfect_h = max(4, self._s(int(HIT_ZONE_VISUAL_H * self.hw_mult)))
@@ -747,16 +772,22 @@ class RhythmGame:
                     
                     if -self.note_h <= y <= H:
                         color = (0, 255, 255) if len(note['sample_ids']) == 1 else (200, 255, 255)
+                        is_auto = note.get('is_auto', False)
+                        alpha = 60 if is_auto else 255
+                        
                         nx, ny = lx[note['lane']], int(y)
                         
+                        # Note Shadow
                         shadow_h = 4
-                        self.renderer.draw_color = (0, 0, 0, 180)
+                        self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
                         self.renderer.fill_rect((nx, ny + self.note_h - shadow_h, self.lane_w, shadow_h))
                         
-                        self.renderer.draw_color = color
+                        # Note Base
+                        self.renderer.draw_color = (*color, alpha)
                         self.renderer.fill_rect((nx, ny, self.lane_w, self.note_h - 2))
                         
-                        self.renderer.draw_color = (255, 255, 255, 120)
+                        # Note Highlight
+                        self.renderer.draw_color = (255, 255, 255, int(120 * (alpha/255)))
                         self.renderer.fill_rect((nx, ny, self.lane_w, 2))
 
     def _draw_bga(self, current_time):
@@ -806,6 +837,51 @@ class RhythmGame:
             if not bid and hasattr(self, 'bga_dark_texture'):
                 self.renderer.blit(self.bga_dark_texture, pygame.Rect(0, 0, self.width, self.height))
 
+    def _draw_score_bar(self):
+        """Draws a full-width HP-style tug-of-war score bar at the top."""
+        bar_w, bar_h = self.width, self._s(15)
+        bar_x, bar_y = 0, 0
+
+        def get_weighted_points(judgs):
+            # Tension based on accuracy and combo impact
+            return (judgs["PERFECT"] * 10 + 
+                    judgs["GREAT"] * 5 + 
+                    judgs["GOOD"] * 1 + 
+                    judgs["MISS"] * -20)
+
+        tension_h = get_weighted_points(self.judgments)
+        tension_ai = get_weighted_points(self.ai_judgments)
+        
+        diff = tension_h - tension_ai
+        sensitivity = 250.0 # Points diff to move divider significantly
+        ratio = 0.5 + (diff / (sensitivity * 2))
+        ratio = max(0.01, min(0.99, ratio))
+
+        mid_x = int(bar_w * ratio)
+        
+        # Human side (Blue)
+        self.renderer.draw_color = (0, 120, 255, 255)
+        self.renderer.fill_rect((bar_x, bar_y, mid_x, bar_h))
+        
+        # AI side (Red)
+        self.renderer.draw_color = (255, 50, 50, 255)
+        self.renderer.fill_rect((bar_x + mid_x, bar_y, bar_w - mid_x, bar_h))
+
+        # Glowing Divider
+        div_w = 4
+        self.renderer.draw_color = (255, 255, 255, 255)
+        self.renderer.fill_rect((bar_x + mid_x - div_w // 2, bar_y, div_w, bar_h + self._s(10)))
+
+        # Labels (Small tabs)
+        label_y = bar_h + self._s(5)
+        try:
+            label_font = pygame.font.SysFont(None, self._s(20), bold=True)
+            txt_p1 = label_font.render("PLAYER", True, (150, 200, 255))
+            txt_ai = label_font.render("AI BOT", True, (255, 150, 150))
+            self.offscreen_hud.blit(txt_p1, (self._s(20), label_y))
+            self.offscreen_hud.blit(txt_ai, (self.width - txt_ai.get_width() - self._s(20), label_y))
+        except: pass
+
     def _draw_effects(self, effects_list, lanes):
         for eff in effects_list[:]:
             eff['radius'] += EFFECT_EXPAND_SPEED
@@ -829,55 +905,97 @@ class RhythmGame:
                 self.offscreen_hud.blit(surf, (eff['x'] - r, eff['y'] - r))
 
     def _draw_result(self):
-        # Background: Cover image if available, else dark blue
+        # Calculation for Score
+        def calc_score(judgs):
+            return judgs["PERFECT"] * 1000 + judgs["GREAT"] * 500 + judgs["GOOD"] * 200
+            
+        score_h = calc_score(self.judgments)
+        score_ai = calc_score(self.ai_judgments) if self.mode == 'ai_multi' else 0
+
+        # Background: Cover image if available
         if self.cover_img:
             self.offscreen_hud.blit(self.cover_img, (0, (self.height - self.cover_img.get_height()) // 2))
             darken = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            darken.fill((0, 0, 0, 180)) # Darker for result screen
+            darken.fill((0, 0, 0, 200)) 
             self.offscreen_hud.blit(darken, (0, 0))
         else:
             self.offscreen_hud.fill((20, 20, 35))
 
-        res_font = pygame.font.SysFont(None, self._s(64))
-        t = res_font.render("RESULT", True, (255, 255, 255))
-        self.offscreen_hud.blit(t, t.get_rect(center=(self.width // 2, self._s(80))))
+        # Title at top center for Multiplayer
+        if self.mode == 'ai_multi':
+            title_font = pygame.font.SysFont(None, self._s(40), bold=True)
+            t_surf = title_font.render(self.title, True, (255, 255, 255))
+            self.offscreen_hud.blit(t_surf, t_surf.get_rect(center=(self.width // 2, self._s(30))))
+        else:
+            res_font = pygame.font.SysFont(None, self._s(64))
+            t = res_font.render("RESULT", True, (255, 255, 255))
+            self.offscreen_hud.blit(t, t.get_rect(center=(self.width // 2, self._s(80))))
 
-        y = self._s(180)
+        # Winner Indicator for AI Multi
+        if self.mode == 'ai_multi':
+            p1_win = score_h >= score_ai
+            win_txt = "YOU WIN!" if p1_win else "AI BOT WINS"
+            win_color = (0, 255, 255) if p1_win else (255, 50, 50)
+            banner_font = pygame.font.SysFont(None, self._s(80), bold=True)
+            bs = banner_font.render(win_txt, True, win_color)
+            self.offscreen_hud.blit(bs, bs.get_rect(center=(self.width // 2, self._s(120))))
+
+        # Detailed Stats Columns
+        y_start = self._s(220)
+        y = y_start
+        
+        # P1 Stats (Left)
+        p1_x = self._sx(100)
+        p1_title = self.font.render("PLAYER", True, (100, 200, 255))
+        self.offscreen_hud.blit(p1_title, (p1_x, y - self._s(40)))
+        
         for key in JUDGMENT_ORDER:
             color = JUDGMENT_DEFS[key]["color"]
             text = self.font.render(f"{key}: {self.judgments[key]}", True, color)
-            self.offscreen_hud.blit(text, (self._sx(80), y))
-            if self.mode == 'ai_multi':
-                ai_text = self.font.render(f"AI {key}: {self.ai_judgments[key]}", True, color)
-                self.offscreen_hud.blit(ai_text, (self._sx(440), y))
+            self.offscreen_hud.blit(text, (p1_x, y))
             y += self._s(50)
+            
+        combo_text = self.font.render(f"MAX COMBO: {self.max_combo}", True, (255, 255, 255))
+        self.offscreen_hud.blit(combo_text, (p1_x, y + self._s(20)))
+        
+        score_text = self.font.render(f"SCORE: {score_h:,}", True, (255, 255, 0))
+        self.offscreen_hud.blit(score_text, (p1_x, y + self._s(70)))
 
-        ct = self.font.render(f"MAX COMBO: {self.max_combo}", True, (200, 200, 255))
-        self.offscreen_hud.blit(ct, (self._sx(80), y + self._s(20)))
+        # AI Stats (Right)
         if self.mode == 'ai_multi':
-            ai_ct = self.font.render(f"AI MAX COMBO: {self.ai_max_combo}", True, (200, 200, 255))
-            self.offscreen_hud.blit(ai_ct, (self._sx(440), y + self._s(20)))
+            y = y_start
+            ai_x = self._sx(460)
+            ai_title = self.font.render("AI BOT", True, (255, 100, 100))
+            self.offscreen_hud.blit(ai_title, (ai_x, y - self._s(40)))
 
-        # ── Song Info (Right Side) ───────────────────────────────────────
-        right_x = self._sx(540) if self.mode != 'ai_multi' else self._sx(700)
-        y = self._s(180)
-        
-        meta_font = pygame.font.SysFont(None, self._s(40))
-        small_meta_font = pygame.font.SysFont(None, self._s(28))
-        
-        # Title
-        t_surf = meta_font.render(self.title, True, (255, 255, 255))
-        self.offscreen_hud.blit(t_surf, (right_x, y))
-        y += self._s(50)
-        
-        # Other Meta
-        for key, label in [("artist", "Artist"), ("genre", "Genre"), ("level", "Level")]:
-            val = self.metadata.get(key)
-            if val and str(val) not in ('Unknown', '0'):
-                s = small_meta_font.render(f"{label}: {val}", True, (200, 220, 240))
-                self.offscreen_hud.blit(s, (right_x, y))
-                y += self._s(32)
+            for key in JUDGMENT_ORDER:
+                color = JUDGMENT_DEFS[key]["color"]
+                ai_text = self.font.render(f"{key}: {self.ai_judgments[key]}", True, color)
+                self.offscreen_hud.blit(ai_text, (ai_x, y))
+                y += self._s(50)
+
+            ai_ct = self.font.render(f"MAX COMBO: {self.ai_max_combo}", True, (255, 255, 255))
+            self.offscreen_hud.blit(ai_ct, (ai_x, y + self._s(20)))
+            
+            ai_score_text = self.font.render(f"SCORE: {score_ai:,}", True, (255, 255, 0))
+            self.offscreen_hud.blit(ai_score_text, (ai_x, y + self._s(70)))
+
+        # Metadata (Only for Single Player side-panel or small footer)
+        if self.mode == 'single':
+            right_x = self._sx(540)
+            y = self._s(180)
+            meta_font = pygame.font.SysFont(None, self._s(40))
+            small_meta_font = pygame.font.SysFont(None, self._s(28))
+            t_surf = meta_font.render(self.title, True, (255, 255, 255))
+            self.offscreen_hud.blit(t_surf, (right_x, y))
+            y += self._s(50)
+            for key, label in [("artist", "Artist"), ("genre", "Genre"), ("level", "Level")]:
+                val = self.metadata.get(key)
+                if val and str(val) not in ('Unknown', '0'):
+                    s = small_meta_font.render(f"{label}: {val}", True, (200, 220, 240))
+                    self.offscreen_hud.blit(s, (right_x, y))
+                    y += self._s(32)
 
         info_font = pygame.font.SysFont(None, self._s(24))
         it = info_font.render("Press ENTER or ESC to Return", True, (150, 150, 150))
-        self.offscreen_hud.blit(it, it.get_rect(center=(self.width // 2, self.height - self._s(50))))
+        self.offscreen_hud.blit(it, it.get_rect(center=(self.width // 2, self.height - self._s(40))))

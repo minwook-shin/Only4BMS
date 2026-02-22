@@ -37,6 +37,7 @@ class SettingsMenu:
             {"key": "speed",           "label": "Scroll Speed",          "step": 0.1, "min": 0.1,   "max": 2.0},
             {"key": "volume",          "label": "Global Volume",         "step": 0.1, "min": 0.0,   "max": 1.0},
             {"key": "hit_window_mult", "label": "Hit Window Multiplier", "step": 0.1, "min": 0.5,   "max": 3.0},
+            {"key": "judge_delay",     "label": "Judge Delay (ms)",     "step": 1,   "min": -200,  "max": 200},
             {"key": "fullscreen",      "label": "Fullscreen",            "type": "choice", "choices_key": "_fullscreen_opts"},
             {"key": "audio_device_idx","label": "Audio Device",          "type": "choice", "choices_key": "audio_devices"},
             {"key": "audio_freq",      "label": "Sample Rate (Hz)",      "step": 100, "min": 22050, "max": 48000},
@@ -46,6 +47,8 @@ class SettingsMenu:
         self.settings.setdefault("_fullscreen_opts", ["Off", "On"])
         self.settings.setdefault("fullscreen", 0)
         self.selected_index = 0
+        self.view_offset = 0 # Scroll position (index based)
+        self.max_visible = 7
         self.running = True
 
     def _s(self, v):
@@ -117,8 +120,12 @@ class SettingsMenu:
     def _on_key(self, key):
         if key == pygame.K_UP and self.selected_index > 0:
             self.selected_index -= 1
+            if self.selected_index < self.view_offset:
+                self.view_offset = self.selected_index
         elif key == pygame.K_DOWN and self.selected_index < len(self.items) - 1:
             self.selected_index += 1
+            if self.selected_index >= self.view_offset + self.max_visible:
+                self.view_offset = self.selected_index - self.max_visible + 1
         elif key == pygame.K_LEFT:
             self._adjust(self.items[self.selected_index], -1)
         elif key == pygame.K_RIGHT:
@@ -131,8 +138,8 @@ class SettingsMenu:
         row_h = self._s(60)
         start_y = self._s(120)
         margin_l, margin_r = self._s(50), self.w - self._s(50)
-        for i in range(len(self.items)):
-            ry = start_y + i * row_h
+        for i in range(self.view_offset, min(len(self.items), self.view_offset + self.max_visible)):
+            ry = start_y + (i - self.view_offset) * row_h
             if margin_l <= mx <= margin_r and ry <= my <= ry + self._s(40):
                 self.selected_index = i
                 break
@@ -149,12 +156,13 @@ class SettingsMenu:
         margin_l, margin_r = self._s(50), self.w - self._s(50)
         y = start_y
 
-        for i, item in enumerate(self.items):
+        for i in range(self.view_offset, min(len(self.items), self.view_offset + self.max_visible)):
+            item = self.items[i]
             hovered = margin_l <= mx <= margin_r and y <= my <= y + self._s(40)
             color = self._row_color(i, self.selected_index, hovered)
             label = f"{item['label']}:  < {self._format_value(item)} >"
             self.screen.blit(self.small_font.render(label, True, color), (self._s(100), y))
             y += row_h
 
-        self.screen.blit(self.small_font.render("* Audio settings apply on next song", True, COLOR_MUTED), (self._s(50), y + self._s(20)))
-        self.screen.blit(self.small_font.render("Press ESC/TAB to Return | Scroll wheel to adjust", True, COLOR_INFO), (self._s(50), y + self._s(60)))
+        self.screen.blit(self.small_font.render("* Audio settings apply on next song", True, COLOR_MUTED), (self._s(50), self.h - self._s(100)))
+        self.screen.blit(self.small_font.render("Press ESC/TAB to Return | Scroll wheel to adjust", True, COLOR_INFO), (self._s(50), self.h - self._s(60)))
