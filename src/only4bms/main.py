@@ -18,6 +18,7 @@ DEFAULT_SETTINGS = {
     "audio_freq": 44100,
     "audio_buffer": 1024,
     "audio_channels": 2,
+    "judge_delay": 30.0,
 }
 
 MIXER_CHANNELS = 256

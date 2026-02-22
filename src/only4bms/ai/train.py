@@ -26,23 +26,23 @@ def set_global_seeds(seed=42):
 def train_and_export():
     set_global_seeds(42)
     
-    # 1. Setup env (None = use seeded curriculum track)
-    # Passing seed=42 here ensures the environment resets to the same Master Track
-    env = RhythmEnv(None, hw_mult=1.0)
-    env.reset(seed=42) 
+    # 1. Setup HARD env (Low jitter - 2ms)
+    env_hard = RhythmEnv(None, hw_mult=1.0, jitter=2.0)
+    env_hard.reset(seed=42) 
 
-    # 3. Train & Extract difficulties
-    # PPO seed ensures policy initialization and exploration are deterministic
-    print("Training Rhythm AI on deterministic curriculum for HARD difficulty...")
-    model_hard = PPO("MlpPolicy", env, verbose=1, learning_rate=0.003, ent_coef=0.01, n_steps=2048, seed=42)
+    print("Training Rhythm AI on deterministic curriculum for HARD difficulty (low jitter)...")
+    model_hard = PPO("MlpPolicy", env_hard, verbose=1, learning_rate=0.003, ent_coef=0.01, n_steps=2048, seed=42)
     model_hard.learn(total_timesteps=25000)
     out_hard = os.path.join(os.path.dirname(__file__), "model_hard")
     model_hard.save(out_hard)
     
-    print("\nTraining Rhythm AI on deterministic curriculum for NORMAL difficulty...")
-    # Resetting env with same seed ensures Normal difficulty sees the exact same training data
-    env.reset(seed=42)
-    model_normal = PPO("MlpPolicy", env, verbose=0, learning_rate=0.003, ent_coef=0.01, n_steps=2048, seed=42)
+    # 2. Setup NORMAL env (High jitter - 30ms)
+    # This forces the AI to miss the exact 'Perfect' center frequently, resulting in Greats
+    env_normal = RhythmEnv(None, hw_mult=1.0, jitter=30.0)
+    env_normal.reset(seed=42)
+
+    print("\nTraining Rhythm AI on deterministic curriculum for NORMAL difficulty (high jitter)...")
+    model_normal = PPO("MlpPolicy", env_normal, verbose=0, learning_rate=0.003, ent_coef=0.01, n_steps=2048, seed=42)
     model_normal.learn(total_timesteps=22500)
     out_normal = os.path.join(os.path.dirname(__file__), "model_normal")
     model_normal.save(out_normal)

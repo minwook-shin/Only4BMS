@@ -189,6 +189,15 @@ class BMSParser:
                     self.notes.append({'time_ms': t, 'lane': best, 'sample_ids': [sid]})
                     last_lane_time[best] = t
 
+        # Tag Auto-Notes: If a note is within 20ms of previous note in SAME lane, mark as auto.
+        # This prevents 4-lane compressed charts from being physically impossible.
+        self.notes.sort(key=lambda x: (x['lane'], x['time_ms']))
+        for i in range(1, len(self.notes)):
+            prev = self.notes[i-1]
+            curr = self.notes[i]
+            if curr['lane'] == prev['lane'] and (curr['time_ms'] - prev['time_ms'] < 30.0):
+                curr['is_auto'] = True
+
         # Sort by time
         self.notes.sort(key=lambda x: x['time_ms'])
         self.bgms.sort(key=lambda x: x['time_ms'])

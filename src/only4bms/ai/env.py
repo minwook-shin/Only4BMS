@@ -6,10 +6,11 @@ import numpy as np
 class RhythmEnv(gym.Env):
     metadata = {"render_modes": []}
 
-    def __init__(self, parser=None, hw_mult=1.0):
+    def __init__(self, parser=None, hw_mult=1.0, jitter=0.0):
         super().__init__()
         self.parser = parser
         self.hw_mult = hw_mult
+        self.jitter = jitter
         
         # Determine if we're in random curriculum mode or fixed song mode
         self.fixed_notes = None
@@ -17,8 +18,8 @@ class RhythmEnv(gym.Env):
             # Flatten all parser notes into a single lane benchmark
             self.fixed_notes = sorted(parser.notes, key=lambda x: x['time_ms'])
         
-        self.perfect_window = 60 * hw_mult
-        self.great_window = 130 * hw_mult
+        self.perfect_window = 40 * hw_mult
+        self.great_window = 100 * hw_mult
         self.good_window = 200 * hw_mult
         self.miss_window = 200 * hw_mult
         
@@ -158,6 +159,12 @@ class RhythmEnv(gym.Env):
         for note in self.notes:
             if 'hit' not in note and 'miss' not in note:
                 time_to_note = note['time_ms'] - self.current_time
+                
+                # Apply Human Jitter (Perception Noise)
+                if self.jitter > 0:
+                    noise = np.random.normal(0, self.jitter)
+                    time_to_note += noise
+                
                 if -self.miss_window <= time_to_note <= 1000.0:
                     notes_in_lane.append(time_to_note)
         
