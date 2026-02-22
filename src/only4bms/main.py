@@ -1,11 +1,11 @@
 import sys
 import pygame
 
-from only4bms.bms_parser import BMSParser
-from only4bms.rhythm_game import RhythmGame
-from only4bms.main_menu import MainMenu
-from only4bms.settings_menu import SettingsMenu
-from only4bms.song_select_menu import SongSelectMenu
+from only4bms.core.bms_parser import BMSParser
+from only4bms.game.rhythm_game import RhythmGame
+from only4bms.ui.main_menu import MainMenu
+from only4bms.ui.settings_menu import SettingsMenu
+from only4bms.ui.song_select_menu import SongSelectMenu
 from pygame._sdl2.video import Window, Renderer
 
 # ── Default settings ─────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ def main():
                         renderer=renderer, window=window,
                         ai_difficulty=ai_difficulty # New argument
                     )
-                    game.start()
+                    game.run()
 
 
     pygame.quit()

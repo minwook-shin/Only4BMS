@@ -55,6 +55,8 @@ jobs:
                       --windowed \
                       --name Only4BMS \
                       --add-data "src/only4bms/ai/*.zip${SEP}only4bms/ai" \
+                      --collect-all stable_baselines3 \
+                      --collect-all torch \
                       --clean \
                       src/only4bms/main.py
 

@@ -107,10 +107,6 @@ class MainMenu:
         title_surf = self.title_font.render("Only4BMS", True, (0, 255, 255))
         self.screen.blit(title_surf, (self._cx(title_surf), self._s(100)))
 
-        # Subtitle
-        sub_surf = self.font.render("Beatmania Simplified", True, (150, 150, 200))
-        self.screen.blit(sub_surf, (self._cx(sub_surf), self._s(170)))
-
         # Options
         start_y = self._s(250)
         spacing = self._s(70)

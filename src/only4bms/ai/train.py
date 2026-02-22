@@ -9,7 +9,7 @@ if __name__ == "__main__":
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from only4bms.ai.env import RhythmEnv
-from only4bms.bms_parser import BMSParser
+from only4bms.core.bms_parser import BMSParser
 
 import random
 import torch

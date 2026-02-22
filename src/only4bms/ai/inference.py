@@ -1,19 +1,39 @@
 import os
+import sys
 import numpy as np
 
 class RhythmInference:
     def __init__(self, difficulty='normal'):
-        weight_path = os.path.join(os.path.dirname(__file__), f"model_{difficulty}")
-            
         self.usable = False
+
+        # 1. Determine base search paths
+        search_dirs = [os.path.dirname(__file__)]
+        if getattr(sys, 'frozen', False):
+            search_dirs.insert(0, os.path.join(sys._MEIPASS, "only4bms", "ai"))
+            search_dirs.append(sys._MEIPASS)
+        search_dirs.append(os.path.join(os.getcwd(), "only4bms", "ai"))
+        search_dirs.append(os.getcwd())
+
+        # 2. Find the model file
+        weight_base = f"model_{difficulty}"
+        final_path = None
+        
+        for d in search_dirs:
+            p = os.path.join(d, weight_base)
+            if os.path.exists(p + ".zip"):
+                final_path = p
+                break
+        
+        if not final_path:
+            return
+
+        # 3. Load the model
         try:
             from stable_baselines3 import PPO
-            self.model = PPO.load(weight_path)
+            self.model = PPO.load(final_path)
             self.usable = True
-        except ImportError:
-            print("To use the AI bot, install stable-baselines3: pip install stable-baselines3")
-        except Exception as e:
-            print(f"Failed to load AI weights from {weight_path}: {e}")
+        except Exception:
+            pass
 
     def predict(self, obs, deterministic=False):
         """

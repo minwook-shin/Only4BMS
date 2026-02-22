@@ -5,7 +5,7 @@ import webbrowser
 
 import pygame
 
-from .bms_parser import BMSParser
+from ..core.bms_parser import BMSParser
 
 # ── Base (windowed) resolution ────────────────────────────────────────────
 BASE_W, BASE_H = 800, 600
@@ -53,7 +53,7 @@ class SongSelectMenu:
         if getattr(sys, 'frozen', False):
             base = os.path.dirname(sys.executable)
         else:
-            base = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         self.bms_dir = os.path.join(base, 'bms')
 
         # State
