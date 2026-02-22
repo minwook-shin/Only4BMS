@@ -3,6 +3,7 @@ import pygame
 
 from only4bms.bms_parser import BMSParser
 from only4bms.rhythm_game import RhythmGame
+from only4bms.main_menu import MainMenu
 from only4bms.settings_menu import SettingsMenu
 from only4bms.song_select_menu import SongSelectMenu
 from pygame._sdl2.video import Window, Renderer
@@ -113,49 +114,62 @@ def main():
 
     # Main loop
     while True:
-        action, selected_song = SongSelectMenu(settings, renderer=renderer, window=window).run()
+        menu_action = MainMenu(settings, renderer=renderer, window=window).run()
 
-        if action == "QUIT" or not action:
+        if menu_action == "QUIT":
             break
 
-        if action == "SETTINGS":
-            SettingsMenu(settings, renderer=renderer, window=window).run() # Pass window
+        if menu_action == "SETTINGS":
+            SettingsMenu(settings, renderer=renderer, window=window).run()
             continue
 
-        if action == "PLAY" and selected_song:
-            _init_mixer(settings)
-            apply_display_mode(settings, window)
-            _play_song(selected_song, settings, renderer=renderer, window=window)
+        if menu_action in ("SINGLE", "AI_MULTI"):
+            mode = 'ai_multi' if menu_action == "AI_MULTI" else 'single'
+            
+            while True:
+                action, selected_song, ai_difficulty = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode).run()
+
+                if action == "QUIT" or not action:
+                    break
+
+                if action == "SETTINGS":
+                    SettingsMenu(settings, renderer=renderer, window=window).run()
+                    continue
+
+                if action == "PLAY" and selected_song:
+                    _init_mixer(settings)
+                    apply_display_mode(settings, window)
+                    # _play_song(selected_song, settings, mode=mode, renderer=renderer, window=window) # Original call
+                    
+                    # Inlined _play_song logic with new RhythmGame instantiation
+                    print(f"Loading {selected_song}...")
+                    parser = BMSParser(selected_song)
+                    notes, bgms, bgas, bmp_map = parser.parse()
+
+                    if not notes and not bgms:
+                        print("No notes or bgm parsed from file.")
+                        continue # Go back to song select
+
+                    metadata = {
+                        "artist": parser.artist,
+                        "bpm": parser.bpm,
+                        "level": parser.playlevel,
+                        "genre": parser.genre,
+                        "notes": parser.total_notes,
+                        "stagefile": parser.stagefile,
+                        "banner": parser.banner,
+                    }
+                    game = RhythmGame(
+                        notes, bgms, bgas, parser.wav_map, bmp_map,
+                        parser.title, settings, mode=mode, metadata=metadata,
+                        renderer=renderer, window=window,
+                        ai_difficulty=ai_difficulty # New argument
+                    )
+                    game.start()
+
 
     pygame.quit()
     sys.exit()
-
-
-def _play_song(filepath, settings, renderer=None, window=None):
-    """Parse a BMS file and launch the rhythm game."""
-    print(f"Loading {filepath}...")
-    parser = BMSParser(filepath)
-    notes, bgms, bgas, bmp_map = parser.parse()
-
-    if not notes and not bgms:
-        print("No notes or bgm parsed from file.")
-        return
-
-    metadata = {
-        "artist": parser.artist,
-        "bpm": parser.bpm,
-        "level": parser.playlevel,
-        "genre": parser.genre,
-        "notes": parser.total_notes,
-        "stagefile": parser.stagefile,
-        "banner": parser.banner,
-    }
-    game = RhythmGame(
-        notes, bgms, bgas, parser.wav_map, bmp_map,
-        parser.title, settings, metadata=metadata,
-        renderer=renderer, window=window
-    )
-    game.start()
 
 
 if __name__ == "__main__":

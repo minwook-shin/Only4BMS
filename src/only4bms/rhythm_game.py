@@ -41,7 +41,9 @@ IMAGE_FALLBACK_EXTS = ['.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.bmp', '.BMP']
 
 
 class RhythmGame:
-    def __init__(self, notes, bgms, bgas, wav_map, bmp_map, title, settings, metadata=None, renderer=None, window=None):
+    def __init__(self, notes, bgms, bgas, wav_map, bmp_map, title, settings, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal'):
+        self.mode = mode
+        self.ai_difficulty = ai_difficulty
         self.renderer = renderer
         self.window = window
         
@@ -54,8 +56,13 @@ class RhythmGame:
         pygame.display.set_caption(f"Playing - {title}")
         self.clock = pygame.time.Clock()
 
-        # Data
+        # Asset lists
+        import copy
         self.notes = notes
+        if self.mode == 'ai_multi':
+            self.ai_notes = copy.deepcopy(notes)
+            from only4bms.ai.inference import RhythmInference
+            self.ai_model = RhythmInference(self.ai_difficulty)
         self.bgms = bgms
         self.bgas = bgas
         self.wav_map = wav_map
@@ -83,8 +90,15 @@ class RhythmGame:
         self.lane_w = self._sx(LANE_W)
         self.note_h = self._s(NOTE_H)
         self.hit_y = self._s(HIT_Y)
-        start_x = (self.width - NUM_LANES * self.lane_w) // 2
-        self.lane_x = [start_x + i * self.lane_w for i in range(NUM_LANES)]
+        if self.mode == 'single':
+            start_x = (self.width - NUM_LANES * self.lane_w) // 2
+            self.lane_x = [start_x + i * self.lane_w for i in range(NUM_LANES)]
+        elif self.mode == 'ai_multi':
+            p1_start_x = self.width // 4 - (NUM_LANES * self.lane_w) // 2
+            self.p1_lane_x = [p1_start_x + i * self.lane_w for i in range(NUM_LANES)]
+            p2_start_x = (self.width * 3) // 4 - (NUM_LANES * self.lane_w) // 2
+            self.p2_lane_x = [p2_start_x + i * self.lane_w for i in range(NUM_LANES)]
+            self.lane_x = self.p1_lane_x
         self.lane_total_w = NUM_LANES * self.lane_w
         self.speed = self.settings.get('speed', 0.5) * self.sy  # scale speed with resolution
         self.hw_mult = self.settings.get('hit_window_mult', 1.0)
@@ -105,10 +119,15 @@ class RhythmGame:
         self.last_bga_surface = None
         self.last_bga_blit_time = 0
         self.judgments = {k: 0 for k in JUDGMENT_ORDER}
+        self.ai_judgments = {k: 0 for k in JUDGMENT_ORDER}
         self.combo = 0
         self.max_combo = 0
+        self.ai_combo = 0
+        self.ai_max_combo = 0
         self.effects = []
+        self.ai_effects = []
         self.lane_pressed = [False] * NUM_LANES
+        self.ai_lane_pressed = [False] * NUM_LANES
 
         # UI (scaled fonts)
         self.font = pygame.font.SysFont(None, self._s(48))
@@ -119,6 +138,11 @@ class RhythmGame:
         self.judgment_text = ""
         self.judgment_timer = 0
         self.judgment_color = (255, 255, 255)
+        
+        self.ai_judgment_text = ""
+        self.ai_judgment_timer = 0
+        self.ai_judgment_color = (255, 255, 255)
+        
         self.last_loading_update = 0
 
         self.load_assets()
@@ -335,7 +359,7 @@ class RhythmGame:
             self.effects.append({
                 'x': self.lane_x[lane_idx] + self.lane_w // 2,
                 'y': self.hit_y,
-                'radius': self._s(24),  # Increased from 10 to 24 for better impact
+                'radius': 30,  # Unscaled, let _draw_effects handle it
                 'color': j["color"],
                 'alpha': 255,
             })
@@ -379,6 +403,50 @@ class RhythmGame:
                 if min_diff <= JUDGMENT_DEFS[key]["threshold_ms"] * self.hw_mult:
                     self.set_judgment(key, lane)
                     break
+
+    def process_ai_hit(self, lane, current_time):
+        max_window = JUDGMENT_DEFS["GOOD"]["threshold_ms"] * self.hw_mult
+        closest, min_diff = None, float('inf')
+
+        for note in self.ai_notes:
+            if note['lane'] == lane and 'hit' not in note and 'miss' not in note:
+                diff = abs(note['time_ms'] - current_time)
+                if diff < min_diff and diff <= max_window:
+                    min_diff = diff
+                    closest = note
+
+        if closest:
+            closest['hit'] = True
+            for sid in closest['sample_ids']:
+                self._play_sound(sid)
+
+            for key in ("PERFECT", "GREAT", "GOOD"):
+                if min_diff <= JUDGMENT_DEFS[key]["threshold_ms"] * self.hw_mult:
+                    self.set_ai_judgment(key, lane)
+                    break
+
+    def set_ai_judgment(self, key, lane):
+        self.ai_judgments[key] += 1
+        if key == "MISS":
+            self.ai_combo = 0
+        else:
+            self.ai_combo += 1
+            if self.ai_combo > self.ai_max_combo:
+                self.ai_max_combo = self.ai_combo
+
+        self.ai_judgment_text = JUDGMENT_DEFS[key]["display"]
+        self.ai_judgment_color = JUDGMENT_DEFS[key]["color"]
+        self.ai_judgment_timer = pygame.time.get_ticks() + JUDGMENT_DISPLAY_MS
+
+        self.ai_effects.append({
+            'lane': lane, 
+            'timer': pygame.time.get_ticks(),
+            'color': self.ai_judgment_color, 
+            'radius': 30,
+            'alpha': 255,
+            'x': self.p2_lane_x[lane] + self.lane_w // 2,
+            'y': self.hit_y
+        })
 
     # ── Game Loop ─────────────────────────────────────────────────────────
 
@@ -544,10 +612,45 @@ class RhythmGame:
         text = font.render(str(val), True, (255, 255, 100))
         self.offscreen_hud.blit(text, text.get_rect(center=(cx, cy)))
 
-    # ── Update Logic ─────────────────────────────────────────────────────
-
     def _update(self, current_time):
         miss_window = JUDGMENT_DEFS["MISS"]["threshold_ms"] * self.hw_mult
+        
+        if self.mode == 'ai_multi':
+            for note in self.ai_notes:
+                if 'hit' not in note and 'miss' not in note:
+                    if current_time - note['time_ms'] > miss_window:
+                        note['miss'] = True
+                        self.set_ai_judgment("MISS", note['lane'])
+                        
+            import numpy as np
+            ai_actions = [0, 0, 0, 0]
+            for lane in range(4):
+                obs = np.ones(3, dtype=np.float32)
+                notes_in_lane = []
+                for note in self.ai_notes:
+                    if note['lane'] == lane and 'hit' not in note and 'miss' not in note:
+                        time_to_note = note['time_ms'] - current_time
+                        if -miss_window <= time_to_note <= 1000.0:
+                            notes_in_lane.append(time_to_note)
+                notes_in_lane.sort()
+                
+                if len(notes_in_lane) > 0:
+                    obs[0] = notes_in_lane[0] / 1000.0
+                if len(notes_in_lane) > 1:
+                    obs[1] = notes_in_lane[1] / 1000.0
+                    
+                obs[2] = float(self.ai_lane_pressed[lane])
+                action = self.ai_model.predict(obs, deterministic=True)
+                ai_actions[lane] = int(action) if np.isscalar(action) else int(action.item())
+                
+            for lane in range(4):
+                pressed = bool(ai_actions[lane])
+                # AI logic: if model says '1', we try to process hit.
+                # Even if it holds (pressed == True and ai_lane_pressed == True), 
+                # we call it so it can hit subsequent notes if the model is 'stuck' holding.
+                if pressed: 
+                    self.process_ai_hit(lane, current_time)
+                self.ai_lane_pressed[lane] = pressed
 
         # Auto-miss
         for note in self.notes:
@@ -576,23 +679,14 @@ class RhythmGame:
 
     def _draw_playing(self, current_time):
         self.offscreen_hud.fill((0, 0, 0, 0)) # Transparent
+        self._draw_effects(self.effects, self.lane_x)
+        if self.mode == 'ai_multi':
+            self._draw_effects(self.ai_effects, self.p2_lane_x)
             
         W, H = self.width, self.height
 
         # BGA
         self._draw_bga(current_time)
-
-        # Lane backdrop & Separators
-        self.renderer.draw_color = (60, 60, 60, 100) # Dark gray for boundaries
-        # Far left edge
-        self.renderer.draw_line((self.lane_x[0], 0), (self.lane_x[0], H))
-        
-        for i, x in enumerate(self.lane_x):
-            self.renderer.draw_color = (30, 30, 30, LANE_BG_ALPHA)
-            self.renderer.fill_rect((x, 0, self.lane_w, H))
-            # Right separator for this lane
-            self.renderer.draw_color = (60, 60, 60, 100)
-            self.renderer.draw_line((x + self.lane_w, 0), (x + self.lane_w, H))
 
         # Judgment constants & Pulse
         perfect_h = max(4, self._s(int(HIT_ZONE_VISUAL_H * self.hw_mult)))
@@ -600,67 +694,70 @@ class RhythmGame:
         pulse = (math.sin(current_time / HIT_ZONE_PULSE_PERIOD) + 1) / 2
         hit_alpha = int(HIT_ZONE_ALPHA_MIN + pulse * HIT_ZONE_ALPHA_RANGE)
 
-        # 2.5D Physical Judgment Bar
-        # 1. Base Shadow (slightly larger)
-        self.renderer.draw_color = (0, 0, 0, 150)
-        self.renderer.fill_rect((self.lane_x[0] - 2, self.hit_y - perfect_h // 2, self.lane_total_w + 4, perfect_h + 2))
-        
-        # 2. Main Body (pulsing)
-        self.renderer.draw_color = (255, 40, 40, hit_alpha)
-        self.renderer.fill_rect((self.lane_x[0], self.hit_y - perfect_h // 2, self.lane_total_w, perfect_h))
+        playfields = [(self.lane_x, self.notes, self.lane_pressed, self.judgments, self.combo, self.judgment_text, self.judgment_color, self.judgment_timer)]
+        if self.mode == 'ai_multi':
+            playfields.append((self.p2_lane_x, self.ai_notes, self.ai_lane_pressed, self.ai_judgments, self.ai_combo, self.ai_judgment_text, self.ai_judgment_color, self.ai_judgment_timer))
 
-        # 3. Center Glow Line (Red accent)
-        # Using a fixed y offset for the line to be perfectly centered on hit_y
-        self.renderer.draw_color = (255, 80, 80, min(255, hit_alpha + 150))
-        self.renderer.fill_rect((self.lane_x[0], self.hit_y - 1, self.lane_total_w, 2))
+        for (lx, pf_notes, pf_pressed, pf_judg, pf_combo, j_text, j_color, j_timer) in playfields:
+            # Lane backdrop & Separators
+            self.renderer.draw_color = (60, 60, 60, 100) # Dark gray for boundaries
+            self.renderer.draw_line((lx[0], 0), (lx[0], H))
+            
+            for i, x in enumerate(lx):
+                self.renderer.draw_color = (30, 30, 30, LANE_BG_ALPHA)
+                self.renderer.fill_rect((x, 0, self.lane_w, H))
+                self.renderer.draw_color = (60, 60, 60, 100)
+                self.renderer.draw_line((x + self.lane_w, 0), (x + self.lane_w, H))
 
-        # Lane press glow
-        for i, pressed in enumerate(self.lane_pressed):
-            if pressed:
-                # Lane flow
-                self.renderer.draw_color = (100, 180, 255, 18)
-                self.renderer.fill_rect((self.lane_x[i], 0, self.lane_w, H))
-                # Hit zone glows
-                self.renderer.draw_color = (0, 255, 0, 28)
-                self.renderer.fill_rect((self.lane_x[i], self.hit_y - great_h // 2, self.lane_w, great_h))
-                self.renderer.draw_color = (0, 255, 255, 45)
-                self.renderer.fill_rect((self.lane_x[i], self.hit_y - perfect_h // 2, self.lane_w, perfect_h))
+            # 2.5D Physical Judgment Bar
+            self.renderer.draw_color = (0, 0, 0, 150)
+            self.renderer.fill_rect((lx[0] - 2, self.hit_y - perfect_h // 2, self.lane_total_w + 4, perfect_h + 2))
+            
+            self.renderer.draw_color = (255, 40, 40, hit_alpha)
+            self.renderer.fill_rect((lx[0], self.hit_y - perfect_h // 2, self.lane_total_w, perfect_h))
 
-        # Hit effects
-        self._draw_effects()
+            self.renderer.draw_color = (255, 80, 80, min(255, hit_alpha + 150))
+            self.renderer.fill_rect((lx[0], self.hit_y - 1, self.lane_total_w, 2))
 
-        # Judgment text
-        if pygame.time.get_ticks() < self.judgment_timer:
-            js = self.font.render(self.judgment_text, True, self.judgment_color)
-            self.offscreen_hud.blit(js, js.get_rect(center=(W // 2, H // 2 - self._s(50))))
+            # Lane press glow
+            for i, pressed in enumerate(pf_pressed):
+                if pressed:
+                    self.renderer.draw_color = (100, 180, 255, 18)
+                    self.renderer.fill_rect((lx[i], 0, self.lane_w, H))
+                    self.renderer.draw_color = (0, 255, 0, 28)
+                    self.renderer.fill_rect((lx[i], self.hit_y - great_h // 2, self.lane_w, great_h))
+                    self.renderer.draw_color = (0, 255, 255, 45)
+                    self.renderer.fill_rect((lx[i], self.hit_y - perfect_h // 2, self.lane_w, perfect_h))
 
-        # Combo
-        if self.combo > 0:
-            cs = self.font.render(str(self.combo), True, (255, 255, 255))
-            self.offscreen_hud.blit(cs, cs.get_rect(center=(W // 2, H // 2 + self._s(20))))
+            # Judgment text
+            if pygame.time.get_ticks() < j_timer:
+                js = self.font.render(j_text, True, j_color)
+                self.offscreen_hud.blit(js, js.get_rect(center=(lx[0] + self.lane_total_w // 2, H // 2 - self._s(50))))
 
-        # Notes (with 2.5D styling)
-        for note in self.notes:
-            if 'hit' not in note and 'miss' not in note:
-                td = note['time_ms'] - current_time
-                y = (self.hit_y - self.note_h) - td * self.speed
-                
-                if -self.note_h <= y <= H:
-                    color = (0, 255, 255) if len(note['sample_ids']) == 1 else (200, 255, 255)
-                    nx, ny = self.lane_x[note['lane']], int(y)
+            # Combo
+            if pf_combo > 0:
+                cs = self.font.render(str(pf_combo), True, (255, 255, 255))
+                self.offscreen_hud.blit(cs, cs.get_rect(center=(lx[0] + self.lane_total_w // 2, H // 2 + self._s(20))))
+
+            # Notes
+            for note in pf_notes:
+                if 'hit' not in note and 'miss' not in note:
+                    td = note['time_ms'] - current_time
+                    y = (self.hit_y - self.note_h) - td * self.speed
                     
-                    # 1. Bottom Shadow (Thickness)
-                    shadow_h = 4
-                    self.renderer.draw_color = (0, 0, 0, 180)
-                    self.renderer.fill_rect((nx, ny + self.note_h - shadow_h, self.lane_w, shadow_h))
-                    
-                    # 2. Main Note Body
-                    self.renderer.draw_color = color
-                    self.renderer.fill_rect((nx, ny, self.lane_w, self.note_h - 2))
-                    
-                    # 3. Top Highlight (Glass/Plastic look)
-                    self.renderer.draw_color = (255, 255, 255, 120)
-                    self.renderer.fill_rect((nx, ny, self.lane_w, 2))
+                    if -self.note_h <= y <= H:
+                        color = (0, 255, 255) if len(note['sample_ids']) == 1 else (200, 255, 255)
+                        nx, ny = lx[note['lane']], int(y)
+                        
+                        shadow_h = 4
+                        self.renderer.draw_color = (0, 0, 0, 180)
+                        self.renderer.fill_rect((nx, ny + self.note_h - shadow_h, self.lane_w, shadow_h))
+                        
+                        self.renderer.draw_color = color
+                        self.renderer.fill_rect((nx, ny, self.lane_w, self.note_h - 2))
+                        
+                        self.renderer.draw_color = (255, 255, 255, 120)
+                        self.renderer.fill_rect((nx, ny, self.lane_w, 2))
 
     def _draw_bga(self, current_time):
         bid = self.current_bga_img
@@ -709,14 +806,14 @@ class RhythmGame:
             if not bid and hasattr(self, 'bga_dark_texture'):
                 self.renderer.blit(self.bga_dark_texture, pygame.Rect(0, 0, self.width, self.height))
 
-    def _draw_effects(self):
-        for eff in self.effects[:]:
+    def _draw_effects(self, effects_list, lanes):
+        for eff in effects_list[:]:
             eff['radius'] += EFFECT_EXPAND_SPEED
             eff['alpha'] -= EFFECT_FADE_SPEED
             if eff['alpha'] <= 0:
-                self.effects.remove(eff)
+                effects_list.remove(eff)
             else:
-                r = eff['radius']
+                r = self._s(eff['radius'])
                 # 2.5D Layered Effect: Outer Fading Ring + Inner Solid Core
                 # Outer ring
                 surf = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
@@ -750,13 +847,19 @@ class RhythmGame:
             color = JUDGMENT_DEFS[key]["color"]
             text = self.font.render(f"{key}: {self.judgments[key]}", True, color)
             self.offscreen_hud.blit(text, (self._sx(80), y))
+            if self.mode == 'ai_multi':
+                ai_text = self.font.render(f"AI {key}: {self.ai_judgments[key]}", True, color)
+                self.offscreen_hud.blit(ai_text, (self._sx(440), y))
             y += self._s(50)
 
         ct = self.font.render(f"MAX COMBO: {self.max_combo}", True, (200, 200, 255))
         self.offscreen_hud.blit(ct, (self._sx(80), y + self._s(20)))
+        if self.mode == 'ai_multi':
+            ai_ct = self.font.render(f"AI MAX COMBO: {self.ai_max_combo}", True, (200, 200, 255))
+            self.offscreen_hud.blit(ai_ct, (self._sx(440), y + self._s(20)))
 
         # ── Song Info (Right Side) ───────────────────────────────────────
-        right_x = self._sx(440)
+        right_x = self._sx(540) if self.mode != 'ai_multi' else self._sx(700)
         y = self._s(180)
         
         meta_font = pygame.font.SysFont(None, self._s(40))

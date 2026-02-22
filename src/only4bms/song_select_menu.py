@@ -27,10 +27,13 @@ COLOR_DIM = (100, 100, 100)
 
 
 class SongSelectMenu:
-    def __init__(self, settings, renderer, window):
+    def __init__(self, settings, renderer, window, mode='single'):
         from pygame._sdl2.video import Texture
         self.renderer = renderer
         self.window = window
+        self.mode = mode
+        self.ai_difficulties = ['normal', 'hard']
+        self.ai_diff_idx = 0
         
         self.w, self.h = self.window.size
         self.sx, self.sy = self.w / BASE_W, self.h / BASE_H
@@ -153,7 +156,7 @@ class SongSelectMenu:
             self.clock.tick(self.settings.get('fps', 60))
             
         pygame.key.set_repeat(0)
-        return self.action, self.selected_song_path
+        return self.action, self.selected_song_path, self.ai_difficulties[self.ai_diff_idx]
 
     # ── Event handling ───────────────────────────────────────────────────
 
@@ -244,6 +247,8 @@ class SongSelectMenu:
                 elif btn_action == "RELOAD":
                     self.songs = []
                     self.scan_songs()
+                elif btn_action == "DIFF":
+                    self.ai_diff_idx = (self.ai_diff_idx + 1) % len(self.ai_difficulties)
                 return
 
         margin_l, margin_r = self._sx_v(50), self.w - self._sx_v(50)
@@ -277,6 +282,9 @@ class SongSelectMenu:
         mx, my = pygame.mouse.get_pos()
         self._nav_buttons = []
         btn_labels = [("Settings", "SETTINGS"), ("Search BMS", "SEARCH"), ("Reload", "RELOAD")]
+        if self.mode == 'ai_multi':
+            btn_labels.append((f"AI: {self.ai_difficulties[self.ai_diff_idx].upper()}", "DIFF"))
+            
         bx = self._sx_v(400)
         for label, action in btn_labels:
             surf = self.small_font.render(f"[{label}]", True, (150, 200, 150))

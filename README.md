@@ -45,6 +45,26 @@ Format: Be-Music Script (.bms, .bme, .bml)
              └── ...
      ```
 
+## 🤖 AI Training & Multiplayer
+
+Only4BMS features an AI Multiplayer mode powered by **Reinforcement Learning (PPO)**.
+
+### How it Works
+- The AI is trained using `stable-baselines3` on procedurally generated rhythm tracks and royalty-free demo songs.
+- **Legal Compliance**: To ensure ethical standards, official releases bundle models trained *exclusively* on non-commercial data during the CI/CD process.
+- **Difficulties**:
+  - **NORMAL**: Trained for 25,000 steps. High accuracy but occasional human-like errors.
+  - **HARD**: Trained for 40,000 steps. Near-perfect timing and combo maintenance.
+
+### Local Training
+If you wish to train your own models locally:
+1. Install dependencies: `pip install stable-baselines3 shimmy gymnasium torch`
+2. Run the training script: `python -m only4bms.ai.train`
+3. The generated `model_normal.zip` and `model_hard.zip` will be saved in `src/only4bms/ai/`.
+
+### Automated CI/CD
+Our GitHub Actions workflow automatically retrains the AI models from scratch using the bundled `Mock Song Demo` for every release. This ensures that the binary distributed to users is always "clean" and optimized.
+
 
 <a href="https://minwook-shin.itch.io/only4bms" class="btn">Play on itch.io</a>
 

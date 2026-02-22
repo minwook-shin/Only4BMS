@@ -208,3 +208,4 @@ __marimo__/
 
 *.exe
 bms
+src/only4bms/ai/*.zip

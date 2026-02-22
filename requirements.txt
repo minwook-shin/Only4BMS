@@ -1,4 +1,8 @@
 pygame-ce>=2.5.0
 opencv-python
 numpy
+stable-baselines3
+shimmy
+gymnasium
+torch
 pyinstaller

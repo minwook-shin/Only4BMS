@@ -18,8 +18,12 @@ jobs:
             asset_name: Only4BMS-Win.exe
             executable_path: dist/Only4BMS.exe
           - os: macos-latest
-            artifact_name: Only4BMS-MacOS
-            asset_name: Only4BMS-Mac
+            artifact_name: Only4BMS-AppleSilicon
+            asset_name: Only4BMS-Mac-ARM
+            executable_path: dist/Only4BMS
+          - os: macos-13
+            artifact_name: Only4BMS-IntelMac
+            asset_name: Only4BMS-Mac-Intel
             executable_path: dist/Only4BMS
 
     steps:
@@ -34,14 +38,23 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install pyinstaller
+          pip install pyinstaller stable-baselines3 shimmy gymnasium torch
+
+      - name: Train AI Models
+        run: |
+          python src/only4bms/ai/train.py
 
       - name: Build with PyInstaller
         shell: bash
         run: |
+          # Define separator based on OS
+          SEP=":"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then SEP=";"; fi
+
           pyinstaller --onefile \
                       --windowed \
                       --name Only4BMS \
+                      --add-data "src/only4bms/ai/*.zip${SEP}only4bms/ai" \
                       --clean \
                       src/only4bms/main.py
 
