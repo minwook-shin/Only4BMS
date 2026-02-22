@@ -21,7 +21,7 @@ jobs:
             artifact_name: Only4BMS-AppleSilicon
             asset_name: Only4BMS-Mac-ARM
             executable_path: dist/Only4BMS
-          - os: macos-13
+          - os: macos-15-intel
             artifact_name: Only4BMS-IntelMac
             asset_name: Only4BMS-Mac-Intel
             executable_path: dist/Only4BMS
