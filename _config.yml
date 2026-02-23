@@ -1,5 +1,3 @@
 title: Only4BMS
 description: This is a Pygame-based BMS driver that **forcefully rearranges** all BMS charts into **4 keys (DFJK)** for playback.
 theme: jekyll-theme-cayman
-
-show_downloads: false
