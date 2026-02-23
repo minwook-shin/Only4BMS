@@ -16,6 +16,7 @@ class GameRenderer:
         self.sy = self.height / BASE_H
         
         self.font = pygame.font.SysFont(None, self._s(48))
+        self.bold_font = pygame.font.SysFont(None, self._s(56), bold=True)
         self.offscreen_hud = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         self.hud_texture = None
         
@@ -64,32 +65,60 @@ class GameRenderer:
         pulse = (math.sin(current_time / HIT_ZONE_PULSE_PERIOD) + 1) / 2
         hit_alpha = int(HIT_ZONE_ALPHA_MIN + pulse * HIT_ZONE_ALPHA_RANGE)
 
-        # Boundaries
-        self.renderer.draw_color = (60, 60, 60, 100)
-        self.renderer.draw_rect((lx[0] - 2, 0, ltw + 4, self.height))
+        # Lane boundaries, BG, Hit Zone, and HUD text (Combo/Judgment)
+        fade_mult = 1.0
+        passed_time = game_state.get('all_notes_passed_time')
+        if passed_time is not None:
+            elapsed = current_time - passed_time
+            fade_mult = max(0.0, 1.0 - elapsed / 500.0) # 500ms fade duration
 
-        # Lane BG
-        for i in range(NUM_LANES):
-            self.renderer.draw_color = (30, 30, 30, LANE_BG_ALPHA) if not pressed[i] else (50, 50, 60, LANE_BG_ALPHA)
-            self.renderer.fill_rect((lx[i], 0, lane_w, self.height))
-            self.renderer.draw_color = (60, 60, 60, 100)
-            self.renderer.draw_line((lx[i] + lane_w, 0), (lx[i] + lane_w, self.height))
+        if fade_mult > 0:
+            # Boundaries
+            self.renderer.draw_color = (60, 60, 60, int(100 * fade_mult))
+            self.renderer.draw_rect((lx[0] - 2, 0, ltw + 4, self.height))
 
-        # Hit Zone
-        self.renderer.draw_color = (0, 0, 0, 150)
-        self.renderer.fill_rect((lx[0], hit_y, ltw, self.height - hit_y))
-        self.renderer.draw_color = (255, 40, 40, hit_alpha)
-        self.renderer.fill_rect((lx[0], hit_y - perf_h // 2, ltw, perf_h))
-        self.renderer.draw_color = (255, 80, 80, min(255, hit_alpha + 150))
-        self.renderer.draw_rect((lx[0], hit_y - perf_h // 2, ltw, perf_h))
+            # Lane BG
+            for i in range(NUM_LANES):
+                bg_alpha = int(LANE_BG_ALPHA * fade_mult)
+                self.renderer.draw_color = (30, 30, 30, bg_alpha) if not pressed[i] else (50, 50, 60, bg_alpha)
+                self.renderer.fill_rect((lx[i], 0, lane_w, self.height))
+                self.renderer.draw_color = (60, 60, 60, int(100 * fade_mult))
+                self.renderer.draw_line((lx[i] + lane_w, 0), (lx[i] + lane_w, self.height))
 
-        # Judgment / Combo Text
-        if j_text and current_time - j_timer < 500:
-            js = self.font.render(j_text, True, j_color)
-            self.offscreen_hud.blit(js, js.get_rect(center=(lx[0] + ltw // 2, self.height // 2 - self._s(50))))
-        if comb > 0:
-            cs = self.font.render(str(comb), True, (255, 255, 255))
-            self.offscreen_hud.blit(cs, cs.get_rect(center=(lx[0] + ltw // 2, self.height // 2 + self._s(20))))
+            # Hit Zone
+            self.renderer.draw_color = (0, 0, 0, int(150 * fade_mult))
+            self.renderer.fill_rect((lx[0], hit_y, ltw, self.height - hit_y))
+            self.renderer.draw_color = (255, 40, 40, int(hit_alpha * fade_mult))
+            self.renderer.fill_rect((lx[0], hit_y - perf_h // 2, ltw, perf_h))
+            self.renderer.draw_color = (255, 80, 80, int(min(255, hit_alpha + 150) * fade_mult))
+            self.renderer.draw_rect((lx[0], hit_y - perf_h // 2, ltw, perf_h))
+
+            # Judgment / Combo Text
+            def get_bounce(timer, duration=200):
+                elapsed = current_time - timer
+                if elapsed < 0 or elapsed > duration: return 1.0
+                # Quadratic bounce: starts at 1.4, drops to 1.0
+                t = elapsed / duration
+                return 1.4 - 0.4 * (1 - (1 - t)**2)
+
+            if j_text and current_time - j_timer < 500:
+                scale = get_bounce(j_timer)
+                # Render at base size once (or let it be cached by the font object if using same size)
+                surf = self.font.render(j_text, True, j_color)
+                if scale != 1.0:
+                    w, h = surf.get_size()
+                    surf = pygame.transform.smoothscale(surf, (int(w * scale), int(h * scale)))
+                self.offscreen_hud.blit(surf, surf.get_rect(center=(lx[0] + ltw // 2, self.height // 2 - self._s(50))))
+            
+            c_timer = game_state.get('combo_timer', 0)
+            if comb > 0 and current_time - c_timer < 500:
+                scale = get_bounce(c_timer, 150)
+                # Render at base size
+                surf = self.bold_font.render(str(comb), True, (255, 255, 255))
+                if scale != 1.0:
+                    w, h = surf.get_size()
+                    surf = pygame.transform.smoothscale(surf, (int(w * scale), int(h * scale)))
+                self.offscreen_hud.blit(surf, surf.get_rect(center=(lx[0] + ltw // 2, self.height // 2 + self._s(20))))
 
         # Notes
         held_ln_ids = [id(n) for n in game_state.get('held_lns', []) if n is not None]
@@ -227,7 +256,7 @@ class GameRenderer:
         score_h = calc_score(stats['judgments'])
         score_ai = calc_score(stats['ai_judgments']) if stats['mode'] == 'ai_multi' else 0
 
-        self.offscreen_hud.fill((20, 20, 35))
+        self.offscreen_hud.fill((20, 20, 35, 200)) # Semi-transparent background
         if stats.get('cover_texture'):
             # This is tricky since we need a Surface for blitting to offscreen_hud if we want darkness
             # But the renderer is GPU based. 
@@ -304,6 +333,6 @@ class GameRenderer:
             self.hud_texture = Texture.from_surface(self.renderer, self.offscreen_hud)
         else:
             self.hud_texture.update(self.offscreen_hud)
-        self.renderer.clear()
+        # self.renderer.clear() # Removed to keep BGA visible
         self.renderer.blit(self.hud_texture, pygame.Rect(0, 0, self.width, self.height))
         self.renderer.present()

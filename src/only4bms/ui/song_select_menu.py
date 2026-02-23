@@ -12,7 +12,7 @@ BASE_W, BASE_H = 800, 600
 
 BG_COLOR = (30, 30, 50)
 VISIBLE_ITEMS = 6
-BMS_EXTS = ('*.bms', '*.bme')
+BMS_EXTS = ('*.bms', '*.bme', '*.bml', '*.pms')
 SEARCH_URL = "https://bmssearch.net/search?q={}"
 
 # ── Colors ────────────────────────────────────────────────────────────────
