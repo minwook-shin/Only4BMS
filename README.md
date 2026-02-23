@@ -1,6 +1,13 @@
 # Only4BMS
 
-[![Only4BMS AI Battle](https://img.youtube.com/vi/XcOX6EJuddw/0.jpg)](https://youtu.be/XcOX6EJuddw)
+Training AI to Learn Long Notes
+
+[![Only4BMS AI Battle1](https://img.youtube.com/vi/XcOX6EJuddw/0.jpg)](https://youtu.be/XcOX6EJuddw)
+
+Training AI to Learn dynamic BPM gimmicks
+
+[![Only4BMS AI Battle2](https://img.youtube.com/vi/enBUNKZaR4M/0.jpg)](https://youtu.be/enBUNKZaR4M)
+
 
 7 keys? No thanks. 
 
