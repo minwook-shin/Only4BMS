@@ -1,6 +1,6 @@
 # Only4BMS
 
-[![Only4BMS AI Battle](https://img.youtube.com/vi/Ec0ubKCOGag/0.jpg)](https://youtu.be/Ec0ubKCOGag)
+[![Only4BMS AI Battle](https://img.youtube.com/vi/XcOX6EJuddw/0.jpg)](https://youtu.be/XcOX6EJuddw)
 
 7 keys? No thanks. 
 
