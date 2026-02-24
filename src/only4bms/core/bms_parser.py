@@ -12,13 +12,14 @@ AUDIO_FALLBACK_EXTS = ('.ogg', '.mp3', '.WAV', '.OGG')
 
 # ── Header tag patterns ───────────────────────────────────────────────────
 _HEADER_TAGS = {
-    '#TITLE ':    'title',
-    '#ARTIST ':   'artist',
-    '#PLAYLEVEL ':'playlevel',
-    '#GENRE ':    'genre',
-    '#STAGEFILE ':'stagefile',
-    '#BANNER ':   'banner',
-    '#TOTAL ':    'total',
+    '#TITLE':       'title',
+    '#ARTIST':      'artist',
+    '#PLAYLEVEL':   'playlevel',
+    '#GENRE':       'genre',
+    '#STAGEFILE':   'stagefile',
+    '#BANNER':      'banner',
+    '#TOTAL':       'total',
+    '#PREVIEW':     'preview',
 }
 _BPM_TAG = '#BPM '
 _NOTE_PATTERN = re.compile(r'#(\d{3})(1[1-9A-Z]|2[1-9A-Z]):(.+)')
@@ -49,6 +50,7 @@ class BMSParser:
         self.stagefile = None  # cover image path
         self.banner = None
         self.total = 200.0 # Default total
+        self.preview = None # preview audio path
         self.total_notes = 0
 
         # Asset maps
@@ -71,7 +73,14 @@ class BMSParser:
     def get_metadata(self):
         """Parse only header metadata and count playable notes."""
         self._parse_header(metadata_only=True)
-        return self.title, self.artist, self.bpm, self.playlevel, self.genre, self.total_notes
+        # Ensure we at least try to find a background even if tags are missing
+        if not self.stagefile:
+            self.stagefile = self._resolve_image_path(None)
+        if not self.banner:
+            self.banner = self._resolve_image_path(None)
+            
+        return (self.title, self.artist, self.bpm, self.playlevel, 
+                self.genre, self.total_notes, self.preview, self.stagefile, self.banner)
 
     # ── Full parse ───────────────────────────────────────────────────────
 
@@ -94,20 +103,25 @@ class BMSParser:
             # Standard string tags
             line_upper = line.upper()
             found_tag = False
-            for prefix, attr in _HEADER_TAGS.items():
-                if line_upper.startswith(prefix.upper()):
-                    val = line.split(' ', 1)[1]
-                    # Resolve image paths to absolute
-                    if attr in ('stagefile', 'banner'):
-                        val = os.path.join(self.bms_dir, val.strip())
-                    if attr == 'total':
-                        try:
-                            val = float(val)
-                        except ValueError:
-                            val = 200.0
-                    setattr(self, attr, val)
-                    found_tag = True
-                    break
+            parts = line.split(None, 1)
+            if len(parts) >= 2:
+                tag, val = parts[0].upper(), parts[1]
+                for prefix, attr in _HEADER_TAGS.items():
+                    if tag == prefix.upper():
+                        # Resolve image/audio paths to absolute
+                        if attr in ('stagefile', 'banner'):
+                            val = self._resolve_image_path(os.path.join(self.bms_dir, val.strip()))
+                        elif attr == 'preview':
+                            val = os.path.join(self.bms_dir, val.strip())
+                        
+                        if attr == 'total':
+                            try:
+                                setattr(self, attr, float(val))
+                            except: pass
+                        else:
+                            setattr(self, attr, val)
+                        found_tag = True
+                        break
             
             if found_tag:
                 continue
@@ -362,6 +376,38 @@ class BMSParser:
         self.bgas.sort(key=lambda x: x['time_ms'])
 
     # ── Internal: resolve wav file paths ─────────────────────────────────
+
+    def _resolve_image_path(self, path):
+        """Resolve image paths with case-insensitivity and extension fallback."""
+        if path and os.path.exists(path):
+            return path
+            
+        parent = self.bms_dir
+        if path:
+            base = os.path.splitext(path)[0]
+            fname_base = os.path.basename(base).lower()
+            parent = os.path.dirname(path)
+        else:
+            fname_base = None
+
+        try:
+            files = os.listdir(parent)
+            # 1. Try to match the specified name (case-insensitive)
+            if fname_base:
+                for f in files:
+                    f_base, f_ext = os.path.splitext(f)
+                    if f_base.lower() == fname_base and f_ext.lower() in ('.png', '.jpg', '.jpeg', '.bmp'):
+                        return os.path.join(parent, f)
+            
+            # 2. Fallback: Search for common cover filenames in the directory
+            cover_names = ('folder', 'cover', 'stagefile', 'banner', 'title', 'jacket', 'bg')
+            for f in files:
+                f_base, f_ext = os.path.splitext(f)
+                if f_base.lower() in cover_names and f_ext.lower() in ('.png', '.jpg', '.jpeg', '.bmp'):
+                    return os.path.join(parent, f)
+        except:
+            pass
+        return path
 
     def _resolve_wav_paths(self):
         """Resolve WAV paths, trying common alternative extensions if missing."""

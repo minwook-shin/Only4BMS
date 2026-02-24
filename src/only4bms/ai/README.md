@@ -35,3 +35,14 @@ The agent is incentivized for precision and penalized for inefficiency:
 We introduce **Perception Jitter** to simulate different skill levels:
 - **Hard Mode**: Low jitter (2ms). The AI has near-perfect perception, leading to frame-perfect timing.
 - **Normal Mode**: High jitter (30ms). Adds Gaussian noise to the note timestamps, forcing the AI to miss the "Perfect" center and resulting in more "Great" or "Good" judgments.
+
+## 🔍 AI Vision System (Scanner Area)
+
+To ensure transparency and "fair play," the Only4BMS AI implements a strictly limited **Perception Window**. This is visually represented in-game as the pulsing, dashed "Scanner Area" on the AI's lanes.
+
+### Technical Specification:
+- **Observation Window**: 1000ms. The AI "sees" only the notes within this time-to-impact range. Any data beyond this window is ignored, simulating a focused human player.
+- **Critical Decision Zone**: While the AI monitors the 1000ms window, its primary decision-making occurs as notes enter the 200ms threshold (the judgment window), mimicking human reactive behavior rather than precognition.
+- **Visual Feedback**: The glowing "Robot Eyes" inside the scanner area pulse in sync with the processing cycle, indicating active data analysis.
+
+By limiting the input data to this specific window, we ensure that the AI cannot "peek" at the entire map, keeping the competition with the human player fair and grounded in real-time reaction.

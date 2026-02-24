@@ -59,9 +59,9 @@ class GameRenderer:
 
         self.offscreen_hud.fill((0, 0, 0, 0))
         
-        # Judgment Pulse
-        perf_h = max(4, self._s(int(HIT_ZONE_VISUAL_H * hw)))
-        great_h = max(4, self._s(int(GREAT_ZONE_VISUAL_H * hw)))
+        # Judgment Pulse (Halved thickness for precision)
+        perf_h = max(2, self._s(int(HIT_ZONE_VISUAL_H * hw // 2)))
+        great_h = max(2, self._s(int(GREAT_ZONE_VISUAL_H * hw // 2)))
         pulse = (math.sin(current_time / HIT_ZONE_PULSE_PERIOD) + 1) / 2
         hit_alpha = int(HIT_ZONE_ALPHA_MIN + pulse * HIT_ZONE_ALPHA_RANGE)
 
@@ -88,10 +88,11 @@ class GameRenderer:
             # Hit Zone
             self.renderer.draw_color = (0, 0, 0, int(150 * fade_mult))
             self.renderer.fill_rect((lx[0], hit_y, ltw, self.height - hit_y))
+            # Judgment line sits ABOVE hit_y (bottom edge at hit_y)
             self.renderer.draw_color = (255, 40, 40, int(hit_alpha * fade_mult))
-            self.renderer.fill_rect((lx[0], hit_y - perf_h // 2, ltw, perf_h))
+            self.renderer.fill_rect((lx[0], hit_y - perf_h, ltw, perf_h))
             self.renderer.draw_color = (255, 80, 80, int(min(255, hit_alpha + 150) * fade_mult))
-            self.renderer.draw_rect((lx[0], hit_y - perf_h // 2, ltw, perf_h))
+            self.renderer.draw_rect((lx[0], hit_y - perf_h, ltw, perf_h))
 
             # Judgment / Combo Text
             def get_bounce(timer, duration=200):
@@ -109,6 +110,51 @@ class GameRenderer:
                     w, h = surf.get_size()
                     surf = pygame.transform.smoothscale(surf, (int(w * scale), int(h * scale)))
                 self.offscreen_hud.blit(surf, surf.get_rect(center=(lx[0] + ltw // 2, self.height // 2 - self._s(50))))
+
+            # AI Vision Area (Dashed Scanner Frame)
+            if game_state.get('is_ai'):
+                vision_h = self._s(120) # AI vision range
+                vision_y = hit_y - vision_h
+                v_alpha = int(hit_alpha * 0.8) # Slightly softer than judgment pulse
+                v_color = (0, 255, 255, v_alpha) # Neon Cyan
+                
+                # Draw dashed rectangle manually for "scanner" feel
+                dash_len = self._s(10)
+                gap = self._s(6)
+                rect = (lx[0], vision_y, ltw, vision_h)
+                
+                # Top/Bottom dashes
+                for dx in range(0, ltw, dash_len + gap):
+                    d_w = min(dash_len, ltw - dx)
+                    pygame.draw.line(self.offscreen_hud, v_color, (lx[0] + dx, vision_y), (lx[0] + dx + d_w, vision_y), 2)
+                    pygame.draw.line(self.offscreen_hud, v_color, (lx[0] + dx, hit_y), (lx[0] + dx + d_w, hit_y), 2)
+                # Left/Right dashes
+                for dy in range(0, vision_h, dash_len + gap):
+                    d_h = min(dash_len, vision_h - dy)
+                    pygame.draw.line(self.offscreen_hud, v_color, (lx[0], vision_y + dy), (lx[0], vision_y + dy + d_h), 2)
+                    pygame.draw.line(self.offscreen_hud, v_color, (lx[0] + ltw, vision_y + dy), (lx[0] + ltw, vision_y + dy + d_h), 2)
+                
+                # Scanner Glow
+                glow_surf = pygame.Surface((ltw, vision_h), pygame.SRCALPHA)
+                pygame.draw.rect(glow_surf, (0, 100, 150, v_alpha // 4), (0, 0, ltw, vision_h))
+                
+                # ── ADDING ROBOT EYES ──
+                eye_r = self._s(8)
+                eye_x_off = self._s(25)
+                eye_y = vision_h // 2
+                # Left Eye
+                pygame.draw.circle(glow_surf, (255, 255, 255, v_alpha), (ltw // 2 - eye_x_off, eye_y), eye_r // 2)
+                pygame.draw.circle(glow_surf, (0, 255, 255, v_alpha // 2), (ltw // 2 - eye_x_off, eye_y), eye_r, 2)
+                # Right Eye
+                pygame.draw.circle(glow_surf, (255, 255, 255, v_alpha), (ltw // 2 + eye_x_off, eye_y), eye_r // 2)
+                pygame.draw.circle(glow_surf, (0, 255, 255, v_alpha // 2), (ltw // 2 + eye_x_off, eye_y), eye_r, 2)
+                
+                # ── ADDING "AI" TEXT ──
+                ai_font = pygame.font.SysFont(None, self._s(22), bold=True)
+                ai_surf = ai_font.render("AI Vision", True, (0, 255, 255, v_alpha))
+                glow_surf.blit(ai_surf, (self._s(8), self._s(5)))
+                
+                self.offscreen_hud.blit(glow_surf, (lx[0], vision_y))
             
             c_timer = game_state.get('combo_timer', 0)
             if comb > 0 and current_time - c_timer < 500:
@@ -138,35 +184,71 @@ class GameRenderer:
                     y = hit_y - note_h
 
                 if -note_h <= y <= self.height:
-                    # Consistent cyan color for all notes
+                    note_type = game_state.get('note_type', 0) # 0: Bar, 1: Circle
                     color = (0, 255, 255)
-                    
                     is_auto = note.get('is_auto', False)
                     alpha = 60 if is_auto else 255
                     nx, ny = lx[note['lane']], int(y)
                     
-                    # Render Long Note body
+                    # ── Long Note Body ──
                     if note.get('is_ln') and ('end_time_ms' in note or 'visual_end_time_ms' in note):
                         v_end_time = note.get('visual_end_time_ms', note.get('end_time_ms', note['time_ms']))
                         etd = v_end_time - current_visual_time
                         ey = (hit_y - note_h) - etd * spd
                         body_h = int(y - ey)
                         if body_h > 0:
-                            # Body pulse
                             b_alpha = int(alpha * 0.6)
                             self.renderer.draw_color = (*color, b_alpha)
-                            self.renderer.fill_rect((nx + 4, int(ey) + note_h, lane_w - 8, body_h))
+                            # Body width matches the note head width (80% for both now)
+                            body_margin = int(lane_w * 0.12) # Slightly narrower for better look
+                            self.renderer.fill_rect((nx + body_margin, int(ey) + note_h // 2, lane_w - body_margin * 2, body_h + note_h // 2))
                             # Borders
                             self.renderer.draw_color = (*color, alpha)
-                            self.renderer.draw_line((nx + 4, int(ey) + note_h), (nx + 4, int(y) + note_h))
-                            self.renderer.draw_line((nx + lane_w - 4, int(ey) + note_h), (nx + lane_w - 4, int(y) + note_h))
-                    
-                    self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
-                    self.renderer.fill_rect((nx, ny + note_h - 4, lane_w, 4))
-                    self.renderer.draw_color = (*color, alpha)
-                    self.renderer.fill_rect((nx, ny, lane_w, note_h - 2))
-                    self.renderer.draw_color = (255, 255, 255, int(120 * (alpha/255)))
-                    self.renderer.fill_rect((nx, ny, lane_w, 2))
+                            self.renderer.draw_line((nx + body_margin, int(ey) + note_h // 2), (nx + body_margin, int(y) + note_h // 2))
+                            self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, int(y) + note_h // 2))
+
+                    # ── Note Head ──
+                    if note_type == 0: # ── Bar View ──
+                        # Thicker and narrower (80% width)
+                        bw = int(lane_w * 0.8)
+                        bh = int(note_h * 1.5)
+                        bx = nx + (lane_w - bw) // 2
+                        by = ny + (note_h - bh) # Align bottom edge with ny + note_h
+                        
+                        self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
+                        self.renderer.fill_rect((bx, by + bh - 4, bw, 4))
+                        self.renderer.draw_color = (*color, alpha)
+                        self.renderer.fill_rect((bx, by, bw, bh - 2))
+                        # Top highlight
+                        self.renderer.draw_color = (255, 255, 255, int(150 * (alpha/255)))
+                        self.renderer.fill_rect((bx, by, bw, 2))
+                        # CENTER LINE
+                        self.renderer.draw_color = (255, 255, 255, int(110 * (alpha/255)))
+                        self.renderer.draw_line((bx, by + bh // 2), (bx + bw, by + bh // 2))
+                    else: # ── Circle View ──
+                        # Balanced size (80% of lane width)
+                        cr = int(lane_w * 0.4)
+                        cx, cy = nx + lane_w // 2, ny + note_h // 2
+                        
+                        # Use a Surface for the head to get clean rounding and shadows
+                        surf = pygame.Surface((lane_w, lane_w), pygame.SRCALPHA)
+                        
+                        # 1. Circular Shadow (slight offset, low opacity)
+                        shadow_color = (0, 0, 0, int(160 * (alpha/255)))
+                        pygame.draw.circle(surf, shadow_color, (lane_w // 2, lane_w // 2 + 2), cr)
+                        
+                        # 2. Main Body
+                        pygame.draw.circle(surf, (*color, alpha), (lane_w // 2, lane_w // 2), cr)
+                        
+                        # 3. Top highlight arc/circle
+                        pygame.draw.circle(surf, (255, 255, 255, int(160 * (alpha/255))), (lane_w // 2, lane_w // 2 - 1), cr - 1, 3)
+                        
+                        # 4. INNER SMALL CIRCLE (Requested by user)
+                        pygame.draw.circle(surf, (255, 255, 255, int(110 * (alpha/255))), (lane_w // 2, lane_w // 2), cr // 3, 2)
+                        
+                        tex = Texture.from_surface(self.renderer, surf)
+                        target_rect = pygame.Rect(nx, ny + note_h // 2 - lane_w // 2, lane_w, lane_w)
+                        self.renderer.blit(tex, target_rect)
 
         # HUD blit
         if not self.hud_texture:
@@ -227,16 +309,37 @@ class GameRenderer:
                 effects_list.remove(eff)
                 continue
             
+            note_type = eff.get('note_type', 0)
             r = self._s(eff['radius'])
-            surf = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
-            pygame.draw.circle(surf, (*eff['color'], eff['alpha']), (r, r), r, self._s(3))
-            core_r = max(1, r // 2)
-            pygame.draw.circle(surf, (255, 255, 255, min(255, eff['alpha'] * 2)), (r, r), core_r)
+            tx = lanes_x[eff['lane']] + lane_w // 2
+            # Shift up by half of NOTE_H (20//2=10) to align with note head center
+            ty = self._s(500 - 10) 
             
-            tex = Texture.from_surface(self.renderer, surf)
-            tx = lanes_x[eff['lane']] + lane_w // 2 - r
-            ty = self._s(500) - r
-            self.renderer.blit(tex, pygame.Rect(tx, ty, r*2, r*2))
+            if note_type == 0: # ── Bar Effect ──
+                # Simplified rectangular burst to match circle intensity
+                # Narrower width (80%) and taller height to match new design
+                bw = int(lane_w * 0.8) + r * 2
+                bh = self._s(15 + r // 6) # Increased height
+                surf = pygame.Surface((bw, bh), pygame.SRCALPHA)
+                
+                # 1. Main Frame (Rectangular outline)
+                pygame.draw.rect(surf, (*eff['color'], eff['alpha']), (0, 0, bw, bh), width=self._s(3), border_radius=self._s(4))
+                # 2. Bright Core
+                core_w = int(lane_w * 0.8)
+                core_h = max(1, bh // 3)
+                pygame.draw.rect(surf, (255, 255, 255, min(255, eff['alpha'])), (r, (bh - core_h) // 2, core_w, core_h), border_radius=self._s(2))
+                
+                tex = Texture.from_surface(self.renderer, surf)
+                self.renderer.blit(tex, pygame.Rect(tx - bw // 2, ty - bh // 2, bw, bh))
+                
+            else: # ── Circle Effect ──
+                surf = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+                pygame.draw.circle(surf, (*eff['color'], eff['alpha']), (r, r), r, self._s(3))
+                core_r = max(1, r // 2)
+                pygame.draw.circle(surf, (255, 255, 255, min(255, eff['alpha'] * 2)), (r, r), core_r)
+                
+                tex = Texture.from_surface(self.renderer, surf)
+                self.renderer.blit(tex, pygame.Rect(tx - r, ty - r, r*2, r*2))
 
     def draw_result(self, stats):
         """

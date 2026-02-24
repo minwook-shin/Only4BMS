@@ -121,7 +121,10 @@ class RhythmGame:
         elif key == "MISS":
             self.combo = 0
         if lane is not None:
-            self.effects.append({'lane': lane, 'radius': 30, 'color': j["color"], 'alpha': 255})
+            self.effects.append({
+                'lane': lane, 'radius': 30, 'color': j["color"], 'alpha': 255,
+                'note_type': self.settings.get('note_type', 0)
+            })
 
     def set_ai_judgment(self, key, lane, t=None):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
@@ -135,7 +138,10 @@ class RhythmGame:
             self.ai_combo += 1
             self.ai_max_combo = max(self.ai_max_combo, self.ai_combo)
             self.ai_combo_timer = t
-        self.ai_effects.append({'lane': lane, 'radius': 30, 'color': j["color"], 'alpha': 255})
+        self.ai_effects.append({
+            'lane': lane, 'radius': 30, 'color': j["color"], 'alpha': 255,
+            'note_type': self.settings.get('ai_note_type', 0)
+        })
 
     def on_ln_tick(self, t=None):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
@@ -203,11 +209,17 @@ class RhythmGame:
                     for lane, note in enumerate(self.engine.held_lns):
                         if note:
                             # Use a slightly smaller radius for continuous sparks
-                            self.effects.append({'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160})
+                            self.effects.append({
+                                'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
+                                'note_type': self.settings.get('note_type', 0)
+                            })
                     if self.mode == 'ai_multi':
                         for lane, note in enumerate(self.ai_engine.held_lns):
                             if note:
-                                self.ai_effects.append({'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160})
+                                self.ai_effects.append({
+                                    'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
+                                    'note_type': self.settings.get('ai_note_type', 0)
+                                })
 
                 self._draw(now)
             elif self.state == "PAUSED": self._draw_paused()
@@ -273,7 +285,8 @@ class RhythmGame:
                 'lane_total_w': self.lane_total_w, 'speed': self.speed, 'hw_mult': self.hw_mult,
                 'held_lns': self.engine.held_lns, 'current_visual_time': self.engine.current_visual_time,
                 'all_notes_passed': self.engine.all_notes_passed,
-                'all_notes_passed_time': self.engine.all_notes_passed_time
+                'all_notes_passed_time': self.engine.all_notes_passed_time,
+                'note_type': self.settings.get('note_type', 0)
             }
         else:
             return {
@@ -284,7 +297,9 @@ class RhythmGame:
                 'lane_total_w': self.lane_total_w, 'speed': self.speed, 'hw_mult': self.hw_mult,
                 'held_lns': self.ai_engine.held_lns, 'current_visual_time': self.ai_engine.current_visual_time,
                 'all_notes_passed': self.ai_engine.all_notes_passed,
-                'all_notes_passed_time': self.ai_engine.all_notes_passed_time
+                'all_notes_passed_time': self.ai_engine.all_notes_passed_time,
+                'note_type': self.settings.get('ai_note_type', 0),
+                'is_ai': True
             }
 
     def _draw_paused(self):

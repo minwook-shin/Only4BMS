@@ -1,3 +1,5 @@
+import json
+import os
 import sys
 import pygame
 
@@ -19,7 +21,11 @@ DEFAULT_SETTINGS = {
     "audio_buffer": 1024,
     "audio_channels": 2,
     "judge_delay": 30.0,
+    "note_type": 0,
+    "ai_note_type": 0,
 }
+
+SETTINGS_FILE = "settings.json"
 
 MIXER_CHANNELS = 256
 
@@ -71,10 +77,34 @@ def apply_display_mode(settings, window):
     window.show()
 
 
+def load_settings():
+    """Load settings from JSON, merging with defaults."""
+    settings = dict(DEFAULT_SETTINGS)
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                saved = json.load(f)
+                settings.update(saved)
+        except Exception as e:
+            print(f"Warning: Failed to load settings ({e})")
+    return settings
+
+
+def save_settings(settings):
+    """Save current settings to JSON (excluding runtime-only keys)."""
+    # Filter out keys starting with _ (internal/runtime)
+    to_save = {k: v for k, v in settings.items() if not k.startswith("_")}
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(to_save, f, indent=4)
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+
+
 # ── Entry point ──────────────────────────────────────────────────────────
 
 def main():
-    settings = dict(DEFAULT_SETTINGS)
+    settings = load_settings()
 
     # Pre-init audio and pygame
     pygame.mixer.pre_init(
@@ -122,6 +152,7 @@ def main():
 
         if menu_action == "SETTINGS":
             SettingsMenu(settings, renderer=renderer, window=window).run()
+            save_settings(settings)
             continue
 
         if menu_action in ("SINGLE", "AI_MULTI"):
@@ -130,11 +161,12 @@ def main():
             while True:
                 action, selected_song, ai_difficulty = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode).run()
 
-                if action == "QUIT" or not action:
+                if action in ("QUIT", "MENU") or not action:
                     break
 
                 if action == "SETTINGS":
                     SettingsMenu(settings, renderer=renderer, window=window).run()
+                    save_settings(settings)
                     continue
 
                 if action == "PLAY" and selected_song:
