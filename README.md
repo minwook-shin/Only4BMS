@@ -1,13 +1,8 @@
 # Only4BMS
 
-Training AI to Learn Long Notes
+<img width="2556" height="1439" alt="스크린샷 2026-02-24 230333" src="https://github.com/user-attachments/assets/68d1891b-891b-4927-ab81-96f7bbc098f7" />
 
-[![Only4BMS AI Battle1](https://img.youtube.com/vi/XcOX6EJuddw/0.jpg)](https://youtu.be/XcOX6EJuddw)
-
-Training AI to Learn dynamic BPM gimmicks
-
-[![Only4BMS AI Battle2](https://img.youtube.com/vi/enBUNKZaR4M/0.jpg)](https://youtu.be/enBUNKZaR4M)
-
+[![Only4BMS AI Battle1](https://img.youtube.com/vi/mrSUp4h7DnE/0.jpg)](https://youtu.be/mrSUp4h7DnE)
 
 7 keys? No thanks. 
 
