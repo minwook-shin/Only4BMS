@@ -122,6 +122,8 @@ class RhythmGame:
             self.ai_judgment_color = (255, 255, 255)
             self.ai_effects = []
             self.ai_hit_history = [] # List of (time_ms, err_ms, key)
+            self.ai_update_timer = 0.0
+            self.ai_dt = 1.0 / 120.0 # 120Hz AI update frequency
 
     def _play_sound(self, sid):
         if sid in self.assets.sounds and self.assets.sounds[sid]:
@@ -295,17 +297,23 @@ class RhythmGame:
                     # We use the midpoint of the sub-step for logic to balance jitter
                     sim_time_ms = (simulated_real_time - self.start_time) * 1000.0
                     
-                    if self.mode == 'ai_multi':
-                        self._update_ai(sim_time_ms)
+                    sim_time_ms = (simulated_real_time - self.start_time) * 1000.0
+                    
                     if self.engine.update(sim_time_ms):
                         self.state = "RESULT"
-                
                 simulated_real_time += dt_logic
                 accumulator -= dt_logic
                 # Safety break to prevent "Spiral of Death"
                 if time.perf_counter() - t_now > 0.05:
                     accumulator = 0 # Drop frames if we can't keep up
                     break 
+            
+            # 1c. Separate AI Update (Throttled to 120Hz)
+            if self.mode == 'ai_multi' and self.state == "PLAYING":
+                if t_now - self.ai_update_timer >= self.ai_dt:
+                    sim_time_ms = (t_now - self.start_time) * 1000.0
+                    self._update_ai(sim_time_ms)
+                    self.ai_update_timer = t_now
             
             # 2. Render Loop (Capped)
             t_render_check = time.perf_counter()

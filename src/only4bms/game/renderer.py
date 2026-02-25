@@ -147,6 +147,7 @@ class GameRenderer:
         ltw = game_state['lane_total_w']
         spd = game_state['speed']
         hw = game_state['hw_mult']
+        note_type = game_state['note_type'] # Already pre-fetched in rhythm_game
         current_visual_time = game_state.get('current_visual_time', current_time)
         lane_w = lx[1] - lx[0] if len(lx) > 1 else self._sx(75)
         note_h = self._s(NOTE_H)
@@ -269,7 +270,7 @@ class GameRenderer:
                     self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, (hit_y - note_h) + note_h // 2))
 
                 # Head
-                if game_state.get('note_type', 0) == 0:
+                if note_type == 0:
                     bw, bh = int(lane_w * 0.8), int(note_h * 1.5)
                     bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
                     self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
@@ -321,7 +322,7 @@ class GameRenderer:
                         self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, int(y) + note_h // 2))
 
                 # Note Head
-                if game_state.get('note_type', 0) == 0:
+                if note_type == 0:
                     bw, bh = int(lane_w * 0.8), int(note_h * 1.5)
                     bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
                     self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
