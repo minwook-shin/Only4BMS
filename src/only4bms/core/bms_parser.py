@@ -38,6 +38,10 @@ class BMSParser:
         self.filepath = filepath
         self.bms_dir = os.path.dirname(filepath)
 
+        with open(filepath, 'rb') as f:
+            import hashlib
+            self.hash = hashlib.md5(f.read()).hexdigest()
+
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             self.lines = f.read().split('\n')
 
@@ -80,7 +84,7 @@ class BMSParser:
             self.banner = self._resolve_image_path(None)
             
         return (self.title, self.artist, self.bpm, self.playlevel, 
-                self.genre, self.total_notes, self.preview, self.stagefile, self.banner)
+                self.genre, self.total_notes, self.preview, self.stagefile, self.banner, self.hash)
 
     # ── Full parse ───────────────────────────────────────────────────────
 

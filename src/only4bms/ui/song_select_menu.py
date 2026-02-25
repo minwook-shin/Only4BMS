@@ -33,6 +33,8 @@ class SongSelectMenu:
         self.mode = mode
         self.ai_difficulties = ['normal', 'hard']
         self.ai_diff_idx = 0
+        self.note_mods = ['None', 'Mirror', 'Random']
+        self.note_mod_idx = 0
         
         self.w, self.h = self.window.size
         self.sx, self.sy = self.w / BASE_W, self.h / BASE_H
@@ -83,7 +85,11 @@ class SongSelectMenu:
         # Input debouncing
         self.ignore_enter = pygame.key.get_pressed()[pygame.K_RETURN]
 
+        # Core data
+        self.song_groups = []
         self.scan_songs()
+        
+        self.last_previewed_path = None
 
     def _s(self, v):
         """Scale a base-800x600 value to current resolution."""
@@ -112,13 +118,13 @@ class SongSelectMenu:
             try:
                 folder = os.path.dirname(f)
                 res = BMSParser(f).get_metadata()
-                title, artist, bpm, playlevel, genre, total_notes, preview_path, stagefile, banner = res
+                title, artist, bpm, playlevel, genre, total_notes, preview_path, stagefile, banner, h_val = res
                 
                 chart_data = {
                     'filepath': f, 'title': title, 'artist': artist,
                     'bpm': bpm, 'playlevel': playlevel, 'genre': genre,
                     'total_notes': total_notes, 'preview_path': preview_path,
-                    'stagefile': stagefile, 'banner': banner
+                    'stagefile': stagefile, 'banner': banner, 'hash': h_val
                 }
                 
                 if folder not in groups_dict:
@@ -317,7 +323,7 @@ class SongSelectMenu:
             
         pygame.key.set_repeat(0)
         pygame.mixer.music.stop()
-        return self.action, self.selected_song_path, self.ai_difficulties[self.ai_diff_idx]
+        return self.action, self.selected_song_path, self.ai_difficulties[self.ai_diff_idx], self.note_mods[self.note_mod_idx]
 
     # ── Event handling ───────────────────────────────────────────────────
 
@@ -339,8 +345,8 @@ class SongSelectMenu:
                 self._handle_nav_key(event.key)
             elif event.type == pygame.MOUSEWHEEL and not self.search_mode and not self.show_guide:
                 self._move_selection(-1 if event.y > 0 else 1)
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                self._handle_click(event.pos)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self._handle_click(event.pos, event.button)
 
     def _handle_search_key(self, event):
         if event.key == pygame.K_ESCAPE:
@@ -375,6 +381,16 @@ class SongSelectMenu:
             self.action = "SETTINGS"
             self.running = False
             pygame.mixer.music.stop()
+        elif key == pygame.K_m: # Note Mod toggle
+            self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
+        elif key == pygame.K_1: # Dec Speed
+            self.settings['speed'] = max(0.1, self.settings.get('speed', 1.0) - 0.1)
+        elif key == pygame.K_2: # Inc Speed
+            self.settings['speed'] = min(2.0, self.settings.get('speed', 1.0) + 0.1)
+        elif key == pygame.K_t: # Toggle Player Note Type
+            self.settings['note_type'] = "Circle" if self.settings.get('note_type', "Bar") == "Bar" else "Bar"
+        elif key == pygame.K_a: # Toggle AI Note Type
+            self.settings['ai_note_type'] = "Circle" if self.settings.get('ai_note_type', "Bar") == "Bar" else "Bar"
         elif key == pygame.K_F3:
             self.search_mode = True
             self.search_query = ""
@@ -382,13 +398,23 @@ class SongSelectMenu:
             self.song_groups = []
             self.scan_songs()
 
-    def _handle_click(self, pos):
+    def _handle_click(self, pos, button=1):
         if self.show_guide:
             self.show_guide = False
             return
         if self.search_mode:
             return
         mx, my = pos
+
+        # Check Gameplay Options Rects
+        for r, action in getattr(self, '_opt_rects', []):
+            if r.collidepoint(mx, my):
+                if action == "SPEED": 
+                    delta = -0.1 if button == 1 else 0.1
+                    self.settings['speed'] = max(0.1, min(2.0, self.settings.get('speed', 1.0) + delta))
+                elif action == "TYPE": self.settings['note_type'] = "Circle" if self.settings.get('note_type', "Bar") == "Bar" else "Bar"
+                elif action == "AI_TYPE": self.settings['ai_note_type'] = "Circle" if self.settings.get('ai_note_type', "Bar") == "Bar" else "Bar"
+                return
 
         for btn_rect, btn_action in self._nav_buttons:
             if btn_rect.collidepoint(mx, my):
@@ -403,6 +429,8 @@ class SongSelectMenu:
                     self.scan_songs()
                 elif btn_action == "DIFF":
                     self.ai_diff_idx = (self.ai_diff_idx + 1) % len(self.ai_difficulties)
+                elif btn_action == "MOD":
+                    self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
                 return
 
         margin_l, margin_r = self._sx_v(360), self._sx_v(760)
@@ -415,13 +443,30 @@ class SongSelectMenu:
             row = i - self.scroll_offset
             y_top = start_y + row * row_h
             if y_top <= my <= y_top + row_h:
-                if self.selected_group_idx == i:
-                    self._select_play()
-                else:
-                    self.selected_group_idx = i
-                    self.selected_chart_idx = 0
-                    self._update_background()
-                    self.preview_timer = pygame.time.get_ticks()
+                # 1. Check difficulty badges first
+                group = self.song_groups[i]
+                found_badge = False
+                if button == 1:
+                    for br, c_idx in group.get('badge_rects', []):
+                        if br.collidepoint(mx, my):
+                            self.selected_group_idx = i
+                            self.selected_chart_idx = c_idx
+                            self._update_background()
+                            self.preview_timer = pygame.time.get_ticks()
+                            found_badge = True
+                            break
+                
+                if found_badge: break
+
+                # 2. Main row click (select if already active, else switch group)
+                if button == 1:
+                    if self.selected_group_idx == i:
+                        self._select_play()
+                    else:
+                        self.selected_group_idx = i
+                        self.selected_chart_idx = 0
+                        self._update_background()
+                        self.preview_timer = pygame.time.get_ticks()
                 break
 
     # ── Drawing ──────────────────────────────────────────────────────────
@@ -545,35 +590,104 @@ class SongSelectMenu:
             artist_surf = self.small_font.render(group['artist'], True, COLOR_TEXT_SECONDARY)
             self.screen.blit(artist_surf, (margin_l + self._sx_v(15), y + self._s(42)))
             
-            # Difficulty indicators (Limited to 4 circles in list, anchored to right)
-            base_dx = rect.right - self._sx_v(25)
-            max_circles = 4
+            # Difficulty indicators (Text badges in list)
+            base_dx = rect.right - self._sx_v(40)
             charts = group['charts']
-            display_charts = charts[-max_circles:]
             
-            # 1. Draw up to 4 circles from right to left
+            # Map levels to short labels if possible
+            def get_diff_label(chart):
+                lv = str(chart['playlevel'])
+                f = chart['filepath'].lower()
+                if 'beginner' in f or '7b' in f or '5b' in f: return "BEG"
+                if 'normal' in f or '7n' in f or '5n' in f: return "NOR"
+                if 'hyper' in f or '7h' in f or '5h' in f: return "HYP"
+                if 'another' in f or '7a' in f or '5a' in f: return "ANO"
+                if 'insane' in f or '7i' in f: return "INS"
+                return "LV."
+            
+            # Store badge rects for clicking
+            group['badge_rects'] = []
+            
+            # Scrollable window of badges
+            num_badges = 4
+            num_charts = len(charts)
+            
+            # Find window range to show
+            if i == self.selected_group_idx:
+                # Center around selected_chart_idx
+                start = max(0, self.selected_chart_idx - 1)
+                if start + num_badges > num_charts:
+                    start = max(0, num_charts - num_badges)
+                end_idx = min(num_charts, start + num_badges)
+            else:
+                start = 0
+                end_idx = min(num_charts, num_badges)
+
+            group['badge_rects'] = []
             dx = base_dx
-            for chart in reversed(display_charts):
-                lv = chart['playlevel']
-                lv_surf = self.small_font.render(str(lv), True, COLOR_TEXT_PRIMARY)
-                pygame.draw.circle(self.screen, (80, 80, 100), (dx, y + row_h // 2 - 2), self._s(12))
-                self.screen.blit(lv_surf, lv_surf.get_rect(center=(dx, y + row_h // 2 - 2)))
-                dx -= self._sx_v(30)
             
-            # 2. Draw +N label to the left of circles if necessary
-            if len(charts) > max_circles:
-                count_surf = self.small_font.render(f"+{len(charts)-max_circles}", True, COLOR_TEXT_SECONDARY)
-                self.screen.blit(count_surf, count_surf.get_rect(midright=(dx + self._sx_v(5), y + row_h // 2 - 2)))
+            # Show "more" indicator if there are charts before the window
+            if start > 0:
+                self.screen.blit(self.small_font.render("<", True, COLOR_TEXT_SECONDARY), (dx - self._sx_v(15), y + row_h // 2 - 10))
+                dx -= self._sx_v(20)
+
+            # Draw badges from left to right (actually anchor right and go left but in order)
+            # Wait, it's easier to just draw them consistently.
+            # Let's draw from dx going left-ish but let's calculate total width first or just iterate.
+            
+            visible_charts = charts[start:end_idx]
+            # To keep right-alignment, we still iterate reversed(visible_charts) or similar.
+            for v_idx, chart in enumerate(reversed(visible_charts)):
+                actual_idx = start + (len(visible_charts) - 1 - v_idx)
+                
+                label = get_diff_label(chart)
+                lv = str(chart['playlevel'])
+                    
+                label = get_diff_label(chart)
+                lv = str(chart['playlevel'])
+                txt = f"{label} {lv}"
+                
+                # Colors based on difficulty
+                l_lower = label.lower()
+                bg_color = (60, 60, 80)
+                if l_lower == "beg": bg_color = (130, 200, 130)
+                elif l_lower == "nor": bg_color = (100, 150, 255)
+                elif l_lower == "hyp": bg_color = (255, 200, 100)
+                elif l_lower == "ano": bg_color = (255, 100, 100)
+                elif l_lower == "ins": bg_color = (200, 80, 255)
+                
+                t_surf = self.small_font.render(txt, True, (255, 255, 255))
+                tw, th = t_surf.get_width() + self._sx_v(10), self._s(20)
+                br = pygame.Rect(dx - tw, y + row_h // 2 - th // 2, tw, th)
+                
+                # Highlight if this is the selected chart for the *selected* group
+                is_sel_chart = (self.selected_group_idx == i and self.selected_chart_idx == actual_idx)
+                if is_sel_chart:
+                    pygame.draw.rect(self.screen, (255, 255, 255), br.inflate(4, 4), border_radius=4)
+                
+                pygame.draw.rect(self.screen, bg_color, br, border_radius=4)
+                self.screen.blit(t_surf, t_surf.get_rect(center=br.center))
+                
+                # Save hitbox (relative to screen)
+                if self.selected_group_idx == i:
+                    group['badge_rects'].append((br, actual_idx))
+                
+                dx -= tw + self._sx_v(8)
+                
+            # Show "more" indicator if there are charts after the window
+            if end_idx < num_charts:
+                self.screen.blit(self.small_font.render(">", True, COLOR_TEXT_SECONDARY), (base_dx + self._sx_v(5), y + row_h // 2 - 10))
 
     def _draw_info_panel(self):
         if not self.song_groups: return
+        mx, my = pygame.mouse.get_pos()
         group = self.song_groups[self.selected_group_idx]
         chart = group['charts'][self.selected_chart_idx]
         
         panel_x = self._sx_v(40)
-        panel_y = self._s(110)
+        panel_y = self._s(85) # Moved up from 110
         panel_w = self._sx_v(290)
-        panel_h = self.h - panel_y - self._s(50)
+        panel_h = self.h - panel_y - self._s(40) # Slightly taller panel
         
         # Glass Panel for Info (Using Surface for correct blending)
         psurf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
@@ -582,30 +696,30 @@ class SongSelectMenu:
         pygame.draw.rect(self.screen, (COLOR_ACCENT[0], COLOR_ACCENT[1], COLOR_ACCENT[2], 60), (panel_x, panel_y, panel_w, panel_h), 1, border_radius=15)
 
         # Content
-        cx = panel_x + 25
-        y = panel_y + 30
+        cx = panel_x + 20
+        y = panel_y + 20
         
         # Genre
         self.screen.blit(self.small_font.render(group['genre'].upper(), True, COLOR_ACCENT), (cx, y))
-        y += self._s(30)
+        y += self._s(25)
         
         # Title (Use chart specific title, limit to 1 line to prevent vertical overflow)
         title_text = chart['title']
-        if self.title_font.size(title_text)[0] > (panel_w - 50):
-            while self.title_font.size(title_text + "...")[0] > (panel_w - 50) and len(title_text) > 0:
+        if self.title_font.size(title_text)[0] > (panel_w - 40):
+            while self.title_font.size(title_text + "...")[0] > (panel_w - 40) and len(title_text) > 0:
                 title_text = title_text[:-1]
             title_text += "..."
         self.screen.blit(self.title_font.render(title_text.strip(), True, COLOR_TEXT_PRIMARY), (cx, y))
-        y += self._s(45) # Tighter spacing
+        y += self._s(50) # Tighter spacing
         
         # Artist (Use chart specific artist, truncate if too long)
         artist_text = chart['artist']
-        if self.font.size(artist_text)[0] > (panel_w - 50):
-            while self.font.size(artist_text + "...")[0] > (panel_w - 50) and len(artist_text) > 0:
+        if self.font.size(artist_text)[0] > (panel_w - 40):
+            while self.font.size(artist_text + "...")[0] > (panel_w - 40) and len(artist_text) > 0:
                 artist_text = artist_text[:-1]
             artist_text += "..."
         self.screen.blit(self.font.render(artist_text, True, COLOR_TEXT_SECONDARY), (cx, y))
-        y += self._s(50) # Tighter spacing
+        y += self._s(55) # Tighter spacing
         
         # Stats Grid
         stats = [
@@ -614,48 +728,67 @@ class SongSelectMenu:
             ("LEVEL", f"Lv.{chart['playlevel']}")
         ]
         
-        y += self._s(15) # Add some breathing room before the grid
+        y += self._s(10) # Add some breathing room before the grid
         stat_x = cx
-        stat_spacing = self._sx_v(115) # Increased from 100 for better separation
+        stat_spacing = self._sx_v(85)
         for label, val in stats:
             self.screen.blit(self.small_font.render(label, True, COLOR_ACCENT_DIM), (stat_x, y))
-            # Increased vertical gap between label and value (25 -> 32 scaled)
-            self.screen.blit(self.font_bold.render(val, True, COLOR_TEXT_PRIMARY), (stat_x, y + self._s(32)))
+            self.screen.blit(self.font_bold.render(val, True, COLOR_TEXT_PRIMARY), (stat_x, y + self._s(24)))
             stat_x += stat_spacing
         
-        y += self._s(110) # Increased from 100
+        y += self._s(100) # Tighter gap before Gameplay Options
         
-        # Difficulty Selector (Ultra Compact)
-        self.screen.blit(self.small_font.render("SELECT DIFFICULTY (Left / Right)", True, COLOR_ACCENT_DIM), (cx, y))
-        y += self._s(30)
+        # ── GAMEPLAY OPTIONS ──
+        self.screen.blit(self.small_font.render("GAMEPLAY OPTIONS", True, COLOR_ACCENT), (cx, y))
+        y += self._s(25)
         
-        dx = cx
-        row_limit = cx + panel_w - 40
-        icon_size = self._sx_v(32)
-        spacing = self._sx_v(38)
+        opt_rects = []
+        # Item spacing
+        iy = self._s(28)
         
-        for idx, c in enumerate(group['charts']):
-            is_sel = idx == self.selected_chart_idx
-            
-            # Wrap if too many
-            if dx + spacing > row_limit:
-                dx = cx
-                y += spacing + self._s(5)
-            
-            rect = pygame.Rect(dx, y, icon_size, icon_size)
-            color = COLOR_ACCENT if is_sel else (60, 60, 80)
-            pygame.draw.rect(self.screen, color, rect, border_radius=4)
-            
-            # Use very small font for level if needed
-            lv_text = self.small_font.render(str(c['playlevel']), True, (255, 255, 255) if is_sel else (180, 180, 200))
-            self.screen.blit(lv_text, lv_text.get_rect(center=rect.center))
-            
-            if is_sel:
-                pygame.draw.rect(self.screen, (255, 255, 255), rect, 2, border_radius=4)
-            
-            dx += spacing
+        # Speed
+        speed = self.settings.get('speed', 1.0)
+        s_rect = pygame.Rect(cx, y, panel_w - 40, iy)
+        if s_rect.collidepoint(mx, my):
+            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, s_rect, border_radius=5)
+        self.screen.blit(self.small_font.render(f"SPEED: x{speed:.1f} (1/2)", True, COLOR_TEXT_SECONDARY), (cx, y))
+        opt_rects.append((s_rect, "SPEED"))
+        y += iy
+        
+        y += iy
+        
+        # Player Note Type
+        n_type = "CIRCLE" if self.settings.get('note_type', 0) == "Circle" else "BAR"
+        t_rect = pygame.Rect(cx, y, panel_w - 40, iy)
+        if t_rect.collidepoint(mx, my):
+            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, t_rect, border_radius=5)
+        self.screen.blit(self.small_font.render(f"PLAYER NOTE: {n_type} (T)", True, COLOR_TEXT_SECONDARY), (cx, y))
+        opt_rects.append((t_rect, "TYPE"))
+        y += iy
+        
+        # AI Note Type
+        ai_n_type = "CIRCLE" if self.settings.get('ai_note_type', 0) == "Circle" else "BAR"
+        a_rect = pygame.Rect(cx, y, panel_w - 40, iy)
+        if a_rect.collidepoint(mx, my):
+            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, a_rect, border_radius=5)
+        self.screen.blit(self.small_font.render(f"AI NOTE: {ai_n_type} (A)", True, COLOR_TEXT_SECONDARY), (cx, y))
+        opt_rects.append((a_rect, "AI_TYPE"))
+        self._opt_rects = opt_rects # Store for click handler
 
-
+        # ── NOTE MOD ──
+        # Adding some space since records are gone
+        y += self._s(40)
+        self.screen.blit(self.small_font.render("NOTE MOD (M)", True, COLOR_ACCENT_DIM), (cx, y))
+        y += self._s(25)
+        mod_rect = pygame.Rect(cx, y, panel_w - 40, self._s(28))
+        hover_mod = mod_rect.collidepoint(mx, my)
+        if hover_mod:
+            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, mod_rect, border_radius=5)
+        
+        mod_text = self.note_mods[self.note_mod_idx]
+        mod_surf = self.small_font.render(mod_text, True, COLOR_ACCENT if hover_mod else COLOR_TEXT_PRIMARY)
+        self.screen.blit(mod_surf, (cx + 10, y + 2))
+        self._nav_buttons.append((mod_rect, "MOD"))
 
     def _wrap_text(self, text, font, max_w):
         words = text.split(' ')

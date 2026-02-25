@@ -48,9 +48,10 @@ class GameEngine:
             for sid in closest['sample_ids']:
                 self.play_sound_cb(sid)
 
+            timing_diff = current_time - closest['time_ms'] # Positive means LATE, Negative means FAST
             for key in ("PERFECT", "GREAT", "GOOD"):
                 if min_diff <= JUDGMENT_DEFS[key]["threshold_ms"] * self.hw_mult:
-                    self.set_judgment_cb(key, lane, current_time)
+                    self.set_judgment_cb(key, lane, current_time, timing_diff)
                     if closest.get('is_ln'):
                         self.held_lns[lane] = closest
                         closest['start_judgment'] = key
@@ -69,11 +70,12 @@ class GameEngine:
         # If released too early (outside window)
         if note['end_time_ms'] - current_time > max_window:
             note['miss'] = True
-            self.set_judgment_cb("MISS", lane, current_time)
+            self.set_judgment_cb("MISS", lane, current_time, 0)
         else:
             # Lenient release: ignore exact timing, use the judgment from the start hit
             judgment = note.get('start_judgment', 'PERFECT')
-            self.set_judgment_cb(judgment, lane, current_time)
+            timing_diff = current_time - note['end_time_ms']
+            self.set_judgment_cb(judgment, lane, current_time, timing_diff)
             # Play release sounds if defined
             for sid in note.get('end_sample_ids', []):
                 self.play_sound_cb(sid)
@@ -93,6 +95,28 @@ class GameEngine:
         
         start_real, start_visual, factor = best_seg
         return start_visual + (current_real_time - start_real) * factor
+
+    def get_observation(self, current_time, lane, jitter=0.0, is_pressed=False):
+        """Constructs a 3-feature observation for the AI model."""
+        miss_window = JUDGMENT_DEFS["MISS"]["threshold_ms"] * self.hw_mult
+        active_notes = [
+            n for n in self.notes 
+            if 'hit' not in n and 'miss' not in n and (n['time_ms'] - current_time) <= 1000.0
+        ]
+        
+        obs = np.ones(3, dtype=np.float32) # Default far away
+        ttns = []
+        for n in active_notes:
+            if n['lane'] == lane:
+                p_ttn = (n['time_ms'] - current_time)
+                if jitter > 0: p_ttn += np.random.normal(0, jitter)
+                if p_ttn >= -miss_window:
+                    ttns.append(p_ttn)
+        ttns.sort()
+        if ttns: obs[0] = ttns[0] / 1000.0
+        if len(ttns) > 1: obs[1] = ttns[1] / 1000.0
+        obs[2] = float(is_pressed)
+        return obs
 
     def update(self, current_time):
         self.current_visual_time = self.get_visual_time(current_time)
@@ -119,7 +143,7 @@ class GameEngine:
                     break # Future auto-note
             elif current_time - note['time_ms'] > miss_window:
                 note['miss'] = True
-                self.set_judgment_cb("MISS", note['lane'], current_time)
+                self.set_judgment_cb("MISS", note['lane'], current_time, 0)
                 self.note_idx += 1
                 # Do NOT break; check next note
             elif current_time >= note['time_ms'] and self.held_lns[note['lane']] is not None:
@@ -127,7 +151,7 @@ class GameEngine:
                 note['hit'] = True
                 for sid in note['sample_ids']:
                     self.play_sound_cb(sid)
-                self.set_judgment_cb("PERFECT", note['lane'], current_time)
+                self.set_judgment_cb("PERFECT", note['lane'], current_time, 0)
                 self.note_idx += 1
                 # Do NOT break
             else:
@@ -140,7 +164,7 @@ class GameEngine:
                 miss_limit = note['end_time_ms'] + (JUDGMENT_DEFS["GOOD"]["threshold_ms"] * self.hw_mult)
                 if current_time > miss_limit:
                     judgment = note.get('start_judgment', 'PERFECT')
-                    self.set_judgment_cb(judgment, lane, current_time)
+                    self.set_judgment_cb(judgment, lane, current_time, 0)
                     for sid in note.get('end_sample_ids', []):
                         self.play_sound_cb(sid)
                     self.held_lns[lane] = None

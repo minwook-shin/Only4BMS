@@ -18,7 +18,7 @@ DEFAULT_SETTINGS = {
     "hit_window_mult": 1.0,
     "fullscreen": 1,
     "audio_freq": 44100,
-    "audio_buffer": 256,
+    "audio_buffer": 128,
     "audio_channels": 2,
     "judge_delay": 10.0,
     "note_type": 0,
@@ -172,7 +172,8 @@ def main():
             mode = 'ai_multi' if menu_action == "AI_MULTI" else 'single'
             
             while True:
-                action, selected_song, ai_difficulty = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode).run()
+                res = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode).run()
+                action, selected_song, ai_difficulty, note_mod = res
 
                 if action in ("QUIT", "MENU") or not action:
                     break
@@ -206,13 +207,18 @@ def main():
                         "banner": parser.banner,
                         "total": parser.total,
                     }
-                    game = RhythmGame(
-                        notes, bgms, bgas, parser.wav_map, bmp_map,
-                        parser.title, settings, visual_timing_map=visual_timing_map, mode=mode, metadata=metadata,
-                        renderer=renderer, window=window,
-                        ai_difficulty=ai_difficulty # New argument
-                    )
-                    game.run()
+                    while True:
+                        game = RhythmGame(
+                            notes, bgms, bgas, parser.wav_map, bmp_map,
+                            parser.title, settings, visual_timing_map=visual_timing_map, mode=mode, metadata=metadata,
+                            renderer=renderer, window=window,
+                            ai_difficulty=ai_difficulty, note_mod=note_mod
+                        )
+                        result = game.run()
+                        if result != "RESTART":
+                            break
+                        # Restarting involves re-initializing mixer if needed or just re-running
+                        _init_mixer(settings)
 
 
     pygame.quit()

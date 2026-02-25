@@ -51,17 +51,14 @@ class SettingsMenu:
             
             # GAMEPLAY Category
             {"type": "category", "label": "GAMEPLAY"},
-            {"key": "speed",           "label": "Scroll Speed",          "step": 0.1, "min": 0.1,   "max": 2.0},
             {"key": "visual_offset",   "label": "Visual Offset (ms)",    "step": 1,   "min": -200,  "max": 200},
             {"key": "hit_window_mult", "label": "Hit Window Multiplier", "step": 0.1, "min": 0.5,   "max": 3.0},
             {"key": "judge_delay",     "label": "Judge Delay (ms)",     "step": 1,   "min": -200,  "max": 200},
-            {"key": "note_type",       "label": "Note Appearance (Player)", "type": "choice", "choices_key": "_note_type_opts"},
-            {"key": "ai_note_type",    "label": "Note Appearance (AI)",     "type": "choice", "choices_key": "_note_type_opts"},
         ]
         self.settings.setdefault("_fullscreen_opts", ["Off", "On"])
         self.settings.setdefault("_note_type_opts", ["Bar", "Circle"])
+        self.settings.setdefault("_bool_opts", ["OFF", "ON"]) # Added this line
         self.settings.setdefault("fullscreen", 0)
-        self.settings.setdefault("note_type", 0)
         self.settings.setdefault("note_type", 0)
         self.settings.setdefault("ai_note_type", 0)
         self.selected_index = 1 # Start at first setting, skip SYSTEM header
@@ -94,9 +91,10 @@ class SettingsMenu:
             idx = self.settings.get(item["key"], 0)
             name = choices[idx] if idx < len(choices) else "Default"
             return (name[:MAX_CHOICE_NAME_LEN - 2] + "..") if len(name) > MAX_CHOICE_NAME_LEN else name
+        val = self.settings.get(item["key"], 0)
         if item["key"] in INT_KEYS:
-            return str(int(self.settings[item["key"]]))
-        return f"{self.settings[item['key']]:.1f}"
+            return str(int(val))
+        return f"{float(val):.1f}"
 
     @staticmethod
     def _row_color(index, selected, hovered):

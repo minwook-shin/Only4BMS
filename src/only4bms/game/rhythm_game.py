@@ -1,3 +1,5 @@
+import os
+import json
 import time
 import pygame
 import copy
@@ -10,7 +12,7 @@ from .engine import GameEngine
 from .renderer import GameRenderer
 
 class RhythmGame:
-    def __init__(self, notes, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal'):
+    def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal', note_mod='None'):
         self.mode = mode
         self.ai_difficulty = ai_difficulty
         self.renderer = renderer
@@ -19,6 +21,9 @@ class RhythmGame:
         self.title = title
         self.settings = settings
         self.metadata = metadata or {}
+        
+        # Deepcopy notes so modifications like Mirror/Random don't persist across restarts
+        notes = copy.deepcopy(notes_orig)
         
         # Load Assets
         self.assets = AssetLoader(renderer, window, title, self.metadata, settings)
@@ -62,17 +67,21 @@ class RhythmGame:
                     end_t = note['time_ms'] + self.assets.sounds[sid].get_length() * 1000.0
                     max_time = max(max_time, end_t)
         
+        # Apply Note Mods (Mirror/Random)
+        if note_mod != 'None':
+            self._apply_note_mod(notes, note_mod)
+
         self.engine = GameEngine(notes, bgms, bgas, self.hw_mult, self._play_sound, self.set_judgment, max_time, visual_timing_map, last_note_time, self.on_ln_tick)
         
         if self.mode == 'ai_multi':
             from ..ai.inference import RhythmInference
             self.ai_model = RhythmInference(self.ai_difficulty)
-            self.ai_notes = copy.deepcopy(notes)
+            self.ai_notes = copy.deepcopy(notes) # AI gets the same modified notes
             self.ai_engine = GameEngine(self.ai_notes, [], [], self.hw_mult, lambda s: None, self.set_ai_judgment, max_time, visual_timing_map, last_note_time, self.on_ai_ln_tick)
             self.ai_lane_pressed = [False] * NUM_LANES
 
         # Presentation
-        self.game_renderer = GameRenderer(renderer, (self.width, self.height))
+        self.game_renderer = GameRenderer(renderer, (self.width, self.height), self.settings)
         self.keys = [pygame.K_d, pygame.K_f, pygame.K_j, pygame.K_k]
         self.clock = pygame.time.Clock()
         
@@ -88,32 +97,52 @@ class RhythmGame:
         self.combo = 0
         self.max_combo = 0
         self.judgment_text = ""
+        self.judgment_key = ""
         self.judgment_timer = 0
         self.combo_timer = 0
         self.judgment_color = (255, 255, 255)
+        self.judgment_err = 0 # ms error
+        self.judgment_err_timer = 0
+        self.jitter_history = [] # Last 50 timing errors
+        self.hit_history = [] # List of (time_ms, err_ms, key)
+        
+        
         self.lane_pressed = [False] * NUM_LANES
         self.effects = []
+        self.needs_restart = False
 
         if self.mode == 'ai_multi':
             self.ai_judgments = {k: 0 for k in JUDGMENT_ORDER}
             self.ai_combo = 0
             self.ai_max_combo = 0
             self.ai_judgment_text = ""
+            self.ai_judgment_key = ""
             self.ai_judgment_timer = 0
             self.ai_combo_timer = 0
             self.ai_judgment_color = (255, 255, 255)
             self.ai_effects = []
+            self.ai_hit_history = [] # List of (time_ms, err_ms, key)
 
     def _play_sound(self, sid):
         if sid in self.assets.sounds and self.assets.sounds[sid]:
             self.assets.sounds[sid].play()
 
-    def set_judgment(self, key, lane=None, t=None):
+    def set_judgment(self, key, lane=None, t=None, timing_diff=0):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
         j = JUDGMENT_DEFS[key]
         self.judgment_text = j["display"]
+        self.judgment_key = key
         self.judgment_color = j["color"]
         self.judgment_timer = t
+        self.judgment_err = timing_diff
+        self.judgment_err_timer = t
+        if key != "MISS":
+            self.jitter_history.append((timing_diff, t))
+            if len(self.jitter_history) > 50: self.jitter_history.pop(0)
+            self.hit_history.append((t, timing_diff, key))
+        else:
+            self.hit_history.append((t, 0, "MISS"))
+            
         self.judgments[key] += 1
         if key in ("PERFECT", "GREAT"):
             self.combo += 1
@@ -127,12 +156,21 @@ class RhythmGame:
                 'note_type': self.settings.get('note_type', 0)
             })
 
-    def set_ai_judgment(self, key, lane, t=None):
+    def set_ai_judgment(self, key, lane, t=None, timing_diff=0):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
         j = JUDGMENT_DEFS[key]
         self.ai_judgment_text = j["display"]
+        self.ai_judgment_key = key
         self.ai_judgment_color = j["color"]
         self.ai_judgment_timer = t
+        self.ai_judgment_err = timing_diff
+        self.ai_judgment_err_timer = t
+        if not hasattr(self, 'ai_hit_history'): self.ai_hit_history = []
+        if key != "MISS":
+            self.ai_hit_history.append((t, timing_diff, key))
+        else:
+            self.ai_hit_history.append((t, 0, "MISS"))
+
         self.ai_judgments[key] += 1
         if key == "MISS": self.ai_combo = 0
         else:
@@ -164,6 +202,18 @@ class RhythmGame:
             if event.key == pygame.K_ESCAPE or event.key == pygame.K_TAB:
                 self._pause()
                 return
+            if event.key == pygame.K_r: # Quick Retry
+                self.needs_restart = True
+                return
+            if event.key == pygame.K_F1: # Increase Speed
+                self.speed = min(5.0 * (self.height / BASE_H), self.speed + 0.1 * (self.height / BASE_H))
+                self.settings['speed'] = self.speed / (self.height / BASE_H)
+                return
+            if event.key == pygame.K_F2: # Decrease Speed
+                self.speed = max(0.1 * (self.height / BASE_H), self.speed - 0.1 * (self.height / BASE_H))
+                self.settings['speed'] = self.speed / (self.height / BASE_H)
+                return
+                
             for i, k in enumerate(self.keys):
                 if event.key == k:
                     self.lane_pressed[i] = True
@@ -188,6 +238,16 @@ class RhythmGame:
     def _resume(self):
         self.countdown_start = time.perf_counter()
         self.state = "COUNTDOWN"
+        
+    def _get_rank(self, score_ratio):
+        if score_ratio >= 1.0: return "P"
+        if score_ratio >= 0.95: return "AAA"
+        if score_ratio >= 0.85: return "AA"
+        if score_ratio >= 0.75: return "A"
+        if score_ratio >= 0.65: return "B"
+        if score_ratio >= 0.55: return "C"
+        if score_ratio >= 0.45: return "D"
+        return "E"
 
     def run(self):
         self.start_time = time.perf_counter()
@@ -206,6 +266,10 @@ class RhythmGame:
         last_render_time = time.perf_counter()
 
         while self.is_running:
+            if self.needs_restart:
+                pygame.mixer.stop()
+                return "RESTART"
+            
             t_now = time.perf_counter()
             elapsed = t_now - last_frame_time
             last_frame_time = t_now
@@ -230,6 +294,7 @@ class RhythmGame:
                 if self.state == "PLAYING":
                     # We use the midpoint of the sub-step for logic to balance jitter
                     sim_time_ms = (simulated_real_time - self.start_time) * 1000.0
+                    
                     if self.mode == 'ai_multi':
                         self._update_ai(sim_time_ms)
                     if self.engine.update(sim_time_ms):
@@ -285,25 +350,8 @@ class RhythmGame:
         ai_jitter = 30.0 if self.ai_difficulty == 'normal' else 2.0
         ai_actions = [0] * NUM_LANES
         
-        # Optimization: Pre-filter active notes once per update
-        active_notes = [
-            n for n in self.ai_notes 
-            if 'hit' not in n and 'miss' not in n and (n['time_ms'] - current_time) <= 1000.0
-        ]
-        
         for lane in range(NUM_LANES):
-            obs = np.ones(3, dtype=np.float32)
-            ttns = []
-            for n in active_notes:
-                if n['lane'] == lane:
-                    p_ttn = (n['time_ms'] - current_time) + np.random.normal(0, ai_jitter)
-                    if p_ttn >= -miss_window:
-                        ttns.append(p_ttn)
-            ttns.sort()
-            if ttns: obs[0] = ttns[0] / 1000.0
-            if len(ttns) > 1: obs[1] = ttns[1] / 1000.0
-            obs[2] = float(self.ai_lane_pressed[lane])
-            
+            obs = self.ai_engine.get_observation(current_time, lane, jitter=ai_jitter, is_pressed=self.ai_lane_pressed[lane])
             act = self.ai_model.predict(obs, deterministic=True)
             ai_actions[lane] = int(act) if np.isscalar(act) else int(act.item())
         
@@ -331,10 +379,16 @@ class RhythmGame:
 
     def _get_draw_state(self, side, t):
         if side == 'p1':
-            return {
-                'lane_x': self.lane_x, 'notes': self.engine.notes, 'lane_pressed': self.lane_pressed,
-                'judgments': self.judgments, 'combo': self.combo, 'judgment_text': self.judgment_text,
+            p1_state = {
+                'lane_x': self.lane_x, 'notes': self.engine.notes, 'note_idx': self.engine.note_idx, 'lane_pressed': self.lane_pressed,
+                'judgments': self.judgments, 'combo': self.combo, 
+                'judgment_text': self.judgment_text, 'judgment_key': self.judgment_key,
                 'judgment_color': self.judgment_color, 'judgment_timer': self.judgment_timer,
+                'judgment_err': self.judgment_err, 'judgment_err_timer': self.judgment_err_timer,
+                'jitter_history': self.jitter_history,
+                'hit_history': self.hit_history,
+                'max_time': self.engine.max_time,
+                'total_notes': len(self.engine.notes),
                 'combo_timer': self.combo_timer,
                 'lane_total_w': self.lane_total_w, 'speed': self.speed, 'hw_mult': self.hw_mult,
                 'held_lns': self.engine.held_lns, 'current_visual_time': self.engine.get_visual_time(t),
@@ -342,11 +396,20 @@ class RhythmGame:
                 'all_notes_passed_time': self.engine.all_notes_passed_time,
                 'note_type': self.settings.get('note_type', 0)
             }
-        else:
+            if self.mode == 'ai_multi':
+                p1_state.update({
+                    'lane_x': self.p1_lane_x,
+                    'ai_judgments': self.ai_judgments,
+                    'ai_hit_history': getattr(self, 'ai_hit_history', []),
+                })
+            return p1_state
+        else: # side == 'ai'
             return {
-                'lane_x': self.p2_lane_x, 'notes': self.ai_notes, 'lane_pressed': self.ai_lane_pressed,
-                'judgments': self.ai_judgments, 'combo': self.ai_combo, 'judgment_text': self.ai_judgment_text,
+                'lane_x': self.p2_lane_x, 'notes': self.ai_notes, 'note_idx': self.ai_engine.note_idx, 'lane_pressed': self.ai_lane_pressed,
+                'judgments': self.ai_judgments, 'combo': self.ai_combo, 
+                'judgment_text': self.ai_judgment_text, 'judgment_key': getattr(self, 'ai_judgment_key', ''),
                 'judgment_color': self.ai_judgment_color, 'judgment_timer': self.ai_judgment_timer,
+                'judgment_err': getattr(self, 'ai_judgment_err', 0), 'judgment_err_timer': getattr(self, 'ai_judgment_err_timer', 0),
                 'combo_timer': self.ai_combo_timer,
                 'lane_total_w': self.lane_total_w, 'speed': self.speed, 'hw_mult': self.hw_mult,
                 'held_lns': self.ai_engine.held_lns, 'current_visual_time': self.ai_engine.get_visual_time(t),
@@ -404,7 +467,24 @@ class RhythmGame:
         stats = {
             'mode': self.mode, 'title': self.title, 'metadata': self.metadata,
             'judgments': self.judgments, 'max_combo': self.max_combo,
+            'hit_history': self.hit_history, 'ai_hit_history': getattr(self, 'ai_hit_history', []),
             'ai_judgments': getattr(self, 'ai_judgments', None), 'ai_max_combo': getattr(self, 'ai_max_combo', 0),
-            'cover_texture': self.assets.cover_texture
+            'max_time': self.engine.max_time,
+            'total_notes': len(self.engine.notes),
+            'cover_texture': self.assets.cover_texture,
+            'failed': False
         }
         self.game_renderer.draw_result(stats)
+
+    def _apply_note_mod(self, notes, mod):
+        if mod == 'Mirror':
+            for n in notes:
+                n['lane'] = (NUM_LANES - 1) - n['lane']
+        elif mod == 'Random':
+            # Create a mapping for each note to shuffle lanes
+            # Actually, standardリ듬게임 Random usually shuffles the ENTIRE LANE mapping once
+            mapping = list(range(NUM_LANES))
+            import random
+            random.shuffle(mapping)
+            for n in notes:
+                n['lane'] = mapping[n['lane']]
