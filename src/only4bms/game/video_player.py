@@ -5,7 +5,7 @@ import threading
 import time
 
 # ── Performance Constants ────────────────────────────────────────────────
-MAX_VID_W = 1280  # Cap decoding resolution (720p-ish) for balance
+MAX_VID_W = 1024  # Cap decoding resolution (720p-ish) for balance
 MAX_QUEUE_SIZE = 2
 _SEEK_TOLERANCE = 5  # Frames
 

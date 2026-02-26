@@ -20,9 +20,12 @@ class GameRenderer:
         self.bold_font = pygame.font.SysFont(None, self._s(56), bold=True)
         
         self.bga_texture = None # Video frame or static image
+        self.bga_last_surface = None # Track the last surface we uploaded to avoid redundant updates
         self.bga_updated_once = False
         
         # --- Cache for performance ---
+        self.bar_note_cache = {}    # (color, alpha, lane_w) -> Texture
+        self.ln_body_cache = {}     # (color, alpha, lane_w) -> Texture
         self.circle_note_cache = {} # (color, alpha, size) -> Texture
         self.bar_effect_cache = {}  # (color, alpha, r) -> Texture
         self.circle_effect_cache = {} # (color, alpha, r) -> Texture
@@ -58,6 +61,39 @@ class GameRenderer:
             pygame.draw.circle(surf, (255, 255, 255, 110), (lane_w // 2, lane_w // 2), cr // 3, 2)
             self.circle_note_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.circle_note_cache[key]
+
+    def _get_bar_note_texture(self, color, alpha, lane_w):
+        key = (color, alpha, lane_w)
+        if key not in self.bar_note_cache:
+            bw, bh = int(lane_w * 0.8), int(self._s(NOTE_H) * 1.5)
+            surf = pygame.Surface((bw, bh), pygame.SRCALPHA)
+            
+            # Draw the bar head primitives onto this surface ONCE
+            pygame.draw.rect(surf, (0, 0, 0, int(180 * (alpha/255))), (0, bh - 4, bw, 4))
+            pygame.draw.rect(surf, (*color, alpha), (0, 0, bw, bh - 2))
+            pygame.draw.rect(surf, (255, 255, 255, int(150 * (alpha/255))), (0, 0, bw, 2))
+            pygame.draw.line(surf, (255, 255, 255, int(110 * (alpha/255))), (0, bh // 2), (bw, bh // 2))
+            
+            self.bar_note_cache[key] = Texture.from_surface(self.renderer, surf)
+        return self.bar_note_cache[key]
+        
+    def _get_ln_body_texture(self, color, alpha, lane_w):
+        key = (color, alpha, lane_w)
+        if key not in self.ln_body_cache:
+            # We create a 1-pixel high texture that can be stretched by the renderer.blit destination rect
+            # This completely avoids drawing rectangles/lines every frame
+            surf = pygame.Surface((lane_w, 1), pygame.SRCALPHA)
+            b_alpha = int(alpha * 0.6)
+            body_margin = int(lane_w * 0.12)
+            
+            # Fill center
+            pygame.draw.rect(surf, (*color, b_alpha), (body_margin, 0, lane_w - body_margin * 2, 1))
+            # Draw borders
+            pygame.draw.rect(surf, (*color, alpha), (body_margin, 0, 1, 1))
+            pygame.draw.rect(surf, (*color, alpha), (lane_w - body_margin - 1, 0, 1, 1))
+            
+            self.ln_body_cache[key] = Texture.from_surface(self.renderer, surf)
+        return self.ln_body_cache[key]
 
     def _get_bar_effect_texture(self, color, r, lane_w):
         key = (color, r, lane_w)
@@ -298,26 +334,15 @@ class GameRenderer:
                 ey = self.hit_y_minus_note_h - etd * spd
                 body_h = int(self.hit_y_minus_note_h - ey)
                 if body_h > 0:
-                    b_alpha = int(alpha * 0.6)
-                    self.renderer.draw_color = (*color, b_alpha)
-                    body_margin = int(lane_w * 0.12)
-                    self.renderer.fill_rect((nx + body_margin, int(ey) + note_h // 2, lane_w - body_margin * 2, body_h + note_h // 2))
-                    self.renderer.draw_color = (*color, alpha)
-                    self.renderer.draw_line((nx + body_margin, int(ey) + note_h // 2), (nx + body_margin, self.hit_y_minus_note_h + note_h // 2))
-                    self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, self.hit_y_minus_note_h + note_h // 2))
+                    tex = self._get_ln_body_texture(color, alpha, lane_w)
+                    self.renderer.blit(tex, pygame.Rect(nx, int(ey) + note_h // 2, lane_w, body_h))
 
                 # Head
                 if note_type == 0:
-                    bw, bh = self.note_head_bw, self.note_head_bh
+                    tex = self._get_bar_note_texture(color, alpha, lane_w)
+                    bw, bh = tex.width, tex.height
                     bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
-                    self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
-                    self.renderer.fill_rect((bx, by + bh - 4, bw, 4))
-                    self.renderer.draw_color = (*color, alpha)
-                    self.renderer.fill_rect((bx, by, bw, bh - 2))
-                    self.renderer.draw_color = (255, 255, 255, int(150 * (alpha/255)))
-                    self.renderer.fill_rect((bx, by, bw, 2))
-                    self.renderer.draw_color = (255, 255, 255, int(110 * (alpha/255)))
-                    self.renderer.draw_line((bx, by + bh // 2), (bx + bw, by + bh // 2))
+                    self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
                 else:
                     tex = self._get_circle_note_texture(color, lane_w)
                     tex.alpha = alpha
@@ -350,13 +375,8 @@ class GameRenderer:
                     ey = self.hit_y_minus_note_h - etd * spd
                     body_h = int(y - ey)
                     if body_h > 0:
-                        b_alpha = int(alpha * 0.6)
-                        self.renderer.draw_color = (*color, b_alpha)
-                        body_margin = int(lane_w * 0.12)
-                        self.renderer.fill_rect((nx + body_margin, int(ey) + note_h // 2, lane_w - body_margin * 2, body_h + note_h // 2))
-                        self.renderer.draw_color = (*color, alpha)
-                        self.renderer.draw_line((nx + body_margin, int(ey) + note_h // 2), (nx + body_margin, int(y) + note_h // 2))
-                        self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, int(y) + note_h // 2))
+                        tex = self._get_ln_body_texture(color, alpha, lane_w)
+                        self.renderer.blit(tex, pygame.Rect(nx, int(ey) + note_h // 2, lane_w, body_h))
                 
                 # Handling Hit Connector (Jack)
                 if 'jack_prev_v_time' in note and not is_auto:
@@ -364,28 +384,22 @@ class GameRenderer:
                     prev_y = int(self.hit_y_minus_note_h - prev_td * spd)
                     connector_h = int(prev_y - y)
                     if connector_h > 0:
-                        # Draw faint connector (looks like a skinny LN body)
                         c_alpha = int(100 * fade_mult)
-                        self.renderer.draw_color = (*color, int(c_alpha * 0.4))
+                        # Reuse LN Texture logic but with connector alpha
+                        c_tex = self._get_ln_body_texture(color, c_alpha, lane_w)
                         c_margin = int(lane_w * 0.2)
-                        self.renderer.fill_rect((nx + c_margin, int(y) + note_h // 2, lane_w - c_margin * 2, connector_h))
-                        # Side lines for definition
-                        self.renderer.draw_color = (*color, int(c_alpha * 0.6))
-                        self.renderer.draw_line((nx + c_margin, int(y) + note_h // 2), (nx + c_margin, prev_y + note_h // 2))
-                        self.renderer.draw_line((nx + lane_w - c_margin, int(y) + note_h // 2), (nx + lane_w - c_margin, prev_y + note_h // 2))
+                        
+                        # Blit specifically centered differently for Jack Connectors
+                        # Actually LN texture already has margins, but we want extra margins. 
+                        # We will simply squeeze the blit rect horizontally to give extra inner margins
+                        self.renderer.blit(c_tex, pygame.Rect(nx + int(lane_w * 0.08), int(y) + note_h // 2, lane_w - int(lane_w * 0.16), connector_h))
 
                 # Note Head
                 if note_type == 0:
-                    bw, bh = self.note_head_bw, self.note_head_bh
+                    tex = self._get_bar_note_texture(color, alpha, lane_w)
+                    bw, bh = tex.width, tex.height
                     bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
-                    self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
-                    self.renderer.fill_rect((bx, by + bh - 4, bw, 4))
-                    self.renderer.draw_color = (*color, alpha)
-                    self.renderer.fill_rect((bx, by, bw, bh - 2))
-                    self.renderer.draw_color = (255, 255, 255, int(150 * (alpha/255)))
-                    self.renderer.fill_rect((bx, by, bw, 2))
-                    self.renderer.draw_color = (255, 255, 255, int(110 * (alpha/255)))
-                    self.renderer.draw_line((bx, by + bh // 2), (bx + bw, by + bh // 2))
+                    self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
                 else:
                     tex = self._get_circle_note_texture(color, lane_w)
                     tex.alpha = alpha
@@ -440,11 +454,12 @@ class GameRenderer:
         if bid is not None:
             if bid in assets.videos:
                 new_img = assets.videos[bid].get_frame(current_time)
-                if new_img:
+                if new_img and new_img is not self.bga_last_surface:
                     if not self.bga_texture:
                         self.bga_texture = Texture.from_surface(self.renderer, new_img)
                     else:
                         self.bga_texture.update(new_img)
+                    self.bga_last_surface = new_img
                     self.bga_updated_once = True
                 tex = self.bga_texture if self.bga_updated_once else assets.textures.get(bid)
             else:
