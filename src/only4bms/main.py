@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import pygame
+import time
 
 from only4bms.core.bms_parser import BMSParser
 from only4bms.game.rhythm_game import RhythmGame
@@ -25,11 +26,70 @@ DEFAULT_SETTINGS = {
     "ai_note_type": 0,
     "input_polling_rate": 1000,
     "visual_offset": 0,
+    "keys": [pygame.K_d, pygame.K_f, pygame.K_j, pygame.K_k],
+    "joystick_keys": ["HAT_0_LEFT", "HAT_0_UP", "BTN_3", "BTN_1"], # D-pad Left/Up + Button Y/B
 }
 
 SETTINGS_FILE = "settings.json"
 
 MIXER_CHANNELS = 256
+
+_JOYSTICKS = [] # Prevent garbage collection
+_REFRESHING_JOYSTICKS = False
+
+def refresh_joysticks(force_reset=False):
+    """Update the list of connected joysticks. force_reset=True will cycle the subsystem."""
+    global _JOYSTICKS, _REFRESHING_JOYSTICKS
+    if _REFRESHING_JOYSTICKS:
+        return len(_JOYSTICKS)
+    
+    _REFRESHING_JOYSTICKS = True
+    try:
+        if force_reset:
+            if pygame.joystick.get_init():
+                pygame.joystick.quit()
+        
+        if not pygame.joystick.get_init():
+            pygame.joystick.init()
+            _JOYSTICKS.clear() # Subsystem reset means all old objects are dead
+        
+        count = pygame.joystick.get_count()
+        new_joysticks = []
+        
+        for i in range(count):
+            try:
+                j = pygame.joystick.Joystick(i)
+                iid = j.get_instance_id()
+                
+                # Try to find a matching existing object that is still healthy
+                found = None
+                for existing in _JOYSTICKS:
+                    try:
+                        if existing.get_init() and existing.get_instance_id() == iid:
+                            found = existing
+                            break
+                    except Exception:
+                        continue
+                
+                if found:
+                    new_joysticks.append(found)
+                else:
+                    # New joystick or object was dead
+                    # j.init() is deprecated in pygame-ce as Joystick(i) auto-inits
+                    # Ping to ensure OS/XInput state is active
+                    try:
+                        j.get_button(0)
+                        j.get_hat(0)
+                    except Exception:
+                        pass
+                    new_joysticks.append(j)
+            except Exception:
+                continue
+                
+        _JOYSTICKS = new_joysticks
+        return len(_JOYSTICKS)
+    finally:
+        _REFRESHING_JOYSTICKS = False
 
 
 # ── Audio helpers ─────────────────────────────────────────────────────────
@@ -86,6 +146,12 @@ def load_settings():
         try:
             with open(SETTINGS_FILE, "r") as f:
                 saved = json.load(f)
+                
+                # Migration: if joystick_keys contains integers, reset to new string-based defaults
+                if "joystick_keys" in saved and any(isinstance(k, int) for k in saved["joystick_keys"]):
+                    print("Migrating legacy joystick settings...")
+                    saved["joystick_keys"] = DEFAULT_SETTINGS["joystick_keys"]
+                
                 settings.update(saved)
         except Exception as e:
             print(f"Warning: Failed to load settings ({e})")
@@ -135,10 +201,10 @@ def main():
     hints = {
         "SDL_RENDER_SCALE_QUALITY": "linear",
         "SDL_RENDER_BATCHING": "1",
-        "SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR": "1",
-        "SDL_RENDER_DRIVER": "direct3d11",
         "SDL_AUDIO_RESAMPLING_MODE": "fast",
-        "SDL_VIDEO_DOUBLE_BUFFER": "1"
+        "SDL_VIDEO_DOUBLE_BUFFER": "1",
+        "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS": "1",
+        "SDL_XINPUT_ENABLED": "1"
     }
     
     for hint, value in hints.items():
@@ -155,6 +221,17 @@ def main():
     renderer.draw_blend_mode = 1
     
     apply_display_mode(settings, window)
+
+    # Initialize Joysticks
+    # Forced reset and multiple pumps at startup to stabilize pre-plugged devices
+    pygame.event.pump()
+    refresh_joysticks(force_reset=True)
+    
+    # Wait a bit and pump again to let SDL/OS catch up
+    for _ in range(10):
+        pygame.event.pump()
+        time.sleep(0.02)
+    refresh_joysticks()
 
     # Main loop
     while True:

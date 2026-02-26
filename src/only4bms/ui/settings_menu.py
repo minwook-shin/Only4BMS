@@ -127,9 +127,12 @@ class SettingsMenu:
         return self.settings
 
     def _handle_events(self):
+        from ..main import refresh_joysticks
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            elif event.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+                refresh_joysticks()
             elif event.type == pygame.KEYDOWN:
                 self._on_key(event.key)
             elif event.type == pygame.MOUSEWHEEL:
@@ -137,18 +140,40 @@ class SettingsMenu:
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self._on_click(event.pos)
                 self._handle_button_click(event.pos)
+            elif event.type == pygame.JOYBUTTONDOWN:
+                if event.button == 0: # A (Confirm)
+                    # Currently most items are sliders, no button items in list yet
+                    pass
+                elif event.button == 1: # B (Back)
+                    self.running = False
+            elif event.type == pygame.JOYHATMOTION:
+                vx, vy = event.value
+                if vx == 0 and vy == 0: continue
+                if vy == 1: self._on_key(pygame.K_UP)
+                elif vy == -1: self._on_key(pygame.K_DOWN)
+                elif vx == -1: self._on_key(pygame.K_LEFT)
+                elif vx == 1: self._on_key(pygame.K_RIGHT)
 
     def _handle_button_click(self, pos):
-        # Calibrate button check
         title_rect = self.title_font.render("SYSTEM SETTINGS", True, COLOR_ACCENT).get_rect(topleft=(self._s(50), self._s(40)))
-        btn_rect = pygame.Rect(title_rect.right + self._s(20), title_rect.top, self._s(150), title_rect.height)
         
-        if btn_rect.collidepoint(pos):
+        # Calibrate Button
+        btn_cal_rect = pygame.Rect(title_rect.right + self._s(20), title_rect.top, self._s(150), title_rect.height)
+        if btn_cal_rect.collidepoint(pos):
             from .calibration_menu import CalibrationMenu
             CalibrationMenu(self.settings, self.renderer, self.window).run()
-            # Restore state after returning
             pygame.display.set_caption("Settings")
             pygame.key.set_repeat(300, 50)
+            return
+
+        # Key Config Button
+        btn_key_rect = pygame.Rect(btn_cal_rect.right + self._s(10), title_rect.top, self._s(150), title_rect.height)
+        if btn_key_rect.collidepoint(pos):
+            from .key_config_menu import KeyConfigMenu
+            KeyConfigMenu(self.settings, self.renderer, self.window).run()
+            pygame.display.set_caption("Settings")
+            pygame.key.set_repeat(300, 50)
+            return
 
     def _on_key(self, key):
         if key == pygame.K_UP and self.selected_index > 1: # Can't go to index 0 (SYSTEM header)
@@ -207,13 +232,20 @@ class SettingsMenu:
         self.screen.blit(title_surf, title_rect)
         
         # Calibrate Button
-        btn_rect = pygame.Rect(title_rect.right + self._s(20), title_rect.top, self._s(150), title_rect.height)
-        btn_hovered = btn_rect.collidepoint(mx, my)
-        pygame.draw.rect(self.screen, COLOR_SELECTED_BG if btn_hovered else COLOR_PANEL_BG, btn_rect, border_radius=8)
-        pygame.draw.rect(self.screen, COLOR_ACCENT, btn_rect, 2, border_radius=8)
-        
-        btn_txt = self.small_font.render("CALIBRATE", True, COLOR_ACCENT if btn_hovered else COLOR_TEXT_PRIMARY)
-        self.screen.blit(btn_txt, btn_txt.get_rect(center=btn_rect.center))
+        btn_cal_rect = pygame.Rect(title_rect.right + self._s(20), title_rect.top, self._s(150), title_rect.height)
+        cal_hovered = btn_cal_rect.collidepoint(mx, my)
+        pygame.draw.rect(self.screen, COLOR_SELECTED_BG if cal_hovered else COLOR_PANEL_BG, btn_cal_rect, border_radius=8)
+        pygame.draw.rect(self.screen, COLOR_ACCENT, btn_cal_rect, 2, border_radius=8)
+        cal_txt = self.small_font.render("CALIBRATE", True, COLOR_ACCENT if cal_hovered else COLOR_TEXT_PRIMARY)
+        self.screen.blit(cal_txt, cal_txt.get_rect(center=btn_cal_rect.center))
+
+        # Key Config Button
+        btn_key_rect = pygame.Rect(btn_cal_rect.right + self._s(10), title_rect.top, self._s(150), title_rect.height)
+        key_hovered = btn_key_rect.collidepoint(mx, my)
+        pygame.draw.rect(self.screen, COLOR_SELECTED_BG if key_hovered else COLOR_PANEL_BG, btn_key_rect, border_radius=8)
+        pygame.draw.rect(self.screen, COLOR_ACCENT, btn_key_rect, 2, border_radius=8)
+        key_txt = self.small_font.render("KEY CONFIG", True, COLOR_ACCENT if key_hovered else COLOR_TEXT_PRIMARY)
+        self.screen.blit(key_txt, key_txt.get_rect(center=btn_key_rect.center))
 
         row_h = self._s(65)
         start_y = self._s(120)

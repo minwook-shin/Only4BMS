@@ -79,10 +79,14 @@ class RhythmGame:
             self.ai_notes = copy.deepcopy(notes) # AI gets the same modified notes
             self.ai_engine = GameEngine(self.ai_notes, [], [], self.hw_mult, lambda s: None, self.set_ai_judgment, max_time, visual_timing_map, last_note_time, self.on_ai_ln_tick)
             self.ai_lane_pressed = [False] * NUM_LANES
+        
+        # Calculate total judgments (LN counts twice: hit + release)
+        self.total_judgments = sum(2 if n.get('is_ln') else 1 for n in notes)
 
         # Presentation
         self.game_renderer = GameRenderer(renderer, (self.width, self.height), self.settings)
-        self.keys = [pygame.K_d, pygame.K_f, pygame.K_j, pygame.K_k]
+        self.keys = self.settings.get('keys', [pygame.K_d, pygame.K_f, pygame.K_j, pygame.K_k])
+        self.joy_keys = self.settings.get('joystick_keys', [0, 1, 2, 3])
         self.clock = pygame.time.Clock()
         
         # State Tracking
@@ -120,10 +124,11 @@ class RhythmGame:
             self.ai_judgment_timer = 0
             self.ai_combo_timer = 0
             self.ai_judgment_color = (255, 255, 255)
-            self.ai_effects = []
             self.ai_hit_history = [] # List of (time_ms, err_ms, key)
             self.ai_update_timer = 0.0
             self.ai_dt = 1.0 / 120.0 # 120Hz AI update frequency
+            
+        self._draw_state_cache = {'p1': {}, 'ai': {}}
 
     def _play_sound(self, sid):
         if sid in self.assets.sounds and self.assets.sounds[sid]:
@@ -170,6 +175,14 @@ class RhythmGame:
         if not hasattr(self, 'ai_hit_history'): self.ai_hit_history = []
         if key != "MISS":
             self.ai_hit_history.append((t, timing_diff, key))
+            # AI Hit Effect
+            self.effects.append({
+                'lane': lane + NUM_LANES,  # AI lanes are offset by NUM_LANES
+                'radius': 22,
+                'color': j["color"],
+                'alpha': 160,
+                'note_type': self.settings.get('note_type', 0)
+            })
         else:
             self.ai_hit_history.append((t, 0, "MISS"))
 
@@ -179,11 +192,7 @@ class RhythmGame:
             self.ai_combo += 1
             self.ai_max_combo = max(self.ai_max_combo, self.ai_combo)
             self.ai_combo_timer = t
-        self.ai_effects.append({
-            'lane': lane, 'radius': 30, 'color': j["color"], 'alpha': 255,
-            'note_type': self.settings.get('ai_note_type', 0)
-        })
-
+    
     def on_ln_tick(self, t=None):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
         self.combo += 1
@@ -230,6 +239,52 @@ class RhythmGame:
                     self.lane_pressed[i] = False
                     t_ms = (time.perf_counter() - self.start_time) * 1000.0
                     self.engine.process_release(i, t_ms)
+        elif event.type == pygame.JOYBUTTONDOWN:
+            for i, mapping in enumerate(self.joy_keys):
+                if isinstance(mapping, str) and mapping.startswith("BTN_"):
+                    btn_idx = int(mapping.split("_")[1])
+                    if event.button == btn_idx:
+                        self.lane_pressed[i] = True
+                        t_ms = (time.perf_counter() - self.start_time) * 1000.0 - self.settings.get('judge_delay', 30.0)
+                        self.engine.process_hit(i, t_ms)
+                elif event.button == mapping: # Fallback for old integer settings
+                    self.lane_pressed[i] = True
+                    t_ms = (time.perf_counter() - self.start_time) * 1000.0 - self.settings.get('judge_delay', 30.0)
+                    self.engine.process_hit(i, t_ms)
+        elif event.type == pygame.JOYBUTTONUP:
+            for i, mapping in enumerate(self.joy_keys):
+                if isinstance(mapping, str) and mapping.startswith("BTN_"):
+                    btn_idx = int(mapping.split("_")[1])
+                    if event.button == btn_idx:
+                        self.lane_pressed[i] = False
+                        t_ms = (time.perf_counter() - self.start_time) * 1000.0
+                        self.engine.process_release(i, t_ms)
+                elif event.button == mapping:
+                    self.lane_pressed[i] = False
+                    t_ms = (time.perf_counter() - self.start_time) * 1000.0
+                    self.engine.process_release(i, t_ms)
+        elif event.type == pygame.JOYHATMOTION:
+            for i, mapping in enumerate(self.joy_keys):
+                if isinstance(mapping, str) and mapping.startswith("HAT_"):
+                    parts = mapping.split("_")
+                    hat_idx = int(parts[1])
+                    dir_str = parts[2]
+                    if event.hat == hat_idx:
+                        vx, vy = event.value
+                        is_active = False
+                        if dir_str == "UP" and vy == 1: is_active = True
+                        elif dir_str == "DOWN" and vy == -1: is_active = True
+                        elif dir_str == "LEFT" and vx == -1: is_active = True
+                        elif dir_str == "RIGHT" and vx == 1: is_active = True
+                        
+                        if is_active and not self.lane_pressed[i]:
+                            self.lane_pressed[i] = True
+                            t_ms = (time.perf_counter() - self.start_time) * 1000.0 - self.settings.get('judge_delay', 30.0)
+                            self.engine.process_hit(i, t_ms)
+                        elif not is_active and self.lane_pressed[i]:
+                            self.lane_pressed[i] = False
+                            t_ms = (time.perf_counter() - self.start_time) * 1000.0
+                            self.engine.process_release(i, t_ms)
 
     def _pause(self):
         self.paused_at = time.perf_counter()
@@ -284,12 +339,17 @@ class RhythmGame:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         self.is_running = False
+                    elif event.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+                        from ..main import refresh_joysticks
+                        refresh_joysticks()
                     elif self.state == "PLAYING":
                         self.handle_input(event)
                     elif self.state == "PAUSED":
                         self._handle_pause_input(event)
                     elif self.state == "RESULT":
                         if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                            self.is_running = False
+                        elif event.type == pygame.JOYBUTTONDOWN and event.button in (0, 1):
                             self.is_running = False
                 
                 # 1b. Update Game Game Logic (Simulated sub-step time)
@@ -331,13 +391,6 @@ class RhythmGame:
                                     'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
                                     'note_type': self.settings.get('note_type', 0)
                                 })
-                        if self.mode == 'ai_multi':
-                            for lane, note in enumerate(self.ai_engine.held_lns):
-                                if note:
-                                    self.ai_effects.append({
-                                        'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
-                                        'note_type': self.settings.get('ai_note_type', 0)
-                                    })
                     # Pass offset time to draw for visual adjustment
                     self._draw(now_ms + vis_offset)
                 elif self.state == "PAUSED":
@@ -376,18 +429,50 @@ class RhythmGame:
         # Player 1 View
         p1_state = self._get_draw_state('p1', t)
         self.game_renderer.draw_playing(t, p1_state)
-        self.game_renderer.draw_effects(self.effects, self.lane_x, self.lane_w)
-
+        
+        # Effects Rendering (Handles both P1 and AI effects)
+        all_lanes = self.lane_x
         if self.mode == 'ai_multi':
+            all_lanes = self.p1_lane_x + self.p2_lane_x
+        self.game_renderer.draw_effects(self.effects, all_lanes, self.lane_w)
+
+        # Performance Gauges (EX Ratio)
+        fade_mult = 1.0
+        passed_time = p1_state.get('all_notes_passed_time')
+        if passed_time is not None:
+            elapsed = t - passed_time
+            fade_mult = max(0.0, 1.0 - elapsed / 500.0)
+
+        max_ex = max(1, self.total_judgments * 2)
+        p1_ex = self.judgments["PERFECT"] * 2 + self.judgments["GREAT"] * 1
+        p1_ratio = min(1.0, p1_ex / max_ex)
+        gw, gh = self.game_renderer._sx(12), self.game_renderer._s(400) # Thicker (8 -> 12)
+        gy = self.game_renderer.hit_y - gh
+        ga = int(255 * fade_mult)
+
+        if self.mode == 'single':
+            gx = self.lane_x[0] - gw - self.game_renderer._sx(10)
+            self.game_renderer.draw_vertical_gauge(gx, gy, gw, gh, p1_ratio, (0, 255, 255), ga)
+        else: # ai_multi
+            # Player Gauge (Right of Player lanes, Center)
+            gx_p1 = self.p1_lane_x[-1] + self.lane_w + self.game_renderer._sx(5)
+            self.game_renderer.draw_vertical_gauge(gx_p1, gy, gw, gh, p1_ratio, (0, 255, 255), ga)
+            
             # AI View
             ai_state = self._get_draw_state('ai', t)
             self.game_renderer.draw_playing(t, ai_state)
-            self.game_renderer.draw_effects(self.ai_effects, self.p2_lane_x, self.lane_w)
             self.game_renderer.draw_score_bar(self.judgments, self.ai_judgments)
 
+            # AI Gauge (Left of AI lanes, Center)
+            ai_ex = self.ai_judgments["PERFECT"] * 2 + self.ai_judgments["GREAT"] * 1
+            ai_ratio = min(1.0, ai_ex / max_ex)
+            gx_ai = self.p2_lane_x[0] - gw - self.game_renderer._sx(5)
+            self.game_renderer.draw_vertical_gauge(gx_ai, gy, gw, gh, ai_ratio, (255, 80, 80), ga)
+
     def _get_draw_state(self, side, t):
+        d = self._draw_state_cache[side]
         if side == 'p1':
-            p1_state = {
+            d.update({
                 'lane_x': self.lane_x, 'notes': self.engine.notes, 'note_idx': self.engine.note_idx, 'lane_pressed': self.lane_pressed,
                 'judgments': self.judgments, 'combo': self.combo, 
                 'judgment_text': self.judgment_text, 'judgment_key': self.judgment_key,
@@ -402,17 +487,17 @@ class RhythmGame:
                 'held_lns': self.engine.held_lns, 'current_visual_time': self.engine.get_visual_time(t),
                 'all_notes_passed': self.engine.all_notes_passed,
                 'all_notes_passed_time': self.engine.all_notes_passed_time,
-                'note_type': self.settings.get('note_type', 0)
-            }
+                'note_type': self.settings.get('note_type', 0),
+                'is_ai': False
+            })
             if self.mode == 'ai_multi':
-                p1_state.update({
+                d.update({
                     'lane_x': self.p1_lane_x,
                     'ai_judgments': self.ai_judgments,
                     'ai_hit_history': getattr(self, 'ai_hit_history', []),
                 })
-            return p1_state
         else: # side == 'ai'
-            return {
+            d.update({
                 'lane_x': self.p2_lane_x, 'notes': self.ai_notes, 'note_idx': self.ai_engine.note_idx, 'lane_pressed': self.ai_lane_pressed,
                 'judgments': self.ai_judgments, 'combo': self.ai_combo, 
                 'judgment_text': self.ai_judgment_text, 'judgment_key': getattr(self, 'ai_judgment_key', ''),
@@ -425,7 +510,8 @@ class RhythmGame:
                 'all_notes_passed_time': self.ai_engine.all_notes_passed_time,
                 'note_type': self.settings.get('ai_note_type', 0),
                 'is_ai': True
-            }
+            })
+        return d
 
     def _draw_paused(self):
         self._draw((self.paused_at - self.start_time) * 1000.0) # Draw frozen background
@@ -452,6 +538,11 @@ class RhythmGame:
                 self._resume()
             elif event.key in (pygame.K_q, pygame.K_RETURN, pygame.K_BACKSPACE):
                 self.is_running = False
+        elif event.type == pygame.JOYBUTTONDOWN:
+            if event.button == 0: # A
+                self.is_running = False
+            elif event.button == 1: # B
+                self._resume()
 
     def _draw_countdown(self):
         elapsed = time.perf_counter() - self.countdown_start

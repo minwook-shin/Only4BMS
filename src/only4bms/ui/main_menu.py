@@ -75,6 +75,7 @@ class MainMenu:
         pygame.key.set_repeat(300, 50)
         # Clear events that accumulated during initialization/transition
         pygame.event.clear()
+        
         while self.running:
             self._handle_events()
             self._draw()
@@ -94,10 +95,13 @@ class MainMenu:
         return self.action
 
     def _handle_events(self):
+        from ..main import refresh_joysticks
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.action = "QUIT"
                 self.running = False
+            elif event.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+                refresh_joysticks()
             elif event.type == pygame.KEYUP:
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     self.ignore_confirm = False
@@ -124,6 +128,31 @@ class MainMenu:
                             self.running = False
                 elif event.key == pygame.K_ESCAPE:
                     self.show_quit_confirm = True
+            elif event.type == pygame.JOYBUTTONDOWN:
+                if self.show_quit_confirm:
+                    if event.button == 0: # A (Confirm)
+                        self.action = "QUIT"
+                        self.running = False
+                    elif event.button == 1: # B (Back)
+                        self.show_quit_confirm = False
+                    continue
+                
+                if event.button == 0: # A
+                    action = self.options[self.selected_index][1]
+                    if action == "QUIT":
+                        self.show_quit_confirm = True
+                    else:
+                        self.action = action
+                        self.running = False
+                elif event.button == 1: # B
+                    self.show_quit_confirm = True
+            elif event.type == pygame.JOYHATMOTION:
+                if self.show_quit_confirm: continue
+                vx, vy = event.value
+                if vy == 1: # Up
+                    self.selected_index = (self.selected_index - 1) % len(self.options)
+                elif vy == -1: # Down
+                    self.selected_index = (self.selected_index + 1) % len(self.options)
             elif event.type == pygame.MOUSEMOTION:
                 if self.show_quit_confirm: continue
                 mx, my = event.pos

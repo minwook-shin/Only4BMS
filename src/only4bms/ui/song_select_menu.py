@@ -328,9 +328,12 @@ class SongSelectMenu:
     # ── Event handling ───────────────────────────────────────────────────
 
     def _handle_events(self):
+        from ..main import refresh_joysticks
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            elif event.type in (pygame.JOYDEVICEADDED, pygame.JOYDEVICEREMOVED):
+                refresh_joysticks()
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_RETURN:
                     self.ignore_enter = False
@@ -347,6 +350,32 @@ class SongSelectMenu:
                 self._move_selection(-1 if event.y > 0 else 1)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self._handle_click(event.pos, event.button)
+            elif event.type == pygame.JOYBUTTONDOWN:
+                if self.show_guide:
+                    self.show_guide = False
+                    continue
+                if self.search_mode:
+                    continue
+                if event.button == 0: # A
+                    self._select_play()
+                elif event.button == 1: # B
+                    self.action = "MENU"
+                    self.running = False
+                    pygame.mixer.music.stop()
+                elif event.button == 3: # Y (Settings)
+                    self.action = "SETTINGS"
+                    self.running = False
+                    pygame.mixer.music.stop()
+                elif event.button == 2: # X (Mod)
+                    self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
+            elif event.type == pygame.JOYHATMOTION:
+                if self.show_guide or self.search_mode: continue
+                vx, vy = event.value
+                if vx == 0 and vy == 0: continue
+                if vy == 1: self._move_selection(-1)
+                elif vy == -1: self._move_selection(+1)
+                elif vx == -1: self._move_chart_selection(-1)
+                elif vx == 1: self._move_chart_selection(+1)
 
     def _handle_search_key(self, event):
         if event.key == pygame.K_ESCAPE:

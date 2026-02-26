@@ -18,7 +18,6 @@ class GameRenderer:
         
         self.font = pygame.font.SysFont(None, self._s(48))
         self.bold_font = pygame.font.SysFont(None, self._s(56), bold=True)
-        self.bold_font = pygame.font.SysFont(None, self._s(56), bold=True)
         
         self.bga_texture = None # Video frame or static image
         self.bga_updated_once = False
@@ -28,7 +27,17 @@ class GameRenderer:
         self.bar_effect_cache = {}  # (color, alpha, r) -> Texture
         self.circle_effect_cache = {} # (color, alpha, r) -> Texture
         self.text_cache = {} # (text, font_id, color, alpha) -> Texture
+        self.font_obj_cache = {} # (size, bold) -> Font
         self.ai_vision_texture = None # Pre-rendered scanner static part
+        
+        # --- Pre-calculated values ---
+        self.note_h = self._s(NOTE_H)
+        self.hit_y = self._s(HIT_Y)
+        self.hit_y_minus_note_h = self.hit_y - self.note_h
+        self.h_base_h_ratio = self.height / BASE_H
+        self.lane_bg_texture = None # Pre-rendered static lane background
+        self.note_head_bw = 0
+        self.note_head_bh = 0
         
     def _s(self, v): return int(v * self.sy)
     def _sx(self, v): return int(v * self.sx)
@@ -76,7 +85,10 @@ class GameRenderer:
         key = (text, is_bold, color, size_override)
         if key not in self.text_cache:
             if size_override:
-                font = pygame.font.SysFont(None, size_override, bold=is_bold)
+                f_key = (size_override, is_bold)
+                if f_key not in self.font_obj_cache:
+                    self.font_obj_cache[f_key] = pygame.font.SysFont(None, size_override, bold=is_bold)
+                font = self.font_obj_cache[f_key]
             else:
                 font = self.bold_font if is_bold else self.font
             surf = font.render(text, True, color)
@@ -121,6 +133,27 @@ class GameRenderer:
         self.ai_vision_texture.alpha = alpha
         self.renderer.blit(self.ai_vision_texture, pygame.Rect(x, y, w, h))
 
+    def _ensure_lane_bg_texture(self, lane_w):
+        if self.lane_bg_texture and self.lane_bg_texture.width == lane_w * NUM_LANES:
+            return
+        
+        ltw = lane_w * NUM_LANES
+        surf = pygame.Surface((ltw + 4, self.height), pygame.SRCALPHA)
+        # Boundaries (lx[0]-2 to lx[0]+ltw+2) -> relative (0 to ltw+4)
+        pygame.draw.rect(surf, (60, 60, 60, 100), (0, 0, ltw + 4, self.height), 2)
+        
+        # Lanes and Dividers
+        for i in range(NUM_LANES):
+            lx_rel = i * lane_w + 2
+            # Lane BG (use LANE_BG_ALPHA from constants)
+            pygame.draw.rect(surf, (30, 30, 30, LANE_BG_ALPHA), (lx_rel, 0, lane_w, self.height))
+            # Divider
+            pygame.draw.line(surf, (60, 60, 60, 100), (lx_rel + lane_w, 0), (lx_rel + lane_w, self.height))
+            
+        self.lane_bg_texture = Texture.from_surface(self.renderer, surf)
+        self.note_head_bw = int(lane_w * 0.8)
+        self.note_head_bh = int(self.note_h * 1.5)
+
     def draw_playing(self, current_time, game_state):
         """
         game_state keys:
@@ -150,11 +183,10 @@ class GameRenderer:
         note_type = game_state['note_type'] # Already pre-fetched in rhythm_game
         current_visual_time = game_state.get('current_visual_time', current_time)
         lane_w = lx[1] - lx[0] if len(lx) > 1 else self._sx(75)
-        note_h = self._s(NOTE_H)
-        hit_y = self._s(HIT_Y)
+        ltw = game_state['lane_total_w']
+        note_h = self.note_h
+        hit_y = self.hit_y
 
-        hit_y = self._s(HIT_Y)
-        
         # Judgment Pulse (Halved thickness for precision)
         perf_h = max(2, self._s(int(HIT_ZONE_VISUAL_H * hw // 2)))
         great_h = max(2, self._s(int(GREAT_ZONE_VISUAL_H * hw // 2)))
@@ -169,23 +201,24 @@ class GameRenderer:
             fade_mult = max(0.0, 1.0 - elapsed / 500.0) # 500ms fade duration
 
         if fade_mult > 0:
-            # Boundaries
-            self.renderer.draw_color = (60, 60, 60, int(100 * fade_mult))
-            self.renderer.draw_rect((lx[0] - 2, 0, ltw + 4, self.height))
+            # Pre-rendered Lane Background
+            self._ensure_lane_bg_texture(lane_w)
+            self.lane_bg_texture.alpha = int(255 * fade_mult)
+            self.renderer.blit(self.lane_bg_texture, pygame.Rect(lx[0] - 2, 0, ltw + 4, self.height))
 
-            # Lane BG
+            # Active Lane Highlights
+            highlight_alpha = int(LANE_BG_ALPHA * fade_mult * 0.25) # Subtle brightness boost
+            self.renderer.draw_color = (100, 100, 120, highlight_alpha)
             for i in range(NUM_LANES):
-                bg_alpha = int(LANE_BG_ALPHA * fade_mult)
-                self.renderer.draw_color = (30, 30, 30, bg_alpha) if not pressed[i] else (50, 50, 60, bg_alpha)
-                self.renderer.fill_rect((lx[i], 0, lane_w, self.height))
-                self.renderer.draw_color = (60, 60, 60, int(100 * fade_mult))
-                self.renderer.draw_line((lx[i] + lane_w, 0), (lx[i] + lane_w, self.height))
+                if pressed[i]:
+                    self.renderer.fill_rect((lx[i], 0, lane_w, self.height))
 
             # Hit Zone
             self.renderer.draw_color = (0, 0, 0, int(150 * fade_mult))
             self.renderer.fill_rect((lx[0], hit_y, ltw, self.height - hit_y))
             # Judgment line sits ABOVE hit_y (bottom edge at hit_y)
-            self.renderer.draw_color = (255, 40, 40, int(hit_alpha * fade_mult))
+            j_alpha = int(hit_alpha * fade_mult)
+            self.renderer.draw_color = (255, 40, 40, j_alpha)
             self.renderer.fill_rect((lx[0], hit_y - perf_h, ltw, perf_h))
             self.renderer.draw_color = (255, 80, 80, int(min(255, hit_alpha + 150) * fade_mult))
             self.renderer.draw_rect((lx[0], hit_y - perf_h, ltw, perf_h))
@@ -197,6 +230,7 @@ class GameRenderer:
                 self._draw_ai_vision(lx[0], vy, ltw, vh, int(hit_alpha * 0.8 * fade_mult))
 
             # Judgment / Combo Text
+            is_ai = game_state.get('is_ai', False)
             def get_bounce(timer, duration=200):
                 elapsed = current_time - timer
                 if elapsed < 0 or elapsed > duration: return 1.0
@@ -213,34 +247,37 @@ class GameRenderer:
                     tw, th = int(tex.width * scale), int(tex.height * scale)
                     self.renderer.blit(tex, pygame.Rect(lx[0] + ltw // 2 - tw // 2, self.height // 2 - self._s(70) - th // 2, tw, th))
                     
-                    # Jitter Bar (Distribution)
-                    jitter = game_state.get('jitter_history', [])
-                    if jitter:
-                        self._draw_jitter_bar(lx[0], self.height // 2 - self._s(10), ltw, jitter, current_time)
+                    # Jitter Bar (Distribution) - Only for Player 1
+                    if not is_ai:
+                        jitter = game_state.get('jitter_history', [])
+                        if jitter:
+                            self._draw_jitter_bar(lx[0], self.height // 2 - self._s(10), ltw, jitter, current_time)
 
-                    # FAST / SLOW Indicator (Only for GREAT and GOOD)
-                    j_err = game_state.get('judgment_err', 0)
-                    j_key = game_state.get('judgment_key', '')
-                    if j_key in ("GREAT", "GOOD") and alpha > 50:
-                        err_text = "FAST" if j_err < 0 else "SLOW"
-                        err_color = (100, 200, 255) if j_err < 0 else (255, 150, 50)
-                        err_tex = self._get_text_texture(err_text, True, err_color, size_override=self._s(20))
-                        err_tex.alpha = alpha
-                        self.renderer.blit(err_tex, pygame.Rect(lx[0] + ltw // 2 - err_tex.width // 2, self.height // 2 - self._s(30), err_tex.width, err_tex.height))
+                    # FAST / SLOW Indicator (Only for Player 1)
+                    if not is_ai:
+                        j_err = game_state.get('judgment_err', 0)
+                        j_key = game_state.get('judgment_key', '')
+                        if j_key in ("GREAT", "GOOD") and alpha > 50:
+                            err_text = "FAST" if j_err < 0 else "SLOW"
+                            err_color = (100, 200, 255) if j_err < 0 else (255, 150, 50)
+                            err_tex = self._get_text_texture(err_text, True, err_color, size_override=self._s(20))
+                            err_tex.alpha = alpha
+                            self.renderer.blit(err_tex, pygame.Rect(lx[0] + ltw // 2 - err_tex.width // 2, self.height // 2 - self._s(30), err_tex.width, err_tex.height))
 
-            # Combo
-            c_timer = game_state.get('combo_timer', 0)
-            if comb > 0 and current_time - c_timer < 500:
-                dt = current_time - c_timer
-                alpha = int(max(0, 255 * (1 - dt / 500)) * fade_mult)
-                if alpha > 0:
-                    c_tex = self._get_text_texture(str(comb), True, (255, 255, 255))
-                    c_tex.alpha = alpha
-                    scale = get_bounce(c_timer, 150)
-                    tw, th = int(c_tex.width * scale), int(c_tex.height * scale)
-                    self.renderer.blit(c_tex, pygame.Rect(lx[0] + ltw // 2 - tw // 2, self.height // 2 + self._s(20) - th // 2, tw, th))
+            # Combo - Only for Player 1
+            if not is_ai:
+                c_timer = game_state.get('combo_timer', 0)
+                if comb > 0 and current_time - c_timer < 500:
+                    dt = current_time - c_timer
+                    alpha = int(max(0, 255 * (1 - dt / 500)) * fade_mult)
+                    if alpha > 0:
+                        c_tex = self._get_text_texture(str(comb), True, (255, 255, 255))
+                        c_tex.alpha = alpha
+                        scale = get_bounce(c_timer, 150)
+                        tw, th = int(c_tex.width * scale), int(c_tex.height * scale)
+                        self.renderer.blit(c_tex, pygame.Rect(lx[0] + ltw // 2 - tw // 2, self.height // 2 + self._s(20) - th // 2, tw, th))
             # Speed Indicator
-            speed_val = game_state.get('speed', 1.0) / (self.height / BASE_H)
+            speed_val = game_state.get('speed', 1.0) / self.h_base_h_ratio
             spd_tex = self._get_text_texture(f"SPEED x{speed_val:.1f}", False, (200, 200, 200), size_override=self._s(18))
             spd_tex.alpha = int(200 * fade_mult)
             self.renderer.blit(spd_tex, pygame.Rect(lx[0], self.height - self._s(25), spd_tex.width, spd_tex.height))
@@ -253,25 +290,25 @@ class GameRenderer:
                 # Use simplified inline drawing for held notes
                 color = (0, 255, 255)
                 alpha = 60 if note.get('is_auto', False) else 255
-                nx, ny = lx[note['lane']], int(hit_y - note_h)
+                nx, ny = lx[note['lane']], int(self.hit_y_minus_note_h)
                 
                 # Long Note Body for held LN
                 v_end_time = note.get('visual_end_time_ms', note.get('end_time_ms', note['time_ms']))
                 etd = v_end_time - current_visual_time
-                ey = (hit_y - note_h) - etd * spd
-                body_h = int((hit_y - note_h) - ey)
+                ey = self.hit_y_minus_note_h - etd * spd
+                body_h = int(self.hit_y_minus_note_h - ey)
                 if body_h > 0:
                     b_alpha = int(alpha * 0.6)
                     self.renderer.draw_color = (*color, b_alpha)
                     body_margin = int(lane_w * 0.12)
                     self.renderer.fill_rect((nx + body_margin, int(ey) + note_h // 2, lane_w - body_margin * 2, body_h + note_h // 2))
                     self.renderer.draw_color = (*color, alpha)
-                    self.renderer.draw_line((nx + body_margin, int(ey) + note_h // 2), (nx + body_margin, (hit_y - note_h) + note_h // 2))
-                    self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, (hit_y - note_h) + note_h // 2))
+                    self.renderer.draw_line((nx + body_margin, int(ey) + note_h // 2), (nx + body_margin, self.hit_y_minus_note_h + note_h // 2))
+                    self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, self.hit_y_minus_note_h + note_h // 2))
 
                 # Head
                 if note_type == 0:
-                    bw, bh = int(lane_w * 0.8), int(note_h * 1.5)
+                    bw, bh = self.note_head_bw, self.note_head_bh
                     bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
                     self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
                     self.renderer.fill_rect((bx, by + bh - 4, bw, 4))
@@ -295,7 +332,7 @@ class GameRenderer:
             if 'miss' in note: continue
             
             td = note.get('visual_time_ms', note['time_ms']) - current_visual_time
-            y = (hit_y - note_h) - td * spd
+            y = self.hit_y_minus_note_h - td * spd
             
             # EARLY BREAK: Skip future notes far above the screen
             if y < -note_h * 4: # Buffer for long note bodies
@@ -310,7 +347,7 @@ class GameRenderer:
                 if note.get('is_ln'):
                     v_end_time = note.get('visual_end_time_ms', note.get('end_time_ms', note['time_ms']))
                     etd = v_end_time - current_visual_time
-                    ey = (hit_y - note_h) - etd * spd
+                    ey = self.hit_y_minus_note_h - etd * spd
                     body_h = int(y - ey)
                     if body_h > 0:
                         b_alpha = int(alpha * 0.6)
@@ -323,7 +360,7 @@ class GameRenderer:
 
                 # Note Head
                 if note_type == 0:
-                    bw, bh = int(lane_w * 0.8), int(note_h * 1.5)
+                    bw, bh = self.note_head_bw, self.note_head_bh
                     bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
                     self.renderer.draw_color = (0, 0, 0, int(180 * (alpha/255)))
                     self.renderer.fill_rect((bx, by + bh - 4, bw, 4))
@@ -429,6 +466,19 @@ class GameRenderer:
         self.renderer.fill_rect((mid_x, 0, bar_w - mid_x, bar_h))
         self.renderer.draw_color = (255, 255, 255, 255)
         self.renderer.fill_rect((mid_x - 2, 0, 4, bar_h))
+
+    def draw_vertical_gauge(self, x, y, w, h, ratio, color, alpha=255):
+        # BG
+        self.renderer.draw_color = (40, 40, 40, int(180 * (alpha / 255)))
+        self.renderer.fill_rect((x, y, w, h))
+        # Fill (bottom up)
+        fill_h = int(h * ratio)
+        if fill_h > 0:
+            self.renderer.draw_color = (*color, alpha)
+            self.renderer.fill_rect((x, y + h - fill_h, w, fill_h))
+        # Border
+        self.renderer.draw_color = (100, 100, 100, alpha)
+        self.renderer.draw_rect((x, y, w, h))
 
     def draw_effects(self, effects_list, lanes_x, lane_w):
         for eff in effects_list[:]:
