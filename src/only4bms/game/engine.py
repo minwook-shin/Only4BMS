@@ -27,6 +27,20 @@ class GameEngine:
         self.all_notes_passed = False
         self.all_notes_passed_time = None
         self.ln_tick_timer = 0.0
+        self.last_note_time_per_lane = [-9999.0] * 4 # lane -> time of last processed note
+        
+        # Pre-calculate Jack (Holding Hit) adjacencies for visualization
+        last_t_per_lane = [-9999.0] * 4
+        last_v_t_per_lane = [-9999.0] * 4
+        for note in self.notes:
+            if not note.get('is_auto'):
+                lane = note['lane']
+                t = note['time_ms']
+                v_t = note.get('visual_time_ms', t)
+                if t - last_t_per_lane[lane] <= 150:
+                    note['jack_prev_v_time'] = last_v_t_per_lane[lane]
+                last_t_per_lane[lane] = note.get('end_time_ms', t)
+                last_v_t_per_lane[lane] = note.get('visual_end_time_ms', note.get('end_time_ms', v_t))
 
     def process_hit(self, lane, current_time):
         max_window = JUDGMENT_DEFS["GOOD"]["threshold_ms"] * self.hw_mult
@@ -52,6 +66,7 @@ class GameEngine:
             for key in ("PERFECT", "GREAT", "GOOD"):
                 if min_diff <= JUDGMENT_DEFS[key]["threshold_ms"] * self.hw_mult:
                     self.set_judgment_cb(key, lane, current_time, timing_diff)
+                    self.last_note_time_per_lane[lane] = closest['time_ms']
                     if closest.get('is_ln'):
                         self.held_lns[lane] = closest
                         closest['start_judgment'] = key
@@ -76,6 +91,7 @@ class GameEngine:
             judgment = note.get('start_judgment', 'PERFECT')
             timing_diff = current_time - note['end_time_ms']
             self.set_judgment_cb(judgment, lane, current_time, timing_diff)
+            self.last_note_time_per_lane[lane] = note['end_time_ms']
             # Play release sounds if defined
             for sid in note.get('end_sample_ids', []):
                 self.play_sound_cb(sid)
@@ -118,7 +134,8 @@ class GameEngine:
         obs[2] = float(is_pressed)
         return obs
 
-    def update(self, current_time):
+    def update(self, current_time, lane_presses=None):
+        if lane_presses is None: lane_presses = [False] * 4
         self.current_visual_time = self.get_visual_time(current_time)
         miss_window = JUDGMENT_DEFS["MISS"]["threshold_ms"] * self.hw_mult
         
@@ -152,8 +169,25 @@ class GameEngine:
                 for sid in note['sample_ids']:
                     self.play_sound_cb(sid)
                 self.set_judgment_cb("PERFECT", note['lane'], current_time, 0)
+                self.last_note_time_per_lane[note['lane']] = note['time_ms']
                 self.note_idx += 1
                 # Do NOT break
+            elif lane_presses[note['lane']] and abs(current_time - note['time_ms']) <= 40:
+                # Holding Hit Logic:
+                # If key is held AND this note is very close to the previous note in the same lane (Jack)
+                # Adjacency threshold = 150ms
+                if note['time_ms'] - self.last_note_time_per_lane[note['lane']] <= 150:
+                    note['hit'] = True
+                    for sid in note['sample_ids']:
+                        self.play_sound_cb(sid)
+                    self.set_judgment_cb("PERFECT", note['lane'], current_time, 0)
+                    self.last_note_time_per_lane[note['lane']] = note['time_ms']
+                    if note.get('is_ln'):
+                        self.held_lns[note['lane']] = note
+                        note['start_judgment'] = "PERFECT"
+                    self.note_idx += 1
+                else:
+                    break
             else:
                 # This note is in the future and not auto-playable
                 break

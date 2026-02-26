@@ -416,16 +416,24 @@ class SongSelectMenu:
             self.settings['speed'] = max(0.1, self.settings.get('speed', 1.0) - 0.1)
         elif key == pygame.K_2: # Inc Speed
             self.settings['speed'] = min(2.0, self.settings.get('speed', 1.0) + 0.1)
-        elif key == pygame.K_t: # Toggle Player Note Type
-            self.settings['note_type'] = "Circle" if self.settings.get('note_type', "Bar") == "Bar" else "Bar"
-        elif key == pygame.K_a: # Toggle AI Note Type
-            self.settings['ai_note_type'] = "Circle" if self.settings.get('ai_note_type', "Bar") == "Bar" else "Bar"
-        elif key == pygame.K_F3:
+        elif key == pygame.K_t: # Toggle Note Type
+            mods = pygame.key.get_mods()
+            if mods & pygame.KMOD_SHIFT:
+                self.settings['ai_note_type'] = "Circle" if self.settings.get('ai_note_type', "Bar") == "Bar" else "Bar"
+            else:
+                self.settings['note_type'] = "Circle" if self.settings.get('note_type', "Bar") == "Bar" else "Bar"
+        elif key == pygame.K_F3 or key == pygame.K_b: # Search BMS
             self.search_mode = True
             self.search_query = ""
-        elif key == pygame.K_F5:
+        elif key == pygame.K_F5 or key == pygame.K_r: # Reload BMS
             self.song_groups = []
             self.scan_songs()
+        elif key == pygame.K_s: # Settings shortcut
+            self.action = "SETTINGS"
+            self.running = False
+            pygame.mixer.music.stop()
+        elif key == pygame.K_a: # Toggle AI Difficulty
+            self.ai_diff_idx = (self.ai_diff_idx + 1) % len(self.ai_difficulties)
 
     def _handle_click(self, pos, button=1):
         if self.show_guide:
@@ -540,9 +548,9 @@ class SongSelectMenu:
         # Clickable nav buttons (Right-aligned, matching title height)
         mx, my = pygame.mouse.get_pos()
         self._nav_buttons = []
-        btn_labels = [("Reload", "RELOAD"), ("Search BMS", "SEARCH"), ("Settings", "SETTINGS")] # Reversed for right-to-left draw
+        btn_labels = [("Reload (R)", "RELOAD"), ("Search BMS (B)", "SEARCH"), ("Settings (S)", "SETTINGS")] # Reversed for right-to-left draw
         if self.mode == 'ai_multi':
-            btn_labels.insert(0, (f"AI: {self.ai_difficulties[self.ai_diff_idx].upper()}", "DIFF"))
+            btn_labels.insert(0, (f"AI: {self.ai_difficulties[self.ai_diff_idx].upper()} (A)", "DIFF"))
             
         bx = self.w - self._sx_v(40) # Start from right margin
         for label, action in btn_labels:
@@ -800,7 +808,7 @@ class SongSelectMenu:
         a_rect = pygame.Rect(cx, y, panel_w - 40, iy)
         if a_rect.collidepoint(mx, my):
             pygame.draw.rect(self.screen, COLOR_HOVERED_BG, a_rect, border_radius=5)
-        self.screen.blit(self.small_font.render(f"AI NOTE: {ai_n_type} (A)", True, COLOR_TEXT_SECONDARY), (cx, y))
+        self.screen.blit(self.small_font.render(f"AI NOTE: {ai_n_type} (Shift+T)", True, COLOR_TEXT_SECONDARY), (cx, y))
         opt_rects.append((a_rect, "AI_TYPE"))
         self._opt_rects = opt_rects # Store for click handler
 

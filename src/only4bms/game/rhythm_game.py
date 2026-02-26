@@ -359,7 +359,7 @@ class RhythmGame:
                     
                     sim_time_ms = (simulated_real_time - self.start_time) * 1000.0
                     
-                    if self.engine.update(sim_time_ms):
+                    if self.engine.update(sim_time_ms, self.lane_pressed):
                         self.state = "RESULT"
                 simulated_real_time += dt_logic
                 accumulator -= dt_logic
@@ -420,6 +420,8 @@ class RhythmGame:
             pressed = bool(ai_actions[lane])
             if pressed: self.ai_engine.process_hit(lane, current_time)
             self.ai_lane_pressed[lane] = pressed
+        
+        self.ai_engine.update(current_time, self.ai_lane_pressed)
 
     def _draw(self, t):
         self.renderer.draw_color = (0, 0, 0, 255)

@@ -357,6 +357,22 @@ class GameRenderer:
                         self.renderer.draw_color = (*color, alpha)
                         self.renderer.draw_line((nx + body_margin, int(ey) + note_h // 2), (nx + body_margin, int(y) + note_h // 2))
                         self.renderer.draw_line((nx + lane_w - body_margin, int(ey) + note_h // 2), (nx + lane_w - body_margin, int(y) + note_h // 2))
+                
+                # Handling Hit Connector (Jack)
+                if 'jack_prev_v_time' in note and not is_auto:
+                    prev_td = note['jack_prev_v_time'] - current_visual_time
+                    prev_y = int(self.hit_y_minus_note_h - prev_td * spd)
+                    connector_h = int(prev_y - y)
+                    if connector_h > 0:
+                        # Draw faint connector (looks like a skinny LN body)
+                        c_alpha = int(100 * fade_mult)
+                        self.renderer.draw_color = (*color, int(c_alpha * 0.4))
+                        c_margin = int(lane_w * 0.2)
+                        self.renderer.fill_rect((nx + c_margin, int(y) + note_h // 2, lane_w - c_margin * 2, connector_h))
+                        # Side lines for definition
+                        self.renderer.draw_color = (*color, int(c_alpha * 0.6))
+                        self.renderer.draw_line((nx + c_margin, int(y) + note_h // 2), (nx + c_margin, prev_y + note_h // 2))
+                        self.renderer.draw_line((nx + lane_w - c_margin, int(y) + note_h // 2), (nx + lane_w - c_margin, prev_y + note_h // 2))
 
                 # Note Head
                 if note_type == 0:
