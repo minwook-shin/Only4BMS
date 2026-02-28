@@ -1,7 +1,7 @@
+import pygame  # Must be first — prevents macOS dylib conflicts with numpy/BLAS
 import json
 import os
 import sys
-import pygame
 import time
 
 from only4bms.core.bms_parser import BMSParser
@@ -307,6 +307,7 @@ def main():
     pygame.quit()
     sys.exit()
 
-
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()  # Required for PyInstaller on macOS/Windows
     main()

@@ -1,7 +1,5 @@
 import os
 import sys
-import numpy as np
-
 # Adjust path to import only4bms safely if run as a script
 if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))

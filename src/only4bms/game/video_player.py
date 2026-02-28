@@ -1,6 +1,6 @@
+import pygame
 import cv2
 import numpy as np
-import pygame
 import threading
 import time
 
