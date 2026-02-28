@@ -34,7 +34,7 @@ class GameRenderer:
         self.font_obj_cache = {} # (size, bold) -> Font
         self.ai_vision_texture = None # Pre-rendered scanner static part
         self.jitter_texture = None # Pre-rendered jitter bar
-        self.jitter_len = 0 # Track jitter history length for cache invalidation
+        self.jitter_gen = -1 # Track jitter history generation for cache invalidation
         
         # --- Pre-calculated values ---
         self.note_h = self._s(NOTE_H)
@@ -287,12 +287,7 @@ class GameRenderer:
                     scale = get_bounce(j_timer)
                     tw, th = int(tex.width * scale), int(tex.height * scale)
                     self.renderer.blit(tex, pygame.Rect(lx[0] + ltw // 2 - tw // 2, self.height // 2 - self._s(70) - th // 2, tw, th))
-                    
-                    # Jitter Bar (Distribution) - Only for Player 1
-                    if not is_ai:
-                        jitter = game_state.get('jitter_history', [])
-                        if jitter:
-                            self._draw_jitter_bar(lx[0], self.height // 2 - self._s(10), ltw, jitter, current_time)
+
 
                     # FAST / SLOW Indicator (Only for Player 1)
                     if not is_ai:
@@ -304,6 +299,12 @@ class GameRenderer:
                             err_tex = self._get_text_texture(err_text, True, err_color, size_override=self._s(20))
                             err_tex.alpha = alpha
                             self.renderer.blit(err_tex, pygame.Rect(lx[0] + ltw // 2 - err_tex.width // 2, self.height // 2 - self._s(30), err_tex.width, err_tex.height))
+
+            # Jitter Bar (Distribution) - Only for Player 1, rendered independently of judgment text
+            if not is_ai:
+                jitter = game_state.get('jitter_history', [])
+                if jitter:
+                    self._draw_jitter_bar(lx[0], self.height // 2 - self._s(10), ltw, jitter, current_time)
 
             # Combo - Only for Player 1
             if not is_ai:
@@ -418,7 +419,10 @@ class GameRenderer:
         self.renderer.draw_line((center_x, y - self._s(5)), (center_x, y + self._s(5)))
 
         # Rebuild jitter texture only when history changes
-        if self.jitter_len != jitter_len:
+        # Use the last entry's timestamp as a cache key (changes whenever a new judgment is added)
+        last_hit_t = jitter[-1][1] if isinstance(jitter[-1], tuple) else 0
+        jitter_gen = (jitter_len, last_hit_t)
+        if self.jitter_gen != jitter_gen:
             surf_h = bar_h * 2 + 2  # Extra height for latest point
             surf = pygame.Surface((w, surf_h), pygame.SRCALPHA)
             half_w = w // 2
@@ -454,7 +458,7 @@ class GameRenderer:
                 self.jitter_texture.update(surf)
             else:
                 self.jitter_texture = Texture.from_surface(self.renderer, surf)
-            self.jitter_len = jitter_len
+            self.jitter_gen = jitter_gen
         
         if self.jitter_texture:
             surf_h = bar_h * 2 + 2
