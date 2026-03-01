@@ -46,25 +46,45 @@ jobs:
 
       - name: Install Butler
         run: |
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          echo "Checking DNS for broth.itch.ovh..."
+          nslookup broth.itch.ovh || echo "DNS lookup failed, but proceeding to try curl..."
+
+          # Retry loop for download (up to 5 times)
+          for i in {1..5}; do
+            echo "Attempt $i: Downloading Butler..."
+            if curl -fL -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default; then
+              echo "Download successful!"
+              break
+            else
+              if [ $i -eq 5 ]; then
+                echo "Failed to download Butler after 5 attempts."
+                exit 1
+              fi
+              echo "Download failed. Retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+
           unzip butler.zip
           chmod +x butler
           ./butler -V
+          # Add to PATH so we can use 'butler' directly
+          echo "$(pwd)" >> $GITHUB_PATH
 
       - name: Deploy Windows to itch.io
         env:
           BUTLER_API_KEY: ${{ secrets.ITCH_IO_API_KEY }}
         run: |
-          ./butler push dist/Only4BMS_Setup.exe minwook-shin/only4bms:windows --userversion ${{ steps.get_release.outputs.release }}
+          butler push dist/Only4BMS_Setup.exe minwook-shin/only4bms:windows --userversion ${{ steps.get_release.outputs.release }}
 
       - name: Deploy Mac Intel to itch.io
         env:
           BUTLER_API_KEY: ${{ secrets.ITCH_IO_API_KEY }}
         run: |
-          ./butler push dist/Only4BMS-Mac-Intel.zip minwook-shin/only4bms:macos-intel --userversion ${{ steps.get_release.outputs.release }}
+          butler push dist/Only4BMS-Mac-Intel.zip minwook-shin/only4bms:macos-intel --userversion ${{ steps.get_release.outputs.release }}
 
       - name: Deploy Mac ARM to itch.io
         env:
           BUTLER_API_KEY: ${{ secrets.ITCH_IO_API_KEY }}
         run: |
-          ./butler push dist/Only4BMS-Mac-ARM.zip minwook-shin/only4bms:macos-arm --userversion ${{ steps.get_release.outputs.release }}
+          butler push dist/Only4BMS-Mac-ARM.zip minwook-shin/only4bms:macos-arm --userversion ${{ steps.get_release.outputs.release }}
