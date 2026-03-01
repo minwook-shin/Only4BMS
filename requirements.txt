@@ -1,6 +1,6 @@
 pygame-ce>=2.5.0
 opencv-python
-numpy
+numpy<2.0
 stable-baselines3
 shimmy
 gymnasium
