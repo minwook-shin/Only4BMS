@@ -31,6 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
+          pip install "numpy<2.0"
           pip install pyinstaller stable-baselines3 shimmy gymnasium torch
 
       - name: Train AI Models
@@ -49,6 +50,7 @@ jobs:
                       --add-data "src/only4bms/ai/*.zip:only4bms/ai" \
                       --collect-all stable_baselines3 \
                       --collect-all torch \
+                      --collect-all numpy \
                       --osx-bundle-identifier com.only4bms.app \
                       --clean \
                       src/only4bms/main.py

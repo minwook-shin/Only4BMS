@@ -1,6 +1,6 @@
 [project]
 name = "only4bms"
-version = "1.5.3"
+version = "1.5.4"
 description = "BMS, simplified to 4 lanes. Powered by Pygame."
 readme = "README.md"
 requires-python = ">=3.10"
