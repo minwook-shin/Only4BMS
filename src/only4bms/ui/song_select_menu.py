@@ -2,8 +2,11 @@ import glob
 import os
 import sys
 import webbrowser
+import math
 
 import pygame
+from only4bms.i18n import get as _t, FONT_NAME
+from only4bms import i18n as _i18n
 
 from ..core.bms_parser import BMSParser
 
@@ -26,7 +29,7 @@ COLOR_PANEL_BG = (15, 15, 25, 130)
 
 
 class SongSelectMenu:
-    def __init__(self, settings, renderer, window, mode='single'):
+    def __init__(self, settings, renderer, window, mode='single', song_groups=None):
         from pygame._sdl2.video import Texture
         self.renderer = renderer
         self.window = window
@@ -46,10 +49,10 @@ class SongSelectMenu:
         
         pygame.display.set_caption("Song Selection")
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(32))
-        self.font_bold = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(38), bold=True)
-        self.small_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(22))
-        self.title_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(44), bold=True)
+        self.font = _i18n.font("select_body", self.sy)
+        self.font_bold = _i18n.font("select_bold", self.sy, bold=True)
+        self.small_font = _i18n.font("select_small", self.sy)
+        self.title_font = _i18n.font("select_title", self.sy, bold=True)
         self.settings = settings
 
         # BMS directory
@@ -87,20 +90,21 @@ class SongSelectMenu:
 
         # Core data
         self.song_groups = []
-        self.scan_songs()
-        
-        last_path = self.settings.get('last_hovered_path')
-        if last_path:
-            for g_idx, group in enumerate(self.song_groups):
-                found = False
-                for c_idx, chart in enumerate(group.get('charts', [])):
-                    if chart.get('filepath') == last_path:
-                        self.selected_group_idx = g_idx
-                        self.selected_chart_idx = c_idx
-                        self.scroll_offset = max(0, g_idx - 2)
-                        found = True
-                        break
-                if found: break
+        self._scanning = False
+        if song_groups is not None:
+            self.song_groups = song_groups
+            # Restore last hovered position from cache
+            last_path = self.settings.get('last_hovered_path')
+            if last_path:
+                for g_idx, group in enumerate(self.song_groups):
+                    for c_idx, chart in enumerate(group.get('charts', [])):
+                        if chart.get('filepath') == last_path:
+                            self.selected_group_idx = g_idx
+                            self.selected_chart_idx = c_idx
+                            self.view_offset = max(0, g_idx - 2)
+                            break
+        else:
+            self._start_scan()
                 
         self.last_previewed_path = None
 
@@ -112,57 +116,76 @@ class SongSelectMenu:
         """Scale X-axis value."""
         return max(1, int(v * self.sx))
 
+    def _save(self):
+        """Persist settings to disk."""
+        from ..main import save_settings
+        save_settings(self.settings)
+
     # ── Song Scanning ────────────────────────────────────────────────────
 
-    def scan_songs(self):
-        print(f"Scanning song directory: {self.bms_dir}")
-        os.makedirs(self.bms_dir, exist_ok=True)
-        
-        # Group by directory
-        groups_dict = {} # folder_path -> {title, artist, charts}
-        
+    def _start_scan(self):
+        """Begin a cooperative scan — collects file list, then parses incrementally."""
+        self._scanning = True
+        self._scan_groups = {}
+        # Collect file list (fast, no parsing)
         bms_files = []
+        os.makedirs(self.bms_dir, exist_ok=True)
         for ext in BMS_EXTS:
-            # Escape path to handle [] correctly
             search_pattern = os.path.join(glob.escape(self.bms_dir), '**', ext)
             bms_files.extend(glob.glob(search_pattern, recursive=True))
-            
-        for f in bms_files:
+        self._scan_queue = bms_files
+        self._scan_total = len(bms_files)
+        print(f"Scanning song directory: {self.bms_dir} ({self._scan_total} files)")
+
+    def _scan_tick(self):
+        """Parse one BMS file per call. Call this every frame during scanning."""
+        if not self._scanning or not self._scan_queue:
+            # Done — finalise
+            self.song_groups = list(self._scan_groups.values())
+            for g in self.song_groups:
+                g['charts'].sort(key=lambda x: int(x['playlevel']) if x['playlevel'].isdigit() else 0)
+            if not self.song_groups:
+                self._create_mock_song()
+            self._scanning = False
+            # Restore last hovered position
+            last_path = self.settings.get('last_hovered_path')
+            if last_path:
+                for g_idx, group in enumerate(self.song_groups):
+                    for c_idx, chart in enumerate(group.get('charts', [])):
+                        if chart.get('filepath') == last_path:
+                            self.selected_group_idx = g_idx
+                            self.selected_chart_idx = c_idx
+                            self.view_offset = max(0, g_idx - 2)
+                            return
+            return
+
+        # Parse a batch (up to 5 files per frame for speed)
+        for _ in range(min(5, len(self._scan_queue))):
+            f = self._scan_queue.pop(0)
             try:
                 folder = os.path.dirname(f)
                 res = BMSParser(f).get_metadata()
                 title, artist, bpm, playlevel, genre, total_notes, preview_path, stagefile, banner, h_val = res
-                
                 chart_data = {
                     'filepath': f, 'title': title, 'artist': artist,
                     'bpm': bpm, 'playlevel': playlevel, 'genre': genre,
                     'total_notes': total_notes, 'preview_path': preview_path,
                     'stagefile': stagefile, 'banner': banner, 'hash': h_val
                 }
-                
-                if folder not in groups_dict:
-                    groups_dict[folder] = {
-                        'folder': folder,
-                        'title': title, # Use first encountered title as group title
-                        'artist': artist,
-                        'genre': genre,
-                        'preview_path': preview_path,
-                        'stagefile': stagefile,
-                        'banner': banner,
+                if folder not in self._scan_groups:
+                    self._scan_groups[folder] = {
+                        'folder': folder, 'title': title, 'artist': artist,
+                        'genre': genre, 'preview_path': preview_path,
+                        'stagefile': stagefile, 'banner': banner,
                         'charts': [chart_data]
                     }
                 else:
-                    groups_dict[folder]['charts'].append(chart_data)
+                    self._scan_groups[folder]['charts'].append(chart_data)
             except Exception as e:
                 print(f"Error parsing {f}: {e}")
 
-        self.song_groups = list(groups_dict.values())
-        # Sort charts in each group by difficulty
-        for g in self.song_groups:
-            g['charts'].sort(key=lambda x: int(x['playlevel']) if x['playlevel'].isdigit() else 0)
 
-        if not self.song_groups:
-            self._create_mock_song()
+
 
     def _create_mock_song(self):
         try:
@@ -319,6 +342,8 @@ class SongSelectMenu:
         self.preview_timer = pygame.time.get_ticks()
         
         while self.running:
+            if self._scanning:
+                self._scan_tick()
             self._handle_events()
             self._update_preview()
             self._draw()
@@ -436,22 +461,27 @@ class SongSelectMenu:
             pygame.mixer.music.stop()
         elif key == pygame.K_m: # Note Mod toggle
             self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
+            self.settings['note_mod_idx'] = self.note_mod_idx
+            self._save()
         elif key == pygame.K_1: # Dec Speed
             self.settings['speed'] = max(0.1, self.settings.get('speed', 1.0) - 0.1)
+            self._save()
         elif key == pygame.K_2: # Inc Speed
             self.settings['speed'] = min(2.0, self.settings.get('speed', 1.0) + 0.1)
+            self._save()
         elif key == pygame.K_t: # Toggle Note Type
             mods = pygame.key.get_mods()
             if mods & pygame.KMOD_SHIFT:
                 self.settings['ai_note_type'] = 1 if self.settings.get('ai_note_type', 0) == 0 else 0
             else:
                 self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
+            self._save()
         elif key == pygame.K_F3 or key == pygame.K_b: # Search BMS
             self.search_mode = True
             self.search_query = ""
         elif key == pygame.K_F5 or key == pygame.K_r: # Reload BMS
             self.song_groups = []
-            self.scan_songs()
+            self._start_scan()
         elif key == pygame.K_s: # Settings shortcut
             self.action = "SETTINGS"
             self.running = False
@@ -475,6 +505,7 @@ class SongSelectMenu:
                     self.settings['speed'] = max(0.1, min(2.0, self.settings.get('speed', 1.0) + delta))
                 elif action == "TYPE": self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
                 elif action == "AI_TYPE": self.settings['ai_note_type'] = 1 if self.settings.get('ai_note_type', 0) == 0 else 0
+                self._save()
                 return
 
         for btn_rect, btn_action in self._nav_buttons:
@@ -486,8 +517,8 @@ class SongSelectMenu:
                     self.search_mode = True
                     self.search_query = ""
                 elif btn_action == "RELOAD":
-                    self.songs = []
-                    self.scan_songs()
+                    self.song_groups = []
+                    self._start_scan()
                 elif btn_action == "DIFF":
                     self.ai_diff_idx = (self.ai_diff_idx + 1) % len(self.ai_difficulties)
                 elif btn_action == "MOD":
@@ -566,15 +597,15 @@ class SongSelectMenu:
         # Header Title
         title_y = self._s(45)
         self.screen.blit(
-            self.title_font.render("MUSIC SELECTION", True, COLOR_ACCENT),
+            self.title_font.render(_t("music_selection"), True, COLOR_ACCENT),
             (self._sx_v(40), title_y))
 
         # Clickable nav buttons (Right-aligned, matching title height)
         mx, my = pygame.mouse.get_pos()
         self._nav_buttons = []
-        btn_labels = [("Reload (R)", "RELOAD"), ("Search BMS (B)", "SEARCH"), ("Settings (S)", "SETTINGS")] # Reversed for right-to-left draw
+        btn_labels = [(_t("reload"), "RELOAD"), (_t("search_bms"), "SEARCH"), (_t("settings_btn"), "SETTINGS")] # Reversed for right-to-left draw
         if self.mode == 'ai_multi':
-            btn_labels.insert(0, (f"AI: {self.ai_difficulties[self.ai_diff_idx].upper()} (A)", "DIFF"))
+            btn_labels.insert(0, (f"{_t('ai_diff_label')}: {self.ai_difficulties[self.ai_diff_idx].upper()} (A)", "DIFF"))
             
         bx = self.w - self._sx_v(40) # Start from right margin
         for label, action in btn_labels:
@@ -594,15 +625,41 @@ class SongSelectMenu:
             self._nav_buttons.append((rect, action))
             bx = rect.x - self._sx_v(15) # Move left for next button
 
-        if not self.song_groups:
+        if self._scanning:
+            self._draw_scan_spinner()
+        elif not self.song_groups:
             self.screen.blit(
-                self.font.render("No BMS files found in 'bms/' directory.", True, COLOR_TEXT_SECONDARY),
+                self.font.render(_t("no_bms_files"), True, COLOR_TEXT_SECONDARY),
                 (self._sx_v(50), self._s(150)))
 
         if self.search_mode:
             self._draw_search_overlay()
         if self.show_guide:
             self._draw_guide_overlay()
+
+    def _draw_scan_spinner(self):
+        """Draw a circular loading spinner during background scan."""
+        cx, cy = self.w // 2, self.h // 2
+        r = self._s(30)
+        t = pygame.time.get_ticks() / 1000.0
+
+        # Rotating arc (4 segments)
+        for i in range(8):
+            angle = t * 4.0 + i * (math.pi / 4)
+            alpha = int(255 * (1.0 - i / 8.0))
+            ex = int(cx + r * math.cos(angle))
+            ey = int(cy + r * math.sin(angle))
+            sz = max(2, self._s(4) - i // 2)
+            c = (COLOR_ACCENT[0], COLOR_ACCENT[1], COLOR_ACCENT[2])
+            s = pygame.Surface((sz * 2, sz * 2), pygame.SRCALPHA)
+            pygame.draw.circle(s, (*c, alpha), (sz, sz), sz)
+            self.screen.blit(s, (ex - sz, ey - sz))
+
+        # "Scanning..." text with progress
+        done = self._scan_total - len(getattr(self, '_scan_queue', []))
+        label = f"{_t('scanning')} {done}/{self._scan_total}"
+        txt = self.small_font.render(label, True, COLOR_TEXT_SECONDARY)
+        self.screen.blit(txt, txt.get_rect(center=(cx, cy + r + self._s(20))))
 
     def _draw_song_list(self):
         mx, my = pygame.mouse.get_pos()
@@ -800,7 +857,7 @@ class SongSelectMenu:
         y += self._s(100) # Tighter gap before Gameplay Options
         
         # ── GAMEPLAY OPTIONS ──
-        self.screen.blit(self.small_font.render("GAMEPLAY OPTIONS", True, COLOR_ACCENT), (cx, y))
+        self.screen.blit(self.small_font.render(_t("gameplay_options"), True, COLOR_ACCENT), (cx, y))
         y += self._s(25)
         
         opt_rects = []
@@ -812,7 +869,7 @@ class SongSelectMenu:
         s_rect = pygame.Rect(cx, y, panel_w - 40, iy)
         if s_rect.collidepoint(mx, my):
             pygame.draw.rect(self.screen, COLOR_HOVERED_BG, s_rect, border_radius=5)
-        self.screen.blit(self.small_font.render(f"SPEED: x{speed:.1f} (1/2)", True, COLOR_TEXT_SECONDARY), (cx, y))
+        self.screen.blit(self.small_font.render(f"{_t('speed_label')}: x{speed:.1f} (1/2)", True, COLOR_TEXT_SECONDARY), (cx, y))
         opt_rects.append((s_rect, "SPEED"))
         y += iy
         
@@ -823,7 +880,7 @@ class SongSelectMenu:
         t_rect = pygame.Rect(cx, y, panel_w - 40, iy)
         if t_rect.collidepoint(mx, my):
             pygame.draw.rect(self.screen, COLOR_HOVERED_BG, t_rect, border_radius=5)
-        self.screen.blit(self.small_font.render(f"PLAYER NOTE: {n_type} (T)", True, COLOR_TEXT_SECONDARY), (cx, y))
+        self.screen.blit(self.small_font.render(f"{_t('player_note')}: {n_type} (T)", True, COLOR_TEXT_SECONDARY), (cx, y))
         opt_rects.append((t_rect, "TYPE"))
         y += iy
         
@@ -832,14 +889,14 @@ class SongSelectMenu:
         a_rect = pygame.Rect(cx, y, panel_w - 40, iy)
         if a_rect.collidepoint(mx, my):
             pygame.draw.rect(self.screen, COLOR_HOVERED_BG, a_rect, border_radius=5)
-        self.screen.blit(self.small_font.render(f"AI NOTE: {ai_n_type} (Shift+T)", True, COLOR_TEXT_SECONDARY), (cx, y))
+        self.screen.blit(self.small_font.render(f"{_t('ai_note')}: {ai_n_type} (Shift+T)", True, COLOR_TEXT_SECONDARY), (cx, y))
         opt_rects.append((a_rect, "AI_TYPE"))
         self._opt_rects = opt_rects # Store for click handler
 
         # ── NOTE MOD ──
         # Adding some space since records are gone
         y += self._s(40)
-        self.screen.blit(self.small_font.render("NOTE MOD (M)", True, COLOR_ACCENT_DIM), (cx, y))
+        self.screen.blit(self.small_font.render(_t("note_mod_label"), True, COLOR_ACCENT_DIM), (cx, y))
         y += self._s(25)
         mod_rect = pygame.Rect(cx, y, panel_w - 40, self._s(28))
         hover_mod = mod_rect.collidepoint(mx, my)
@@ -875,23 +932,23 @@ class SongSelectMenu:
         cx = self.w // 2
         pygame.draw.rect(self.screen, (255, 255, 255),
                          (cx - self._sx_v(300), self._s(250), self._sx_v(600), self._s(60)), 2)
-        self.screen.blit(self.font.render("Search Web (bmssearch.net)", True, (255, 255, 255)),
+        self.screen.blit(self.font.render(_t("search_web_title"), True, (255, 255, 255)),
                          (cx - self._sx_v(300), self._s(200)))
         self.screen.blit(self.font.render(self.search_query + "_", True, (200, 255, 200)),
                          (cx - self._sx_v(280), self._s(265)))
         self.screen.blit(
-            self.small_font.render("Type query and press ENTER to search directly on your browser.", True, COLOR_TEXT_SECONDARY),
+            self.small_font.render(_t("search_hint"), True, COLOR_TEXT_SECONDARY),
             (cx - self._sx_v(300), self._s(320)))
 
     def _draw_guide_overlay(self):
         self._draw_overlay(220)
         lines = [
-            "Browser Opened! To play a new song:", "",
-            "1. Download the track from the opened website.",
-            "2. Extract the downloaded ZIP or RAR file.",
-            "3. Move the extracted folder into the 'bms' directory.",
-            "4. Press F5 closely after this overlay to reload songs.",
-            "", "(Press ENTER or ESC or Click to close)",
+            _t("guide_title"), "",
+            _t("guide_step1"),
+            _t("guide_step2"),
+            _t("guide_step3"),
+            _t("guide_step4"),
+            "", _t("guide_close"),
         ]
         y = self._s(150)
         for line in lines:

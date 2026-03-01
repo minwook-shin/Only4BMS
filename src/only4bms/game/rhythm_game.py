@@ -5,6 +5,7 @@ import pygame
 import copy
 import math
 import numpy as np
+from only4bms.i18n import get as _t
 
 from .constants import *
 from .assets import AssetLoader
@@ -141,7 +142,8 @@ class RhythmGame:
     def set_judgment(self, key, lane=None, t=None, timing_diff=0):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
         j = JUDGMENT_DEFS[key]
-        self.judgment_text = j["display"]
+        _JUDGMENT_I18N = {"PERFECT": "judgment_perfect", "GREAT": "judgment_great", "GOOD": "judgment_good", "MISS": "judgment_miss"}
+        self.judgment_text = _t(_JUDGMENT_I18N.get(key, key))
         self.judgment_key = key
         self.judgment_color = j["color"]
         self.judgment_timer = t
@@ -170,7 +172,8 @@ class RhythmGame:
     def set_ai_judgment(self, key, lane, t=None, timing_diff=0):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
         j = JUDGMENT_DEFS[key]
-        self.ai_judgment_text = j["display"]
+        _JUDGMENT_I18N = {"PERFECT": "judgment_perfect", "GREAT": "judgment_great", "GOOD": "judgment_good", "MISS": "judgment_miss"}
+        self.ai_judgment_text = _t(_JUDGMENT_I18N.get(key, key))
         self.ai_judgment_key = key
         self.ai_judgment_color = j["color"]
         self.ai_judgment_timer = t
@@ -202,7 +205,16 @@ class RhythmGame:
         self.combo += 1
         self.max_combo = max(self.max_combo, self.combo)
         self.combo_timer = t
-        # Refresh judgment timer slightly to keep it "active/glowing" during LNs
+        # Override displayed judgment with the held LN's own judgment
+        best = "PERFECT"
+        for ln in self.engine.held_lns:
+            if ln:
+                best = ln.get('start_judgment', 'PERFECT')
+                break
+        _JUDGMENT_I18N = {"PERFECT": "judgment_perfect", "GREAT": "judgment_great", "GOOD": "judgment_good", "MISS": "judgment_miss"}
+        self.judgment_text = _t(_JUDGMENT_I18N.get(best, best))
+        self.judgment_key = best
+        self.judgment_color = JUDGMENT_DEFS[best]["color"]
         self.judgment_timer = t
 
     def on_ai_ln_tick(self, t=None):
@@ -543,14 +555,14 @@ class RhythmGame:
         self.renderer.fill_rect((0, 0, self.width, self.height))
         
         s = self.game_renderer._s
-        tex1 = self.game_renderer._get_text_texture("PAUSED", True, (255, 255, 255), size_override=s(72))
-        self.renderer.blit(tex1, pygame.Rect(self.width // 2 - tex1.width // 2, self.height // 2 - 80 - tex1.height // 2, tex1.width, tex1.height))
+        tex1 = self.game_renderer._get_text_texture(_t("paused"), True, (255, 255, 255), size_override=s(56))
+        self.renderer.blit(tex1, pygame.Rect(self.width // 2 - tex1.width // 2, self.height // 2 - s(80), tex1.width, tex1.height))
         
-        tex2 = self.game_renderer._get_text_texture("Press ESC / TAB to Resume", False, (200, 255, 200), size_override=s(32))
-        self.renderer.blit(tex2, pygame.Rect(self.width // 2 - tex2.width // 2, self.height // 2 - tex2.height // 2, tex2.width, tex2.height))
+        tex2 = self.game_renderer._get_text_texture(_t("resume_hint"), False, (200, 255, 200), size_override=s(24))
+        self.renderer.blit(tex2, pygame.Rect(self.width // 2 - tex2.width // 2, self.height // 2 - s(10), tex2.width, tex2.height))
         
-        tex3 = self.game_renderer._get_text_texture("Press Q or ENTER to Quit", False, (255, 200, 200), size_override=s(32))
-        self.renderer.blit(tex3, pygame.Rect(self.width // 2 - tex3.width // 2, self.height // 2 + 50 - tex3.height // 2, tex3.width, tex3.height))
+        tex3 = self.game_renderer._get_text_texture(_t("quit_hint"), False, (255, 200, 200), size_override=s(24))
+        self.renderer.blit(tex3, pygame.Rect(self.width // 2 - tex3.width // 2, self.height // 2 + s(25), tex3.width, tex3.height))
 
     def _handle_pause_input(self, event):
         if event.type == pygame.KEYDOWN:

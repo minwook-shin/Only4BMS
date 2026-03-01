@@ -2,6 +2,8 @@ import math
 import time
 import pygame
 from pygame._sdl2.video import Texture
+from only4bms.i18n import get as _t, FONT_NAME, FONT_SIZES
+from only4bms import i18n as _i18n
 from .constants import (
     BASE_W, BASE_H, JUDGMENT_DEFS, HIT_ZONE_VISUAL_H, GREAT_ZONE_VISUAL_H,
     HIT_ZONE_PULSE_PERIOD, HIT_ZONE_ALPHA_MIN, HIT_ZONE_ALPHA_RANGE,
@@ -17,8 +19,8 @@ class GameRenderer:
         self.sx = self.width / BASE_W
         self.sy = self.height / BASE_H
         
-        self.font = pygame.font.SysFont(None, self._s(48))
-        self.bold_font = pygame.font.SysFont(None, self._s(56), bold=True)
+        self.font = _i18n.font("hud_normal", self.sy)
+        self.bold_font = _i18n.font("hud_bold", self.sy, bold=True)
         
         self.bga_texture = None # Video frame or static image
         self.bga_last_surface = None # Track the last surface we uploaded to avoid redundant updates
@@ -128,7 +130,7 @@ class GameRenderer:
             if size_override:
                 f_key = (size_override, is_bold)
                 if f_key not in self.font_obj_cache:
-                    self.font_obj_cache[f_key] = pygame.font.SysFont(None, size_override, bold=is_bold)
+                    self.font_obj_cache[f_key] = pygame.font.SysFont(FONT_NAME, size_override, bold=is_bold)
                 font = self.font_obj_cache[f_key]
             else:
                 font = self.bold_font if is_bold else self.font
@@ -159,8 +161,8 @@ class GameRenderer:
             pygame.draw.circle(surf, (0, 255, 255, 180), (w // 2 + ex, ey), er, 2)
             
             # Text
-            ai_font = pygame.font.SysFont(None, self._s(22), bold=True)
-            ai_surf = ai_font.render("AI Vision", True, (0, 255, 255, 200))
+            ai_font = _i18n.font("hud_ai_label", self.sy, bold=True)
+            ai_surf = ai_font.render(_t("ai_vision"), True, (0, 255, 255, 200))
             surf.blit(ai_surf, (self._s(8), self._s(5)))
             
             if self.ai_vision_texture: self.ai_vision_texture.update(surf)
@@ -294,7 +296,7 @@ class GameRenderer:
                         j_err = game_state.get('judgment_err', 0)
                         j_key = game_state.get('judgment_key', '')
                         if j_key in ("GREAT", "GOOD") and alpha > 50:
-                            err_text = "FAST" if j_err < 0 else "SLOW"
+                            err_text = _t("fast") if j_err < 0 else _t("slow")
                             err_color = (100, 200, 255) if j_err < 0 else (255, 150, 50)
                             err_tex = self._get_text_texture(err_text, True, err_color, size_override=self._s(20))
                             err_tex.alpha = alpha
@@ -321,7 +323,7 @@ class GameRenderer:
             # Speed Indicator (Player side only)
             if not is_ai:
                 speed_val = game_state.get('speed', 1.0) / self.h_base_h_ratio
-                spd_tex = self._get_text_texture(f"SPEED x{speed_val:.1f}", False, (200, 200, 200), size_override=self._s(18))
+                spd_tex = self._get_text_texture(_t("speed_display").format(val=f"{speed_val:.1f}"), False, (200, 200, 200), size_override=self._s(18))
                 spd_tex.alpha = int(200 * fade_mult)
                 self.renderer.blit(spd_tex, pygame.Rect(lx[0], self.height - self._s(25), spd_tex.width, spd_tex.height))
             
@@ -553,15 +555,6 @@ class GameRenderer:
                 self.renderer.blit(tex, pygame.Rect(tx - r, ty - r, r*2, r*2))
         effects_list[:] = alive
 
-    def _get_rank(self, score_ratio):
-        if score_ratio >= 1.0: return "P"
-        if score_ratio >= 0.95: return "AAA"
-        if score_ratio >= 0.85: return "AA"
-        if score_ratio >= 0.75: return "A"
-        if score_ratio >= 0.65: return "B"
-        if score_ratio >= 0.55: return "C"
-        if score_ratio >= 0.45: return "D"
-        return "E"
 
     def draw_result(self, stats):
         def calc_score(judgs):
@@ -588,13 +581,13 @@ class GameRenderer:
         # Title/Banner
         if stats['mode'] == 'ai_multi':
             p1_win = score_h >= score_ai
-            win_txt = "YOU WIN!" if p1_win else "AI BOT WINS"
+            win_txt = _t("you_win") if p1_win else _t("ai_wins")
             win_color = (0, 255, 255) if p1_win else (255, 50, 50)
             bs_tex = self._get_text_texture(win_txt, True, win_color, size_override=self._s(60))
             bs_tex.alpha = 255
             self.renderer.blit(bs_tex, pygame.Rect(self.width // 2 - bs_tex.width // 2, self._s(20), bs_tex.width, bs_tex.height))
         else:
-            t_tex = self._get_text_texture("RESULT", True, (255, 255, 255), size_override=self._s(50))
+            t_tex = self._get_text_texture(_t("result_title"), True, (255, 255, 255), size_override=self._s(50))
             t_tex.alpha = 255
             self.renderer.blit(t_tex, pygame.Rect(self.width // 2 - t_tex.width // 2, self._s(20), t_tex.width, t_tex.height))
 
@@ -617,30 +610,21 @@ class GameRenderer:
             y += self._s(32)
         
         y += self._s(20)
-        rank_h = self._get_rank(ratio_h)
-        r_colors = {"P": (255, 255, 255), "AAA": (255, 255, 100), "AA": (200, 200, 200), "A": (150, 255, 150)}
-        r_color = r_colors.get(rank_h, (150, 150, 150))
-            
-        r_tex = self._get_text_texture(rank_h, True, r_color, size_override=self._s(100))
-        r_tex.alpha = 255
-        self.renderer.blit(r_tex, pygame.Rect(p1_x + self._s(100), y, r_tex.width, r_tex.height))
-            
-        y += self._s(100)
-        score_text = self._get_text_texture(f"SCORE: {score_h:,}", True, (255, 255, 0), size_override=self._s(32))
+        score_text = self._get_text_texture(_t("score_label").format(val=f"{score_h:,}"), True, (255, 255, 0), size_override=self._s(32))
         score_text.alpha = 255
         self.renderer.blit(score_text, pygame.Rect(p1_x, y, score_text.width, score_text.height))
         y += self._s(40)
-        ex_text = self._get_text_texture(f"EX: {ex_h}/{max_ex} ({ratio_h*100:.1f}%)", False, (200, 200, 255), size_override=self._s(20))
+        ex_text = self._get_text_texture(_t("ex_label").format(ex=ex_h, max=max_ex, pct=f"{ratio_h*100:.1f}"), False, (200, 200, 255), size_override=self._s(20))
         ex_text.alpha = 255
         self.renderer.blit(ex_text, pygame.Rect(p1_x, y, ex_text.width, ex_text.height))
     
         if stats['mode'] == 'ai_multi':
             y += self._s(60)
-            ai_title = self._get_text_texture("AI PERFORMANCE", True, (255, 100, 100), size_override=self._s(24))
+            ai_title = self._get_text_texture(_t("ai_performance"), True, (255, 100, 100), size_override=self._s(24))
             ai_title.alpha = 255
             self.renderer.blit(ai_title, pygame.Rect(p1_x, y, ai_title.width, ai_title.height))
             y += self._s(30)
-            ai_score_txt = self._get_text_texture(f"SCORE: {score_ai:,}", False, (255, 150, 150), size_override=self._s(22))
+            ai_score_txt = self._get_text_texture(_t("score_label").format(val=f"{score_ai:,}"), False, (255, 150, 150), size_override=self._s(22))
             ai_score_txt.alpha = 255
             self.renderer.blit(ai_score_txt, pygame.Rect(p1_x, y, ai_score_txt.width, ai_score_txt.height))
 
@@ -663,7 +647,7 @@ class GameRenderer:
         self.renderer.draw_line((graph_x, graph_y + graph_h // 2), (graph_x + graph_w, graph_y + graph_h // 2))
         
         # Label
-        t_label = self._get_text_texture("HIT TIMING (FAST/SLOW)", True, (200, 200, 200), size_override=self._s(16))
+        t_label = self._get_text_texture(_t("hit_timing"), True, (200, 200, 200), size_override=self._s(16))
         t_label.alpha = 180
         self.renderer.blit(t_label, pygame.Rect(graph_x + self._sx(10), graph_y + self._s(5), t_label.width, t_label.height))
 
@@ -684,6 +668,6 @@ class GameRenderer:
             draw_hits(stats['ai_hit_history'], color_scale=0.4, size=1)
         draw_hits(stats.get('hit_history', []))
 
-        f_info = self._get_text_texture("Press ENTER or ESC to Return", False, (150, 150, 150), size_override=self._s(18))
+        f_info = self._get_text_texture(_t("return_hint"), False, (150, 150, 150), size_override=self._s(18))
         f_info.alpha = 255
         self.renderer.blit(f_info, pygame.Rect(self.width // 2 - f_info.width // 2, self.height - self._s(40), f_info.width, f_info.height))

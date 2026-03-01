@@ -1,4 +1,6 @@
 import pygame
+from only4bms.i18n import get as _t, FONT_NAME, LANGUAGES, LANGUAGE_CODES
+from only4bms import i18n as _i18n
 
 # ── Colors & Aesthetics ──────────────────────────────────────────────────
 COLOR_ACCENT = (0, 255, 200)       # Cyan/Neon
@@ -29,35 +31,52 @@ class SettingsMenu:
         
         pygame.display.set_caption("Settings")
         self.clock = pygame.time.Clock()
-        self.title_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(44), bold=True)
-        self.font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(32))
-        self.small_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(22))
+        self.title_font = _i18n.font("ui_title", self.sy, bold=True)
+        self.font = _i18n.font("ui_body", self.sy)
+        self.small_font = _i18n.font("ui_small", self.sy)
 
         self.settings = settings
         self.items = [
             # SYSTEM Category
-            {"type": "category", "label": "SYSTEM"},
-            {"key": "fps",             "label": "FPS Limit",             "step": 10,  "min": 30,    "max": 360},
-            {"key": "input_polling_rate", "label": "Input Polling (Hz)", "step": 100, "min": 125,   "max": 2000},
-            {"key": "fullscreen",      "label": "Fullscreen",            "type": "choice", "choices_key": "_fullscreen_opts"},
-            {"key": "audio_device_idx","label": "Audio Device",          "type": "choice", "choices_key": "audio_devices"},
+            {"type": "category", "label_key": "cat_system"},
+            {"key": "language",         "label_key": "language",          "type": "choice", "choices_key": "_language_opts"},
+            {"key": "fps",             "label_key": "fps_limit",         "step": 10,  "min": 30,    "max": 360},
+            {"key": "input_polling_rate", "label_key": "input_polling",  "step": 100, "min": 125,   "max": 2000},
+            {"key": "fullscreen",      "label_key": "fullscreen",        "type": "choice", "choices_key": "_fullscreen_opts"},
+            {"key": "audio_device_idx","label_key": "audio_device",      "type": "choice", "choices_key": "audio_devices"},
             
             # AUDIO Category
-            {"type": "category", "label": "AUDIO"},
-            {"key": "volume",          "label": "Global Volume",         "step": 0.1, "min": 0.0,   "max": 1.0},
-            {"key": "audio_freq",      "label": "Sample Rate (Hz)",      "step": 100, "min": 22050, "max": 48000},
-            {"key": "audio_buffer",    "label": "Audio Buffer",          "step": 256, "min": 256,   "max": 4096},
-            {"key": "audio_channels",  "label": "Audio Channels",        "step": 1,   "min": 1,     "max": 2},
+            {"type": "category", "label_key": "cat_audio"},
+            {"key": "volume",          "label_key": "volume",            "step": 0.1, "min": 0.0,   "max": 1.0},
+            {"key": "audio_freq",      "label_key": "sample_rate",       "step": 100, "min": 22050, "max": 48000},
+            {"key": "audio_buffer",    "label_key": "audio_buffer",      "step": 256, "min": 256,   "max": 4096},
+            {"key": "audio_channels",  "label_key": "audio_channels",    "step": 1,   "min": 1,     "max": 2},
             
             # GAMEPLAY Category
-            {"type": "category", "label": "GAMEPLAY"},
-            {"key": "visual_offset",   "label": "Visual Offset (ms)",    "step": 1,   "min": -200,  "max": 200},
-            {"key": "hit_window_mult", "label": "Hit Window Multiplier", "step": 0.1, "min": 0.5,   "max": 3.0},
-            {"key": "judge_delay",     "label": "Judge Delay (ms)",     "step": 1,   "min": -200,  "max": 200},
+            {"type": "category", "label_key": "cat_gameplay"},
+            {"key": "visual_offset",   "label_key": "visual_offset",     "step": 1,   "min": -200,  "max": 200},
+            {"key": "hit_window_mult", "label_key": "hit_window_mult",   "step": 0.1, "min": 0.5,   "max": 3.0},
+            {"key": "judge_delay",     "label_key": "judge_delay",       "step": 1,   "min": -200,  "max": 200},
         ]
         self.settings.setdefault("_fullscreen_opts", ["Off", "On"])
         self.settings.setdefault("_note_type_opts", ["Bar", "Circle"])
         self.settings.setdefault("_bool_opts", ["OFF", "ON"]) # Added this line
+        # Build language choices from i18n module
+        self.settings["_language_opts"] = [LANGUAGES[c] for c in LANGUAGE_CODES]
+        # Sync current language setting to index
+        current_lang = self.settings.get("language", "auto")
+        if isinstance(current_lang, int):
+            # Already an index from a previous settings menu visit — keep as-is
+            if current_lang < 0 or current_lang >= len(LANGUAGE_CODES):
+                self.settings["language"] = 0
+        elif current_lang == "auto":
+            from only4bms.i18n import get_language
+            code = get_language()
+            self.settings["language"] = LANGUAGE_CODES.index(code) if code in LANGUAGE_CODES else 0
+        elif current_lang in LANGUAGE_CODES:
+            self.settings["language"] = LANGUAGE_CODES.index(current_lang)
+        else:
+            self.settings["language"] = 0  # English fallback
         self.settings.setdefault("fullscreen", 0)
         self.settings.setdefault("note_type", 0)
         self.settings.setdefault("ai_note_type", 0)
@@ -84,6 +103,12 @@ class SettingsMenu:
         # Save on every adjustment for better persistence
         from ..main import save_settings
         save_settings(self.settings)
+
+        # If language was changed, immediately apply
+        if item.get('key') == 'language':
+            from only4bms import i18n
+            lang_code = LANGUAGE_CODES[self.settings['language']]
+            i18n.set_language(lang_code)
 
     def _format_value(self, item):
         if item.get("type") == "choice":
@@ -155,7 +180,7 @@ class SettingsMenu:
                 elif vx == 1: self._on_key(pygame.K_RIGHT)
 
     def _handle_button_click(self, pos):
-        title_rect = self.title_font.render("SYSTEM SETTINGS", True, COLOR_ACCENT).get_rect(topleft=(self._s(50), self._s(40)))
+        title_rect = self.title_font.render(_t("settings_title"), True, COLOR_ACCENT).get_rect(topleft=(self._s(50), self._s(40)))
         
         # Calibrate Button
         btn_cal_rect = pygame.Rect(title_rect.right + self._s(20), title_rect.top, self._s(150), title_rect.height)
@@ -227,7 +252,7 @@ class SettingsMenu:
             pygame.draw.line(self.screen, c, (0, y), (self.w, y))
 
         # Header Title
-        title_surf = self.title_font.render("SYSTEM SETTINGS", True, COLOR_ACCENT)
+        title_surf = self.title_font.render(_t("settings_title"), True, COLOR_ACCENT)
         title_rect = title_surf.get_rect(topleft=(self._s(50), self._s(40)))
         self.screen.blit(title_surf, title_rect)
         
@@ -236,7 +261,7 @@ class SettingsMenu:
         cal_hovered = btn_cal_rect.collidepoint(mx, my)
         pygame.draw.rect(self.screen, COLOR_SELECTED_BG if cal_hovered else COLOR_PANEL_BG, btn_cal_rect, border_radius=8)
         pygame.draw.rect(self.screen, COLOR_ACCENT, btn_cal_rect, 2, border_radius=8)
-        cal_txt = self.small_font.render("CALIBRATE", True, COLOR_ACCENT if cal_hovered else COLOR_TEXT_PRIMARY)
+        cal_txt = self.small_font.render(_t("calibrate"), True, COLOR_ACCENT if cal_hovered else COLOR_TEXT_PRIMARY)
         self.screen.blit(cal_txt, cal_txt.get_rect(center=btn_cal_rect.center))
 
         # Key Config Button
@@ -244,7 +269,7 @@ class SettingsMenu:
         key_hovered = btn_key_rect.collidepoint(mx, my)
         pygame.draw.rect(self.screen, COLOR_SELECTED_BG if key_hovered else COLOR_PANEL_BG, btn_key_rect, border_radius=8)
         pygame.draw.rect(self.screen, COLOR_ACCENT, btn_key_rect, 2, border_radius=8)
-        key_txt = self.small_font.render("KEY CONFIG", True, COLOR_ACCENT if key_hovered else COLOR_TEXT_PRIMARY)
+        key_txt = self.small_font.render(_t("key_config"), True, COLOR_ACCENT if key_hovered else COLOR_TEXT_PRIMARY)
         self.screen.blit(key_txt, key_txt.get_rect(center=btn_key_rect.center))
 
         row_h = self._s(65)
@@ -265,7 +290,7 @@ class SettingsMenu:
                 # Category Header
                 rect = pygame.Rect(margin_l, y, content_w, row_h - 5)
                 pygame.draw.rect(self.screen, (COLOR_ACCENT[0], COLOR_ACCENT[1], COLOR_ACCENT[2], 25), rect, border_radius=8)
-                txt = self.small_font.render(item['label'], True, COLOR_ACCENT)
+                txt = self.small_font.render(_t(item.get('label_key', '')), True, COLOR_ACCENT)
                 self.screen.blit(txt, txt.get_rect(center=(margin_l + content_w // 2, y + row_h // 2)))
                 y += row_h
                 continue
@@ -282,7 +307,7 @@ class SettingsMenu:
             color = self._row_color(i, self.selected_index, rect.collidepoint(mx, my))
             
             # Label
-            lbl_surf = self.font.render(item['label'], True, color)
+            lbl_surf = self.font.render(_t(item.get('label_key', '')), True, color)
             self.screen.blit(lbl_surf, (margin_l + 20, y + 15))
             
             # Value Box
