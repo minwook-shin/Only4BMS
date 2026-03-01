@@ -65,7 +65,13 @@ jobs:
                       --clean \
                       src/only4bms/main.py
 
-      - name: Ad-hoc code sign
+      - name: Cleanup conflicting libraries (libintl conflict)
+        run: |
+          # The version of libintl bundled with cv2 often conflicts with pygame's mixer on macOS.
+          # Removing it from the cv2 subfolder forces the app to use a compatible version.
+          find dist/Only4BMS.app -name "libintl*.dylib" -path "*/cv2/*" -delete || true
+
+      - name: Create DMG
         run: |
           codesign --force --deep --sign - dist/Only4BMS.app
 
