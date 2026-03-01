@@ -1,0 +1,61 @@
+name: Deploy to itch.io
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Fetch Latest Release and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Latest Release info
+        id: get_release
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: ${{ github.repository }}
+
+      - name: Download Windows Installer
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          version: ${{ steps.get_release.outputs.release }}
+          file: Only4BMS_Setup.exe
+          target: dist/Only4BMS_Setup.exe
+
+      - name: Download Mac Intel Zip
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          version: ${{ steps.get_release.outputs.release }}
+          file: Only4BMS-Mac-Intel.zip
+          target: dist/Only4BMS-Mac-Intel.zip
+
+      - name: Download Mac ARM Zip
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          version: ${{ steps.get_release.outputs.release }}
+          file: Only4BMS-Mac-ARM.zip
+          target: dist/Only4BMS-Mac-ARM.zip
+
+      - name: Install Butler
+        run: |
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          chmod +x butler
+          ./butler -V
+
+      - name: Deploy Windows to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.ITCH_IO_API_KEY }}
+        run: |
+          ./butler push dist/Only4BMS_Setup.exe minwook-shin/only4bms:windows --userversion ${{ steps.get_release.outputs.release }}
+
+      - name: Deploy Mac Intel to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.ITCH_IO_API_KEY }}
+        run: |
+          ./butler push dist/Only4BMS-Mac-Intel.zip minwook-shin/only4bms:macos-intel --userversion ${{ steps.get_release.outputs.release }}
+
+      - name: Deploy Mac ARM to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.ITCH_IO_API_KEY }}
+        run: |
+          ./butler push dist/Only4BMS-Mac-ARM.zip minwook-shin/only4bms:macos-arm --userversion ${{ steps.get_release.outputs.release }}
