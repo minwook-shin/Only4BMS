@@ -1,5 +1,9 @@
 # Only4BMS
 
+[English](README.md) | [한국어](docs/README.ko.md) | [日本語](docs/README.ja.md) | [中文(简体)](docs/README.zh.md) | [ไทย](docs/README.th.md) | [Português](docs/README.pt.md) | [Bahasa Indonesia](docs/README.id.md) | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [Italiano](docs/README.it.md) | [Deutsch](docs/README.de.md)
+
+> **Update [26.03.01]:** 4 lanes are now a universal language. (Added support for 11 languages! 🌍)
+
 <img width="2556" height="1439" alt="스크린샷 2026-02-24 230333" src="https://github.com/user-attachments/assets/68d1891b-891b-4927-ab81-96f7bbc098f7" />
 
 [![Only4BMS AI Battle1](https://img.youtube.com/vi/mrSUp4h7DnE/0.jpg)](https://youtu.be/mrSUp4h7DnE)
