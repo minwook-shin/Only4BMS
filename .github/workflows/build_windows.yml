@@ -31,7 +31,7 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          pyinstaller --onefile \
+          pyinstaller --onedir \
                       --windowed \
                       --name Only4BMS \
                       --add-data "src/only4bms/ai/*.zip;only4bms/ai" \
@@ -40,11 +40,42 @@ jobs:
                       --clean \
                       src/only4bms/main.py
 
+      - name: Create Installer with Inno Setup
+        shell: powershell
+        run: |
+          # Create Inno Setup script dynamically
+          $iss = @"
+          [Setup]
+          AppName=Only4BMS
+          AppVersion=${{ github.ref_name }}
+          DefaultDirName={autopf}\Only4BMS
+          DefaultGroupName=Only4BMS
+          OutputDir=dist
+          OutputBaseFilename=Only4BMS_Setup
+          Compression=lzma
+          SolidCompression=yes
+          PrivilegesRequired=lowest
+
+          [Files]
+          Source: "dist\Only4BMS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\Only4BMS"; Filename: "{app}\Only4BMS.exe"
+          Name: "{commondesktop}\Only4BMS"; Filename: "{app}\Only4BMS.exe"
+
+          [Run]
+          Filename: "{app}\Only4BMS.exe"; Description: "{cm:LaunchProgram,Only4BMS}"; Flags: nowait postinstall skipifsilent
+          "@
+          $iss | Out-File -FilePath "install_script.iss" -Encoding utf8
+
+          # Run Inno Setup Compiler (available on windows-latest)
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" install_script.iss
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Only4BMS-Windows
-          path: dist/Only4BMS.exe
+          name: Only4BMS-Windows-Installer
+          path: dist/Only4BMS_Setup.exe
 
   release:
     name: Attach to GitHub Release
@@ -55,7 +86,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: Only4BMS-Windows
+          name: Only4BMS-Windows-Installer
           path: ./artifacts
 
       - name: Upload to Release
