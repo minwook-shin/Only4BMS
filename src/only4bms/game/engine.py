@@ -166,12 +166,23 @@ class GameEngine:
                 self.note_idx += 1
                 # Do NOT break; check next note
             elif current_time >= note['time_ms'] and self.held_lns[note['lane']] is not None:
-                # Overlap with held LN: Treat as PERFECT hit
+                # Overlap with held LN: silently close old LN, treat new note as PERFECT
+                old_ln = self.held_lns[note['lane']]
+                # Play old LN end sounds (no judgment — already scored at start)
+                for sid in old_ln.get('end_sample_ids', []):
+                    self.play_sound_cb(sid)
+
                 note['hit'] = True
                 for sid in note['sample_ids']:
                     self.play_sound_cb(sid)
                 self.set_judgment_cb("PERFECT", note['lane'], current_time, 0)
                 self.last_note_time_per_lane[note['lane']] = note['time_ms']
+                # If the new note is also a long note, start tracking it
+                if note.get('is_ln'):
+                    self.held_lns[note['lane']] = note
+                    note['start_judgment'] = "PERFECT"
+                else:
+                    self.held_lns[note['lane']] = None
                 self.note_idx += 1
                 # Do NOT break
             elif lane_presses[note['lane']] and abs(current_time - note['time_ms']) <= 40:

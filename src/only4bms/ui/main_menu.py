@@ -1,5 +1,7 @@
 import pygame
 import sys
+from only4bms.i18n import get as _t, FONT_NAME
+from only4bms import i18n as _i18n
 
 # ── Base (windowed) resolution ────────────────────────────────────────────
 BASE_W, BASE_H = 800, 600
@@ -27,15 +29,15 @@ class MainMenu:
 
         pygame.display.set_caption("Only4BMS - Main Menu")
         self.clock = pygame.time.Clock()
-        self.title_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(90), bold=True)
-        self.font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(42))
-        self.small_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(24))
+        self.title_font = _i18n.font("menu_title", self.sy, bold=True)
+        self.font = _i18n.font("menu_option", self.sy)
+        self.small_font = _i18n.font("menu_small", self.sy)
 
         self.options = [
-            ("SINGLE PLAYER", "SINGLE"),
-            ("AI MULTI PLAYER", "AI_MULTI"),
-            ("SETTINGS", "SETTINGS"),
-            ("QUIT", "QUIT")
+            (lambda: _t("menu_single"), "SINGLE"),
+            (lambda: _t("menu_ai_multi"), "AI_MULTI"),
+            (lambda: _t("menu_settings"), "SETTINGS"),
+            (lambda: _t("menu_quit"), "QUIT")
         ]
         self.selected_index = 0
         self.running = True
@@ -203,7 +205,7 @@ class MainMenu:
         panel_w, panel_h = self._s(400), self._s(320)
         start_y = (self.h - panel_h) // 2 + self._s(20)
         spacing = self._s(70)
-        for i, (label, _) in enumerate(self.options):
+        for i, (_, _act) in enumerate(self.options):
             rect = pygame.Rect((self.w - panel_w) // 2, start_y + i * spacing, panel_w, self._s(60))
             if rect.collidepoint(mx, my):
                 self.selected_index = i
@@ -235,11 +237,11 @@ class MainMenu:
         pygame.draw.rect(self.screen, COLOR_PANEL_BG, (mx_rect, my_rect, mw, mh), border_radius=10)
         pygame.draw.rect(self.screen, COLOR_ACCENT, (mx_rect, my_rect, mw, mh), 2, border_radius=10)
 
-        msg = self.font.render("Quit Game?", True, COLOR_TEXT_PRIMARY)
+        msg = self.font.render(_t("quit_confirm"), True, COLOR_TEXT_PRIMARY)
         self.screen.blit(msg, msg.get_rect(center=(cx, cy - self._s(40))))
 
         self._quit_buttons = []
-        labels = [("YES", "YES"), ("NO", "NO")]
+        labels = [(_t("yes"), "YES"), (_t("no"), "NO")]
         bx = cx - self._s(110)
         for label, action in labels:
             btn_rect = pygame.Rect(bx, cy + self._s(20), self._s(100), self._s(50))
@@ -287,7 +289,7 @@ class MainMenu:
         item_spacing = self._s(70)
         opt_start_y = py + self._s(20)
         
-        for i, (label, _) in enumerate(self.options):
+        for i, (label_fn, _) in enumerate(self.options):
             item_rect = pygame.Rect(px + self._s(10), opt_start_y + i * item_spacing, panel_w - self._s(20), self._s(60))
             
             # Hover/Select Highlight
@@ -301,7 +303,7 @@ class MainMenu:
             else:
                 txt_color = COLOR_TEXT_SECONDARY
                 
-            label_surf = self.font.render(label, True, txt_color)
+            label_surf = self.font.render(label_fn(), True, txt_color)
             ly = item_rect.centery - label_surf.get_height() // 2
             self.screen.blit(label_surf, (self._cx(label_surf), ly))
             
@@ -378,7 +380,7 @@ class MainMenu:
             scale = 1.0
             if t < 1.0: scale = 1.4 - 0.4 * (1 - (1 - t)**2)
             
-            msg_surf = self.small_font.render("PERFECT!", True, (0, 255, 255))
+            msg_surf = self.small_font.render(_t("judgment_perfect"), True, (0, 255, 255))
             if scale != 1.0:
                 mw, mh = msg_surf.get_size()
                 msg_surf = pygame.transform.smoothscale(msg_surf, (int(mw * scale), int(mh * scale)))

@@ -2,6 +2,8 @@ import pygame
 import time
 import math
 import numpy as np
+from only4bms.i18n import get as _t, FONT_NAME
+from only4bms import i18n as _i18n
 from .settings_menu import COLOR_ACCENT, COLOR_SELECTED_BG, COLOR_TEXT_PRIMARY, COLOR_PANEL_BG, BASE_W, BASE_H
 
 class CalibrationMenu:
@@ -18,9 +20,9 @@ class CalibrationMenu:
         self.clock = pygame.time.Clock()
         
         # Fonts
-        self.title_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(44), bold=True)
-        self.font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(32))
-        self.small_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(22))
+        self.title_font = _i18n.font("ui_title", self.sy, bold=True)
+        self.font = _i18n.font("ui_body", self.sy)
+        self.small_font = _i18n.font("ui_small", self.sy)
         
         # Calibration State
         self.running = True
@@ -29,7 +31,7 @@ class CalibrationMenu:
         self.offsets = []
         self.last_hit_diff = 0
         self.last_hit_time = 0
-        self.message = "Tap SPACE to the beat!"
+        self.message = _t("tap_to_beat")
         
         # Load a simple beep
         self.click_sound = None
@@ -95,19 +97,19 @@ class CalibrationMenu:
                     if len(self.offsets) > 20: self.offsets.pop(0)
                     
                     avg = sum(self.offsets) / len(self.offsets)
-                    self.message = f"Last: {diff_ms:+.1f}ms | Avg: {avg:+.1f}ms"
+                    self.message = _t("cal_last_avg").format(last=f"{diff_ms:+.1f}ms", avg=f"{avg:+.1f}ms")
                 elif event.key == pygame.K_y: # Apply to Judge Delay
                     if self.offsets:
                         avg = sum(self.offsets) / len(self.offsets)
                         self.settings['judge_delay'] = round(self.settings.get('judge_delay', 0) + avg, 1)
                         self.offsets = []
-                        self.message = f"Applied {avg:+.1f}ms to Judge Delay!"
+                        self.message = _t("applied_judge").format(val=f"{avg:+.1f}ms")
                 elif event.key == pygame.K_v: # Apply to Visual Offset
                     if self.offsets:
                         avg = sum(self.offsets) / len(self.offsets)
                         self.settings['visual_offset'] = int(self.settings.get('visual_offset', 0) - avg)
                         self.offsets = []
-                        self.message = f"Applied {-avg:+.1f}ms to Visual Offset!"
+                        self.message = _t("applied_visual").format(val=f"{-avg:+.1f}ms")
                 elif event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
                     self.running = False
 
@@ -116,7 +118,7 @@ class CalibrationMenu:
         self.screen.fill((15, 15, 25))
         
         # Header
-        self.screen.blit(self.title_font.render("OFFSET CALIBRATION", True, COLOR_ACCENT), (self._s(50), self._s(40)))
+        self.screen.blit(self.title_font.render(_t("calibration_title"), True, COLOR_ACCENT), (self._s(50), self._s(40)))
         
         # Visual Metronome Bar
         rect_w = self._s(500)
@@ -163,10 +165,10 @@ class CalibrationMenu:
         msg_surf = self.font.render(self.message, True, COLOR_TEXT_PRIMARY)
         self.screen.blit(msg_surf, msg_surf.get_rect(center=(self.w // 2, ry + self._s(120))))
         
-        avg_hint = "Avg Offset: " + (f"{sum(self.offsets)/len(self.offsets):+.1f}ms" if self.offsets else "N/A")
+        avg_hint = _t("avg_offset") + ": " + (f"{sum(self.offsets)/len(self.offsets):+.1f}ms" if self.offsets else "N/A")
         av_surf = self.small_font.render(avg_hint, True, COLOR_ACCENT)
         self.screen.blit(av_surf, av_surf.get_rect(center=(self.w // 2, ry + self._s(160))))
 
-        hint_txt = "[SPACE] Tap | [Y] Apply -> Judge Delay | [V] Apply -> Visual Offset | [ESC] Back"
+        hint_txt = _t("cal_hint")
         h_surf = self.small_font.render(hint_txt, True, (150, 150, 150))
         self.screen.blit(h_surf, h_surf.get_rect(center=(self.w // 2, self.h - self._s(50))))

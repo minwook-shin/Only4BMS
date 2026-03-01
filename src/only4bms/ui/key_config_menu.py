@@ -1,5 +1,7 @@
 import pygame
 import time
+from only4bms.i18n import get as _t, FONT_NAME
+from only4bms import i18n as _i18n
 
 # ── Colors & Aesthetics ──────────────────────────────────────────────────
 COLOR_ACCENT = (0, 255, 200)
@@ -24,9 +26,9 @@ class KeyConfigMenu:
         self.texture = None
         self.clock = pygame.time.Clock()
 
-        self.title_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(44), bold=True)
-        self.font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(32))
-        self.small_font = pygame.font.SysFont("Outfit, Roboto, sans-serif", self._s(22))
+        self.title_font = _i18n.font("ui_title", self.sy, bold=True)
+        self.font = _i18n.font("ui_body", self.sy)
+        self.small_font = _i18n.font("ui_small", self.sy)
 
         self.selected_lane = 0
         self.waiting_for_input = False
@@ -135,16 +137,16 @@ class KeyConfigMenu:
             pygame.draw.line(self.screen, c, (0, y), (self.w, y))
 
         # Header
-        title = self.title_font.render("KEY CONFIG", True, COLOR_ACCENT)
+        title = self.title_font.render(_t("key_config_title"), True, COLOR_ACCENT)
         self.screen.blit(title, (self._s(50), self._s(40)))
 
-        help_text = "Press ENTER or Click to rebind. ESC to return."
+        help_text = _t("key_help")
         help_surf = self.small_font.render(help_text, True, COLOR_TEXT_SECONDARY)
         self.screen.blit(help_surf, (self._s(50), self._s(95)))
 
         # Connection Status
         joy_count = pygame.joystick.get_count()
-        joy_text = f"Joysticks Connected: {joy_count}"
+        joy_text = _t("joystick_connected").format(n=joy_count)
         joy_color = COLOR_ACCENT if joy_count > 0 else (255, 100, 100)
         joy_surf = self.small_font.render(joy_text, True, joy_color)
         self.screen.blit(joy_surf, (self.w - joy_surf.get_width() - self._s(50), self._s(95)))
@@ -164,12 +166,12 @@ class KeyConfigMenu:
                 pygame.draw.rect(self.screen, COLOR_ACCENT, rect, 2, border_radius=10)
 
             # Lane Label
-            label = self.font.render(f"Lane {i+1}", True, COLOR_TEXT_PRIMARY)
+            label = self.font.render(_t("lane_n").format(n=i+1), True, COLOR_TEXT_PRIMARY)
             self.screen.blit(label, (rect.x + 20, rect.y + rect.h // 2 - label.get_height() // 2))
 
             # Bindings
             if is_selected and self.waiting_for_input:
-                val_text = "??? (Waiting for input...)"
+                val_text = _t("waiting_input")
                 val_color = COLOR_ACCENT
             else:
                 key_name = pygame.key.name(self.settings['keys'][i]).upper()

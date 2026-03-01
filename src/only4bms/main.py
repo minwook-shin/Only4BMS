@@ -9,6 +9,7 @@ from only4bms.game.rhythm_game import RhythmGame
 from only4bms.ui.main_menu import MainMenu
 from only4bms.ui.settings_menu import SettingsMenu
 from only4bms.ui.song_select_menu import SongSelectMenu
+from only4bms import i18n
 from pygame._sdl2.video import Window, Renderer
 
 # ── Default settings ─────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ DEFAULT_SETTINGS = {
     "ai_note_type": 0,
     "input_polling_rate": 1000,
     "visual_offset": 0,
+    "language": "auto",
     "keys": [pygame.K_d, pygame.K_f, pygame.K_j, pygame.K_k],
     "joystick_keys": ["HAT_0_LEFT", "HAT_0_UP", "BTN_3", "BTN_1"], # D-pad Left/Up + Button Y/B
 }
@@ -131,11 +133,12 @@ def _init_mixer(settings):
 def apply_display_mode(settings, window):
     """Set fullscreen or windowed mode using SDL2 Window."""
     if settings.get("fullscreen", 1):
-        # We use (0,0) for native resolution if possible, or just set fullscreen
         window.set_fullscreen(True)
     else:
         window.set_fullscreen(False)
+        window.set_windowed()
         window.size = (800, 600)
+        window.position = pygame.WINDOWPOS_CENTERED
     window.show()
 
 
@@ -144,7 +147,7 @@ def load_settings():
     settings = dict(DEFAULT_SETTINGS)
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, "r") as f:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                 saved = json.load(f)
                 
                 # Migration: if joystick_keys contains integers, reset to new string-based defaults
@@ -168,9 +171,14 @@ def save_settings(settings):
     """Save current settings to JSON (excluding runtime-only keys)."""
     # Filter out keys starting with _ (internal/runtime)
     to_save = {k: v for k, v in settings.items() if not k.startswith("_")}
+    # Convert language index to language code for persistence
+    if "language" in to_save and isinstance(to_save["language"], int):
+        from only4bms.i18n import LANGUAGE_CODES
+        idx = to_save["language"]
+        to_save["language"] = LANGUAGE_CODES[idx] if 0 <= idx < len(LANGUAGE_CODES) else "en"
     try:
-        with open(SETTINGS_FILE, "w") as f:
-            json.dump(to_save, f, indent=4)
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(to_save, f, indent=4, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving settings: {e}")
 
@@ -179,6 +187,9 @@ def save_settings(settings):
 
 def main():
     settings = load_settings()
+
+    # Initialize i18n from settings
+    i18n.set_language(settings.get("language", "auto"))
 
     # Pre-init audio and pygame
     pygame.mixer.pre_init(
@@ -222,7 +233,7 @@ def main():
             env_key = hint if hint.startswith("SDL_") else f"SDL_HINT_{hint}"
             os.environ[env_key] = value
     
-    window = Window("Only4BMS", size=(800, 600))
+    window = Window("Only4BMS", size=(800, 600), hidden=True)
     renderer = Renderer(window, vsync=1)
     renderer.draw_blend_mode = 1
     
@@ -253,9 +264,12 @@ def main():
 
         if menu_action in ("SINGLE", "AI_MULTI"):
             mode = 'ai_multi' if menu_action == "AI_MULTI" else 'single'
+            cached_songs = None  # First entry scans; re-entries reuse cache
             
             while True:
-                res = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode).run()
+                ssm = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode, song_groups=cached_songs)
+                res = ssm.run()
+                cached_songs = ssm.song_groups  # Cache for next iteration
                 action, selected_song, ai_difficulty, note_mod = res
 
                 if action in ("QUIT", "MENU") or not action:
@@ -268,7 +282,6 @@ def main():
 
                 if action == "PLAY" and selected_song:
                     _init_mixer(settings)
-                    apply_display_mode(settings, window)
                     # _play_song(selected_song, settings, mode=mode, renderer=renderer, window=window) # Original call
                     
                     # Inlined _play_song logic with new RhythmGame instantiation

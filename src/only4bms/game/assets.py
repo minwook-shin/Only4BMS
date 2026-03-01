@@ -1,5 +1,7 @@
 import os
 import pygame
+from only4bms.i18n import get as _t, FONT_NAME
+from only4bms import i18n as _i18n
 from .constants import VIDEO_EXTS, IMAGE_FALLBACK_EXTS, LOADING_BAR_W, LOADING_BAR_H
 from .video_player import VideoPlayer
 from pygame._sdl2.video import Texture
@@ -30,9 +32,9 @@ class AssetLoader:
         self.sy = self.height / 600.0
         
         # Fonts for loading
-        self.loading_title_font = pygame.font.SysFont(None, self._s(50))
-        self.loading_info_font = pygame.font.SysFont(None, self._s(30))
-        self.loading_label_font = pygame.font.SysFont(None, self._s(28))
+        self.loading_title_font = _i18n.font("loading_title", self.sy)
+        self.loading_info_font = _i18n.font("loading_info", self.sy)
+        self.loading_label_font = _i18n.font("loading_label", self.sy)
 
     def _s(self, v): return int(v * self.sy)
     def _sx(self, v): return int(v * self.sx)
@@ -52,7 +54,7 @@ class AssetLoader:
         self.offscreen_hud.blit(surf, surf.get_rect(center=(cx, self._s(180))))
 
         # Metadata
-        meta_fields = [("artist", "Artist"), ("genre", "Genre"), ("bpm", "BPM"), ("level", "Level"), ("notes", "Notes")]
+        meta_fields = [("artist", _t("loading_artist")), ("genre", _t("loading_genre")), ("bpm", _t("loading_bpm")), ("level", _t("loading_level")), ("notes", _t("loading_notes"))]
         y = self._s(230)
         for key, label in meta_fields:
             val = self.metadata.get(key)
@@ -62,7 +64,7 @@ class AssetLoader:
                 y += self._s(32)
 
         # Status
-        lbl = self.loading_label_font.render(f"Loading... {status_text}", True, (180, 180, 180))
+        lbl = self.loading_label_font.render(_t("loading").format(status=status_text), True, (180, 180, 180))
         self.offscreen_hud.blit(lbl, lbl.get_rect(center=(cx, self._s(400))))
 
         # Bar
