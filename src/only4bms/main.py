@@ -6,6 +6,12 @@ import time
 from only4bms import paths
 
 # ── Early Initialization ──────────────────────────────────────────────────
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # Prevent OpenMP runtime conflict (pytorch vs others)
+
+import torch
+torch.set_num_threads(1) # Minimize threading overhead/conflicts in main process
+
 # On macOS, complex libraries like OpenCV (cv2) or Torch can shadow DLLs 
 # needed by pygame-ce (like libintl). We load settings and init the mixer 
 # FIRST, before any other project-level imports.
