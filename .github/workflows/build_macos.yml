@@ -37,17 +37,24 @@ jobs:
           python -m pip install --upgrade pip
           # Create a constraints file to globally enforce numpy < 2.0
           echo "numpy<2.0" > constraints.txt
-          export PIP_CONSTRAINT=constraints.txt
+          export PIP_CONSTRAINT=$(pwd)/constraints.txt
 
           # Install everything in one pass where possible
           pip install torch stable-baselines3 shimmy gymnasium pyinstaller opencv-python-headless
           pip install -e .
 
-      - name: Verify NumPy Version
+          # Mixer Conflict Fix: Find and remove the conflicting libintl from opencv-python-headless
+          # explicitly before PyInstaller scans the environment. This forces PyInstaller to
+          # find and bundle the version from pygame/fluidsynth instead.
+          CV2_DIR=$(python -c "import cv2, os; print(os.path.dirname(cv2.__file__))")
+          echo "Searching for libintl in $CV2_DIR"
+          find "$CV2_DIR" -name "libintl*.dylib" -delete || true
+
+      - name: Verify Environment
         run: |
-          export PIP_CONSTRAINT=constraints.txt
           python -c "import numpy; print(f'NUMPY_VERSION: {numpy.__version__}')"
           python -c "import numpy; assert numpy.__version__.startswith('1.'), f'FATAL: Expected NumPy 1.x, got {numpy.__version__}'"
+          python -c "import pygame; print(f'PYGAME_VERSION: {pygame.version.ver}')"
 
       - name: Train AI Models
         run: |
@@ -64,12 +71,6 @@ jobs:
                       --osx-bundle-identifier com.only4bms.app \
                       --clean \
                       src/only4bms/main.py
-
-      - name: Cleanup conflicting libraries (libintl conflict)
-        run: |
-          # The version of libintl bundled with cv2 often conflicts with pygame's mixer on macOS.
-          # Removing it from the cv2 subfolder forces the app to use a compatible version.
-          find dist/Only4BMS.app -name "libintl*.dylib" -path "*/cv2/*" -delete || true
 
       - name: Create DMG
         run: |
