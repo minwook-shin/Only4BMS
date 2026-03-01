@@ -220,20 +220,27 @@ def load_settings():
         except Exception as e:
             print(f"Warning: Failed to load settings ({e})")
     
-    print(f"Scanning song directory: {os.path.abspath(paths.SONG_DIR)}")
     return settings
 
 
 def save_settings(settings):
-    """Save current settings to JSON."""
+    """Save current settings to JSON (excluding runtime-only keys)."""
+    # Filter out keys starting with _ (internal/runtime)
+    to_save = {k: v for k, v in settings.items() if not k.startswith("_")}
+    # Convert language index to language code for persistence
+    if "language" in to_save and isinstance(to_save["language"], int):
+        from only4bms.i18n import LANGUAGE_CODES
+        idx = to_save["language"]
+        to_save["language"] = LANGUAGE_CODES[idx] if 0 <= idx < len(LANGUAGE_CODES) else "en"
+    
     try:
-        # Final safety: confirm directory exists before writing SETTINGS_FILE
+        # Final safety: confirm directory exists before writing
         target_dir = os.path.dirname(paths.SETTINGS_FILE)
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
         with open(paths.SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=4)
+            json.dump(to_save, f, indent=4, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving settings: {e}")
 
@@ -252,37 +259,13 @@ def main():
             _create_mock_bms(song_dir)
         except Exception as e:
             print(f"Error creating bms directory at {song_dir}: {e}")
-            # Final fallback to a guaranteed writable local path if even DATA_PATH fails
-            # This shouldn't really happen but prevents hard crash
+            # Final fallback to a guaranteed writable local path
             song_dir = "bms" 
             try:
                 if not os.path.exists(song_dir): os.makedirs(song_dir)
             except: pass
 
     print(f"Scanning song directory: {os.path.abspath(song_dir)}")
-    return settings
-
-
-def save_settings(settings):
-    """Save current settings to JSON (excluding runtime-only keys)."""
-    # Filter out keys starting with _ (internal/runtime)
-    to_save = {k: v for k, v in settings.items() if not k.startswith("_")}
-    # Convert language index to language code for persistence
-    if "language" in to_save and isinstance(to_save["language"], int):
-        from only4bms.i18n import LANGUAGE_CODES
-        idx = to_save["language"]
-        to_save["language"] = LANGUAGE_CODES[idx] if 0 <= idx < len(LANGUAGE_CODES) else "en"
-    try:
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(to_save, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error saving settings: {e}")
-
-
-# ── Entry point ──────────────────────────────────────────────────────────
-
-def main():
-    settings = load_settings()
 
     # Initialize i18n from settings
     i18n.set_language(settings.get("language", "auto"))
@@ -315,7 +298,6 @@ def main():
         try:
             pygame.set_hint(hint, value)
         except AttributeError:
-            import os
             # Fallback for older pygame/SDL versions
             env_key = hint if hint.startswith("SDL_") else f"SDL_HINT_{hint}"
             os.environ[env_key] = value
