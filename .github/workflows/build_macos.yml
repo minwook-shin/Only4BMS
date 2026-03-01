@@ -35,15 +35,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Single-pass install for stable dependency resolution
-          pip install "numpy<2.0" torch stable-baselines3 shimmy gymnasium pyinstaller
+          # Create a constraints file to globally enforce numpy < 2.0
+          echo "numpy<2.0" > constraints.txt
+          export PIP_CONSTRAINT=constraints.txt
+
+          # Install everything in one pass where possible
+          pip install torch stable-baselines3 shimmy gymnasium pyinstaller opencv-python-headless
           pip install -e .
-          # Force headless opencv on macOS to avoid mixer-breaking libintl conflicts
-          pip uninstall -y opencv-python opencv-python-headless
-          pip install opencv-python-headless
 
       - name: Verify NumPy Version
         run: |
+          export PIP_CONSTRAINT=constraints.txt
           python -c "import numpy; print(f'NUMPY_VERSION: {numpy.__version__}')"
           python -c "import numpy; assert numpy.__version__.startswith('1.'), f'FATAL: Expected NumPy 1.x, got {numpy.__version__}'"
 
