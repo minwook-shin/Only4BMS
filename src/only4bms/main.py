@@ -4,6 +4,20 @@ import os
 import sys
 import time
 
+# Path resolution for PyInstaller
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        # On macOS, sys.executable points into the bundle: Only4BMS.app/Contents/MacOS/Only4BMS
+        # We want the folder containing Only4BMS.app if we want it to be portable
+        exe_path = os.path.dirname(os.path.abspath(sys.executable))
+        if sys.platform == "darwin" and ".app/Contents/MacOS" in exe_path:
+            return os.path.abspath(os.path.join(exe_path, "../../../"))
+        return exe_path
+    return os.path.abspath(".")
+
+BASE_PATH = get_base_path()
+SETTINGS_FILE = os.path.join(BASE_PATH, "settings.json")
+
 from only4bms.core.bms_parser import BMSParser
 from only4bms.game.rhythm_game import RhythmGame
 from only4bms.ui.main_menu import MainMenu
@@ -32,7 +46,6 @@ DEFAULT_SETTINGS = {
     "joystick_keys": ["HAT_0_LEFT", "HAT_0_UP", "BTN_3", "BTN_1"], # D-pad Left/Up + Button Y/B
 }
 
-SETTINGS_FILE = "settings.json"
 
 MIXER_CHANNELS = 256
 
@@ -64,7 +77,6 @@ def refresh_joysticks(force_reset=False):
                 iid = j.get_instance_id()
                 
                 # Try to find a matching existing object that is still healthy
-                found = None
                 for existing in _JOYSTICKS:
                     try:
                         if existing.get_init() and existing.get_instance_id() == iid:
@@ -141,6 +153,40 @@ def apply_display_mode(settings, window):
         window.position = pygame.WINDOWPOS_CENTERED
     window.show()
 
+def _create_mock_bms(song_dir):
+    """Creates a dummy BMS file for first-time users."""
+    mock_bms_content = """#PLAYER 1
+#GENRE TUTORIAL
+#TITLE Welcome to Only4BMS!
+#ARTIST Only4BMS Team
+#BPM 120
+#PLAYLEVEL 1
+#LNTYPE 1
+#00111:0101010101010101
+#00112:0101010101010101
+#00113:0101010101010101
+#00114:0101010101010101
+#WAV01 silence.wav
+#WAV02 clap.wav
+#00101:01
+#00201:02
+#00301:01
+#00401:02
+"""
+    mock_bms_path = os.path.join(song_dir, "welcome.bms")
+    mock_wav_path1 = os.path.join(song_dir, "silence.wav")
+    mock_wav_path2 = os.path.join(song_dir, "clap.wav")
+
+    try:
+        with open(mock_bms_path, "w", encoding="shift_jis") as f: # BMS files often use shift_jis
+            f.write(mock_bms_content)
+        # Create dummy wav files (empty files are fine for this purpose)
+        with open(mock_wav_path1, "w") as f: pass
+        with open(mock_wav_path2, "w") as f: pass
+        print(f"Created dummy BMS: {mock_bms_path}")
+    except Exception as e:
+        print(f"Error creating dummy BMS: {e}")
+
 
 def load_settings():
     """Load settings from JSON, merging with defaults."""
@@ -164,6 +210,21 @@ def load_settings():
                 settings.update(saved)
         except Exception as e:
             print(f"Warning: Failed to load settings ({e})")
+    
+    # Create bms directory if not exists
+    song_dir = os.path.join(BASE_PATH, "bms")
+    if not os.path.exists(song_dir):
+        try:
+            os.makedirs(song_dir)
+            # Create a dummy BMS for first-run
+            _create_mock_bms(song_dir)
+        except Exception as e:
+            print(f"Error creating bms directory at {song_dir}: {e}")
+            # Fallback to current dir if absolute path fails for some reason
+            song_dir = "bms"
+            if not os.path.exists(song_dir): os.makedirs(song_dir)
+
+    print(f"Scanning song directory: {os.path.abspath(song_dir)}")
     return settings
 
 
