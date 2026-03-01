@@ -81,7 +81,7 @@ class RhythmGame:
         if self.mode == 'ai_multi':
             from ..ai.inference import RhythmInference
             self.ai_model = RhythmInference(self.ai_difficulty)
-            self.ai_notes = copy.deepcopy(notes) # AI gets the same modified notes
+            self.ai_notes = [n.copy() for n in notes] # Lighter than deepcopy, enough for note modification
             self.ai_engine = GameEngine(self.ai_notes, [], [], self.hw_mult, lambda s: None, self.set_ai_judgment, max_time, visual_timing_map, last_note_time, self.on_ai_ln_tick)
             self.ai_lane_pressed = [False] * NUM_LANES
         
