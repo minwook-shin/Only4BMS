@@ -47,10 +47,12 @@ jobs:
           # Fix NumPy version (sometimes upgraded by -e .)
           pip install "numpy<2.0"
 
-          # Mixer Stability Fix: Instead of deleting, we ensure cv2 doesn't override 
-          # global symbols. On modern PyInstaller, --collect-all often handles this,
-          # but we keep the pre-purge only for absolute safety if needed.
-          # For now, let's try WITHOUT purging and see if Video works.
+          # Mixer Stability Fix: Find and remove the conflicting libintl from opencv-python
+          # explicitly before PyInstaller scans the environment. This forces PyInstaller to 
+          # find and bundle the version from pygame/fluidsynth instead.
+          CV2_DIR=$(python -c "import cv2, os; print(os.path.dirname(cv2.__file__))")
+          echo "Purging libintl from $CV2_DIR to prevent mixer conflicts"
+          find "$CV2_DIR" -name "libintl*.dylib" -delete || true
 
       - name: Verify Environment
         run: |
