@@ -43,3 +43,10 @@ BASE_PATH = get_base_path()
 DATA_PATH = get_writable_data_path()
 SETTINGS_FILE = os.path.join(DATA_PATH, "settings.json")
 SONG_DIR = os.path.join(DATA_PATH, "bms")
+
+# AI Model Path (Internal to bundle or project)
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    AI_DIR = os.path.join(sys._MEIPASS, "only4bms", "ai")
+else:
+    # Development: path to src/only4bms/ai
+    AI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai")
