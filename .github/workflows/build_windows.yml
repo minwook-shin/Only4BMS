@@ -46,6 +46,7 @@ jobs:
           # Create Inno Setup script dynamically
           $iss = @"
           [Setup]
+          AppId={{617C2037-BA3D-4A42-9A4E-E4208B8E8E9F}
           AppName=Only4BMS
           AppVersion=${{ github.ref_name }}
           DefaultDirName={autopf}\Only4BMS
@@ -55,6 +56,9 @@ jobs:
           Compression=lzma
           SolidCompression=yes
           PrivilegesRequired=admin
+          ; Force overwrite of existing files on upgrade
+          DisableProgramGroupPage=yes
+          WizardStyle=modern
 
           [Files]
           Source: "dist\Only4BMS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
