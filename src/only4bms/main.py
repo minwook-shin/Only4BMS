@@ -6,12 +6,6 @@ import time
 from only4bms import paths
 
 # ── Early Initialization ──────────────────────────────────────────────────
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # Prevent OpenMP runtime conflict (pytorch vs others)
-
-import torch
-torch.set_num_threads(1) # Minimize threading overhead/conflicts in main process
-
 # On macOS, complex libraries like OpenCV (cv2) or Torch can shadow DLLs 
 # needed by pygame-ce (like libintl). We load settings and init the mixer 
 # FIRST, before any other project-level imports.
@@ -31,6 +25,11 @@ pygame.mixer.pre_init(
     buffer=int(_early_cfg.get("audio_buffer", 128)),
 )
 pygame.init() # Initialize core modules early
+
+# Performance & Stability Tuning (Post-Init)
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # Prevent OpenMP runtime conflict
+import torch
+torch.set_num_threads(1) # Minimize threading overhead/conflicts
 
 # Now safe to import project modules
 from only4bms.core.bms_parser import BMSParser
