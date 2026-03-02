@@ -162,12 +162,13 @@ class SongSelectMenu:
             try:
                 folder = os.path.dirname(f)
                 res = BMSParser(f).get_metadata()
-                title, artist, bpm, playlevel, genre, total_notes, preview_path, stagefile, banner, h_val = res
+                title, artist, bpm, playlevel, genre, total_notes, preview_path, stagefile, banner, h_val, lanes_comp = res
                 chart_data = {
                     'filepath': f, 'title': title, 'artist': artist,
                     'bpm': bpm, 'playlevel': playlevel, 'genre': genre,
                     'total_notes': total_notes, 'preview_path': preview_path,
-                    'stagefile': stagefile, 'banner': banner, 'hash': h_val
+                    'stagefile': stagefile, 'banner': banner, 'hash': h_val,
+                    'lanes_compressed': lanes_comp
                 }
                 if folder not in self._scan_groups:
                     self._scan_groups[folder] = {

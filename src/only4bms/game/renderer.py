@@ -693,7 +693,7 @@ class GameRenderer:
         effects_list[:] = alive
 
 
-    def draw_result(self, stats):
+    def draw_result(self, stats, current_time):
         def calc_score(judgs):
             if not judgs: return 0
             return judgs["PERFECT"] * 1000 + judgs["GREAT"] * 500 + judgs["GOOD"] * 200
@@ -815,3 +815,59 @@ class GameRenderer:
         f_info = self._get_text_texture(_t("return_hint"), False, (150, 150, 150), size_override=self._s(18))
         f_info.alpha = 255
         self.renderer.blit(f_info, pygame.Rect(self.width // 2 - f_info.width // 2, self.height - self._s(40), f_info.width, f_info.height))
+
+        # ── Challenge Toast Rendering ──
+        if stats.get('newly_completed'):
+            self.draw_challenge_toast(stats['newly_completed'], current_time)
+
+    def draw_challenge_toast(self, newly_completed, current_time):
+        """Draw a celebratory toast for newly completed challenges."""
+        if not newly_completed: return
+        
+        # We need a start time for the transition (current_time is in ms)
+        if not hasattr(self, '_toast_start_t'):
+            self._toast_start_t = current_time
+            
+        elapsed = current_time - self._toast_start_t
+        duration = 4000.0 # 4 seconds in ms
+        if elapsed > duration: return
+        
+        # Transitions: 0-500ms fade in & slide, 500-3500ms show, 3500-4000ms fade out
+        alpha = 255
+        y_offset = 0
+        if elapsed < 500:
+            ratio = elapsed / 500.0
+            alpha = int(255 * ratio)
+            y_offset = int(self._s(20) * (1.0 - ratio))
+        elif elapsed > 3500:
+            ratio = (4000 - elapsed) / 500.0
+            alpha = int(255 * max(0, ratio))
+            y_offset = int(self._s(20) * (ratio - 1.0)) # optional slide out
+            
+        # Draw Panel
+        tw, th = self._sx(350), self._s(75 + len(newly_completed) * 30)
+        tx, ty = (self.width - tw) // 2, self._s(200) + y_offset
+        
+        self.renderer.draw_color = (30, 30, 45, int(230 * (alpha/255)))
+        self.renderer.fill_rect((tx, ty, tw, th))
+        self.renderer.draw_color = (255, 200, 0, alpha)
+        self.renderer.draw_rect((tx, ty, tw, th))
+        
+        # Title
+        title_txt = _t("new_challenge_toast")
+        title_tex = self._get_text_texture(title_txt, True, (255, 220, 50), size_override=self._s(22))
+        title_tex.alpha = alpha
+        self.renderer.blit(title_tex, pygame.Rect(tx + tw // 2 - title_tex.width // 2, ty + self._s(10), title_tex.width, title_tex.height))
+        
+        # Challenges
+        for i, ch in enumerate(newly_completed):
+            ch_name = _t(f"ch_{ch['id']}_title")
+            ch_txt = f"{i+1}. {ch_name}"
+            ch_tex = self._get_text_texture(ch_txt, False, (255, 255, 255), size_override=self._s(18))
+            ch_tex.alpha = alpha
+            self.renderer.blit(ch_tex, pygame.Rect(tx + self._sx(30), ty + self._s(50 + i * 30), ch_tex.width, ch_tex.height))
+            # [Completed] badge
+            compl_txt = f"[{_t('challenge_completed')}]"
+            compl_tex = self._get_text_texture(compl_txt, True, (0, 255, 100), size_override=self._s(14))
+            compl_tex.alpha = alpha
+            self.renderer.blit(compl_tex, pygame.Rect(tx + tw - compl_tex.width - self._sx(20), ty + self._s(53 + i * 30), compl_tex.width, compl_tex.height))

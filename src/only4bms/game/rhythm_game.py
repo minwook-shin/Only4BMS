@@ -14,7 +14,7 @@ from .renderer import GameRenderer
 
 class RhythmGame:
     def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, measures=None, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal', note_mod='None',
-                 course_hp=None, course_hp_max=100.0, course_modifier=None):
+                 course_hp=None, course_hp_max=100.0, course_modifier=None, challenge_manager=None):
         self.mode = mode
         self.ai_difficulty = ai_difficulty
         self.renderer = renderer
@@ -29,11 +29,23 @@ class RhythmGame:
         self.title = title
         self.settings = settings
         self.metadata = metadata or {}
+        self.challenge_manager = challenge_manager
+        self.newly_completed = []
+        self._challenge_checked = False
         # ── Course mode HP overlay ────────────────────────────────────────
         self.course_hp      = course_hp        # None means non-course mode
         self.course_hp_max  = course_hp_max
         self.course_modifier = course_modifier  # list of modifier tuples or None
+        # Challenge Tracking Flags
         self.course_failed   = False
+        self.ai_paused       = False
+        self.ai_restarted    = False
+        self.speed_changed   = False
+        self.first_note_miss = False
+        self.has_hit_first_note = False
+        self.start_speed     = self.settings.get('speed', 1.0)
+        self.lanes_compressed = self.metadata.get('lanes_compressed', False)
+        self.used_dfjk       = self.settings.get('keybinds', ['d', 'f', 'j', 'k']) == ['d', 'f', 'j', 'k']
         
         # Deepcopy notes so modifications like Mirror/Random don't persist across restarts
         notes = copy.deepcopy(notes_orig)
@@ -85,10 +97,14 @@ class RhythmGame:
                     max_time = max(max_time, end_t)
         
         # Apply Note Mods (Mirror/Random)
+        self.used_mod = False
         if note_mod != 'None':
+            self.used_mod = True
             self._apply_note_mod(notes, note_mod)
+        self.note_mod = note_mod
 
         self.engine = GameEngine(notes, bgms, bgas, self.hw_mult, self._play_sound, self.set_judgment, max_time, visual_timing_map, last_note_time, self.on_ln_tick)
+        self.has_ln = any(n.get('is_ln', False) for n in notes)
         
         if self.mode == 'ai_multi':
             from ..ai.inference import RhythmInference
@@ -152,6 +168,11 @@ class RhythmGame:
             self.assets.sounds[sid].play()
 
     def set_judgment(self, key, lane=None, t=None, timing_diff=0):
+        if not self.has_hit_first_note:
+            self.has_hit_first_note = True
+            if key == "MISS":
+                self.first_note_miss = True
+                
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
         j = JUDGMENT_DEFS[key]
         _JUDGMENT_I18N = {"PERFECT": "judgment_perfect", "GREAT": "judgment_great", "GOOD": "judgment_good", "MISS": "judgment_miss"}
@@ -241,16 +262,26 @@ class RhythmGame:
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE or event.key == pygame.K_TAB:
+                if self.mode == 'ai_multi':
+                    self.ai_paused = True
                 self._pause()
                 return
             if event.key == pygame.K_r: # Quick Retry
+                if self.mode == 'ai_multi':
+                    self.ai_restarted = True
+                    # Check challenges immediately if restarted during ai_multi
+                    if self.challenge_manager and not self._challenge_checked:
+                        self.challenge_manager.check_challenges(self.get_stats())
+                        self._challenge_checked = True
                 self.needs_restart = True
                 return
             if event.key == pygame.K_F1: # Increase Speed
+                self.speed_changed = True
                 self.speed = min(5.0 * (self.height / BASE_H), self.speed + 0.1 * (self.height / BASE_H))
                 self.settings['speed'] = self.speed / (self.height / BASE_H)
                 return
             if event.key == pygame.K_F2: # Decrease Speed
+                self.speed_changed = True
                 self.speed = max(0.1 * (self.height / BASE_H), self.speed - 0.1 * (self.height / BASE_H))
                 self.settings['speed'] = self.speed / (self.height / BASE_H)
                 return
@@ -358,7 +389,7 @@ class RhythmGame:
             if self.needs_restart:
                 pygame.mouse.set_visible(True)
                 pygame.mixer.stop()
-                return "RESTART"
+                return {"action": "RESTART"}
             
             t_now = time.perf_counter()
             elapsed = t_now - last_frame_time
@@ -440,14 +471,61 @@ class RhythmGame:
                 elif self.state == "COUNTDOWN":
                     self._draw_countdown()
                 elif self.state == "RESULT":
+                    # Check for newly achieved challenges when the game ends (Result screen)
+                    if self.challenge_manager and not self._challenge_checked:
+                        self.newly_completed = self.challenge_manager.check_challenges(self.get_stats())
+                        self._challenge_checked = True
                     self._draw_result(now_ms + vis_offset)
 
                 self.renderer.present()
                 last_render_time = time.perf_counter()
         
         pygame.mouse.set_visible(True)
+        if getattr(self, 'restart_flag', False):
+            return {"action": "RESTART"}
         if getattr(self, 'quit_flag', False):
-            return "QUIT"
+            return {"action": "QUIT"}
+        
+        if self.state == "RESULT":
+            stats = self.get_stats()
+            stats["action"] = "CLEAR"
+            return stats
+        return {"action": "QUIT"}
+
+    def get_stats(self):
+        max_ex = max(1, self.total_judgments * 2)
+        p1_ex = self.judgments["PERFECT"] * 2 + self.judgments["GREAT"] * 1
+        accuracy = (p1_ex / max_ex) * 100.0
+        
+        ai_p1_ex = getattr(self, 'ai_judgments', {}).get("PERFECT", 0) * 2 + getattr(self, 'ai_judgments', {}).get("GREAT", 0)
+        ai_acc = (ai_p1_ex / max_ex) * 100.0 if self.mode == 'ai_multi' else 0.0
+        
+        return {
+            'mode': self.mode,
+            'title': self.title,
+            'level': self.metadata.get('level', self.metadata.get('playlevel', '0')),
+            'judgments': self.judgments,
+            'max_combo': self.max_combo,
+            'accuracy': accuracy,
+            'ai_accuracy': ai_acc,
+            'total_score': p1_ex,
+            'total_notes': len(self.engine.notes),
+            'failed': self.course_failed,
+            'ai_paused': self.ai_paused,
+            'ai_restarted': self.ai_restarted,
+            'speed_changed': self.speed_changed,
+            'first_note_miss': self.first_note_miss,
+            'lanes_compressed': self.lanes_compressed,
+            'used_dfjk': self.used_dfjk,
+            'used_mod': getattr(self, 'used_mod', False),
+            'note_mod': getattr(self, 'note_mod', 'None'),
+            'has_ln': getattr(self, 'has_ln', False),
+            'ai_diff': self.ai_difficulty,
+            'must_win': (self.mode == 'ai_multi' and p1_ex > ai_p1_ex),
+            'ai_judgments': getattr(self, 'ai_judgments', None),
+            'ai_max_combo': getattr(self, 'ai_max_combo', 0),
+            'newly_completed': self.newly_completed
+        }
 
     def _update_ai(self, current_time):
         miss_window = JUDGMENT_DEFS["MISS"]["threshold_ms"] * self.hw_mult
@@ -630,9 +708,10 @@ class RhythmGame:
             'max_time': self.engine.max_time,
             'total_notes': len(self.engine.notes),
             'cover_texture': self.assets.cover_texture,
-            'failed': self.course_failed
+            'failed': self.course_failed,
+            'newly_completed': self.newly_completed
         }
-        self.game_renderer.draw_result(stats)
+        self.game_renderer.draw_result(stats, t)
 
     def _apply_note_mod(self, notes, mod):
         if mod == 'Mirror':

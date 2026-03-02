@@ -3,7 +3,8 @@ import json
 import os
 import sys
 import time
-from only4bms import paths
+from only4bms import paths, i18n
+from only4bms.game.challenge import ChallengeManager
 
 # ── Early Initialization ──────────────────────────────────────────────────
 # On macOS, complex libraries like OpenCV (cv2) or Torch can shadow DLLs 
@@ -329,6 +330,9 @@ def main():
         time.sleep(0.02)
     refresh_joysticks()
 
+    # Initialize Challenge Manager
+    challenge_manager = ChallengeManager()
+
     # Main loop
     while True:
         menu_action = MainMenu(settings, renderer=renderer, window=window).run()
@@ -339,6 +343,11 @@ def main():
         if menu_action == "SETTINGS":
             SettingsMenu(settings, renderer=renderer, window=window).run()
             save_settings(settings)
+            continue
+        
+        if menu_action == "CHALLENGE":
+            from only4bms.ui.challenge_menu import ChallengeMenu
+            ChallengeMenu(settings, renderer=renderer, window=window).run()
             continue
 
         if menu_action == "COURSE":
@@ -351,6 +360,7 @@ def main():
                     settings, renderer, window,
                     difficulty, duration_ms, paths,
                     init_mixer_fn=_init_mixer,
+                    challenge_manager=challenge_manager,
                 ).run()
             continue
 
@@ -362,6 +372,12 @@ def main():
                 ssm = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode, song_groups=cached_songs)
                 res = ssm.run()
                 cached_songs = ssm.song_groups  # Cache for next iteration
+                
+                # Check for "scan_complete" challenge (e.g., BMS folder discovery)
+                if challenge_manager and cached_songs:
+                    total_songs = sum(len(g.get('charts', [])) for g in cached_songs)
+                    challenge_manager.check_challenges({'mode': 'scan_complete', 'total_songs': total_songs})
+                
                 action, selected_song, ai_difficulty, note_mod = res
 
                 if action in ("QUIT", "MENU") or not action:
@@ -394,16 +410,22 @@ def main():
                         "stagefile": parser.stagefile,
                         "banner": parser.banner,
                         "total": parser.total,
+                        "lanes_compressed": parser.lanes_compressed,
                     }
                     while True:
                         game = RhythmGame(
                             notes, bgms, bgas, parser.wav_map, bmp_map,
                             parser.title, settings, visual_timing_map=visual_timing_map, measures=measures, mode=mode, metadata=metadata,
                             renderer=renderer, window=window,
-                            ai_difficulty=ai_difficulty, note_mod=note_mod
+                            ai_difficulty=ai_difficulty, note_mod=note_mod,
+                            challenge_manager=challenge_manager
                         )
                         result = game.run()
-                        if result != "RESTART":
+                        action = result.get('action', 'QUIT')
+                        if action != "RESTART":
+                            # Challenges were handled internally in RhythmGame, but we can print here too
+                            if isinstance(result, dict) and result.get('newly_completed'):
+                                print(f"Newly completed challenges: {[c['id'] for c in result['newly_completed']]}")
                             break
                         # Restarting involves re-initializing mixer if needed or just re-running
                         _init_mixer(settings)

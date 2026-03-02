@@ -227,13 +227,14 @@ class CourseSession:
     """Runs the complete course mode session for a single difficulty/duration."""
 
     def __init__(self, settings, renderer, window, difficulty: str,
-                 duration_ms: int, paths, init_mixer_fn=None):
+                 duration_ms: int, paths, init_mixer_fn=None, challenge_manager=None):
         self.settings       = settings
         self.renderer       = renderer
         self.window         = window
         self.difficulty     = difficulty
         self.duration_ms    = duration_ms
         self._init_mixer    = init_mixer_fn or (lambda s: None)
+        self.challenge_manager = challenge_manager
 
         self.template_dir   = os.path.join(paths.DATA_PATH, ".temp_course")
         self.temp_bms_path  = os.path.join(self.template_dir, "temp_course.bms")
@@ -269,6 +270,26 @@ class CourseSession:
         ]
 
     # ── Public entry ─────────────────────────────────────────────────────────
+
+    def _on_session_end(self, failed=False):
+        if self.challenge_manager and (self.total_score > 0 or len(self.stage_scores) > 0 or not failed):
+            status = "FAILED" if failed else "COMPLETED"
+            print(f"[CourseSession] Session {status}. Total Score: {self.total_score}")
+            end_stats = {
+                'mode': 'course_end',
+                'difficulty': self.difficulty,
+                'total_score': self.total_score,
+                'failed': failed
+            }
+            # ── CHALLENGE CHECK (Course End) ──
+            # Evaluate course completion logic (e.g., reaching final stage, passing particular course modes)
+            newly_done = self.challenge_manager.check_challenges(end_stats)
+            if newly_done:
+                print(f"Newly completed challenges: {[c['id'] for c in newly_done]}")
+            
+            if not failed:
+                # Show final results screen for clear
+                self._draw_final_result(newly_done)
 
     def run(self):
         from only4bms.game.course_generator import generate_random_course
@@ -340,26 +361,43 @@ class CourseSession:
 
             except Exception as e:
                 print(f"[CourseSession] Error during stage: {e}")
+                self._on_session_end(failed=True)
                 return
 
             if res == "QUIT":
+                self._on_session_end(failed=False)
                 return
 
             # 4. Score + rank + HP update
             stage_score, stage_rank, acc, j_ex, j_max = _calc_score_and_rank(game.judgments)
-            self.stage_scores.append(stage_score)
-            self.stage_ranks.append(stage_rank)
-            self.total_score += stage_score
-            self.best_score   = max(self.best_score, stage_score)
 
             # Use the real-time HP updated in RhythmGame
             hp_before = self.hp
             self.hp   = game.course_hp
             hp_delta  = self.hp - hp_before
 
+            # ── CHALLENGE CHECK (Stage End) ──
+            # Evaluate challenges specific to a particular stage 
+            # (e.g., finishing a stage in Course mode with 100% Full HP)
+            newly_done_stage = []
+            if self.challenge_manager:
+                stage_stats = game.get_stats()
+                stage_stats['mode'] = 'course_stage'
+                stage_stats['hp'] = self.hp
+                stage_stats['accuracy'] = acc
+                stage_stats['failed'] = (self.hp <= 0)
+                stage_stats['difficulty'] = self.difficulty
+                newly_done_stage = self.challenge_manager.check_challenges(stage_stats)
+
+            self.stage_scores.append(stage_score)
+            self.stage_ranks.append(stage_rank)
+            self.total_score += stage_score
+            self.best_score   = max(self.best_score, stage_score)
+
             # 5. FAIL check
             if self.hp <= 0:
                 self._draw_fail_screen(self.stage_num, stage_score, stage_rank)
+                self._on_session_end(failed=True)
                 return
 
             # 6. Prepare next stage (note mod + modifier + chart) before intermission
@@ -375,7 +413,6 @@ class CourseSession:
             except Exception:
                 pass
 
-            # 7. Intermission screen
             if not self._intermission(
                 stage_num=self.stage_num,
                 stage_score=stage_score, stage_rank=stage_rank,
@@ -384,8 +421,10 @@ class CourseSession:
                 next_desc=next_desc,
                 next_note_mod=next_note_mod,
                 next_modifier=next_modifier,
+                newly_completed=newly_done_stage,
             ):
-                return   # player chose to quit
+                self._on_session_end(failed=False)
+                return
 
     # ── Internal helpers ─────────────────────────────────────────────────────
 
@@ -460,15 +499,19 @@ class CourseSession:
         self.renderer.present()
 
     def _intermission(self, *, stage_num, stage_score, stage_rank, acc,
-                      judgments, hp_delta, next_desc, next_note_mod, next_modifier) -> bool:
+                      judgments, hp_delta, next_desc, next_note_mod, next_modifier, newly_completed=None) -> bool:
         """Draw the between-stage result screen.  Returns True to continue, False to quit."""
         W, H   = self.window.size
         sy     = H / 600.0
+        sx     = W / 800.0
         mot    = random.choice(self._mot_pool)
         hp_ratio = self.hp / self.hp_max
 
         running   = True
         continue_ = True
+        
+        start_t = time.perf_counter()
+        _toast_start_t = None if not newly_completed else start_t
 
         while running:
             # ── Timing for waveform ─────────────────────────────────────────
@@ -553,6 +596,41 @@ class CourseSession:
             # Continue hint
             blit_cx(f_sm.render(i18n.get("course_continue_hint"), True, (120, 120, 130)), H * 0.90)
 
+            # ── Challenge Toast Overlay ──
+            if newly_completed and _toast_start_t:
+                elapsed = time.perf_counter() - _toast_start_t
+                duration = 4.0
+                if elapsed < duration:
+                    # Transitions
+                    alpha = 255
+                    y_toast_off = 0
+                    if elapsed < 0.5:
+                        r = elapsed / 0.5
+                        alpha = int(255 * r)
+                        y_toast_off = int(sy * 20 * (1.0 - r))
+                    elif elapsed > 3.5:
+                        alpha = int(255 * (4.0 - elapsed) / 0.5)
+
+                    tw, th = int(sx * 350), int(sy * (85 + len(newly_completed) * 30))
+                    tx, ty = (W - tw) // 2, int(H * 0.25) + y_toast_off
+                    
+                    # Panel
+                    t_surf = pygame.Surface((tw, th), pygame.SRCALPHA)
+                    pygame.draw.rect(t_surf, (30, 30, 45, int(230 * (alpha/255))), (0, 0, tw, th), border_radius=8)
+                    pygame.draw.rect(t_surf, (255, 200, 0, alpha), (0, 0, tw, th), 2, border_radius=8)
+                    
+                    # Toast Title
+                    tt_tex = f_body.render(i18n.get("new_challenge_toast"), True, (255, 220, 50))
+                    t_surf.blit(tt_tex, ((tw - tt_tex.get_width()) // 2, int(sy * 10)))
+                    
+                    # Challenge list
+                    for idx, ch in enumerate(newly_completed):
+                        c_name = i18n.get(f"ch_{ch['id']}_title")
+                        c_surf = f_sm.render(f"{idx+1}. {c_name}", True, (255, 255, 255))
+                        t_surf.blit(c_surf, (int(sx * 30), int(sy * (50 + idx * 30))))
+                    
+                    surf.blit(t_surf, (tx, ty))
+
             # ── Present ─────────────────────────────────────────────────────
             self.renderer.clear()
             tex = Texture.from_surface(self.renderer, surf)
@@ -588,9 +666,9 @@ class CourseSession:
 
         running = True
         while running:
+            # Re-use wave ticking logic from intermission
             surf = pygame.Surface((W, H), pygame.SRCALPHA)
             surf.fill((20, 5, 5))
-
             self._wave_tick(surf)
 
             f_title = i18n.font("menu_title", sy, bold=True)
@@ -622,5 +700,78 @@ class CourseSession:
                         running = False
                 elif e.type == pygame.JOYBUTTONDOWN:
                     running = False
+            time.sleep(0.016)
 
+    def _draw_final_result(self, newly_completed=None):
+        """Show a FINAL CLEAR / SUMMARY screen when completing a course."""
+        W, H = self.window.size
+        sy   = H / 600.0
+        sx   = W / 800.0
+
+        running = True
+        start_t = time.perf_counter()
+        _toast_start_t = None if not newly_completed else start_t
+
+        while running:
+            surf = pygame.Surface((W, H), pygame.SRCALPHA)
+            surf.fill((10, 20, 30))
+            self._wave_tick(surf)
+
+            f_title = i18n.font("menu_title", sy, bold=True)
+            f_body  = i18n.font("menu_option", sy)
+            f_sm    = i18n.font("menu_small", sy)
+
+            def blit_cx(s, y):
+                surf.blit(s, ((W - s.get_width()) // 2, int(y)))
+
+            blit_cx(f_title.render(i18n.get("course_clear"), True, (50, 255, 100)), H * 0.20)
+            blit_cx(f_body.render(
+                i18n.get("course_clear_stats").format(total=self.total_score),
+                True, (255, 230, 100)), H * 0.45)
+            blit_cx(f_sm.render(i18n.get("course_fail_hint"), True, (150, 150, 160)), H * 0.85)
+
+            # ── Challenge Toast Summary ──
+            if newly_completed and _toast_start_t:
+                elapsed = time.perf_counter() - _toast_start_t
+                duration = 5.0
+                if elapsed < duration:
+                    alpha = 255
+                    y_toast_off = 0
+                    if elapsed < 0.5:
+                        r = elapsed / 0.5
+                        alpha = int(255 * r)
+                        y_toast_off = int(sy * 20 * (1.0 - r))
+                    elif elapsed > 4.5:
+                        alpha = int(255 * (5.0 - elapsed) / 0.5)
+
+                    tw, th = int(sx * 350), int(sy * (85 + len(newly_completed) * 30))
+                    tx, ty = (W - tw) // 2, int(H * 0.30) + y_toast_off
+                    
+                    t_surf = pygame.Surface((tw, th), pygame.SRCALPHA)
+                    pygame.draw.rect(t_surf, (30, 30, 45, int(230 * (alpha/255))), (0, 0, tw, th), border_radius=8)
+                    pygame.draw.rect(t_surf, (255, 200, 0, alpha), (0, 0, tw, th), 2, border_radius=8)
+                    
+                    tt_tex = f_body.render(i18n.get("new_challenge_toast"), True, (255, 220, 50))
+                    t_surf.blit(tt_tex, ((tw - tt_tex.get_width()) // 2, int(sy * 10)))
+                    
+                    for idx, ch in enumerate(newly_completed):
+                        c_name = i18n.get(f"ch_{ch['id']}_title")
+                        c_surf = f_sm.render(f"{idx+1}. {c_name}", True, (255, 255, 255))
+                        t_surf.blit(c_surf, (int(sx * 30), int(sy * (50 + idx * 30))))
+                    
+                    surf.blit(t_surf, (tx, ty))
+
+            self.renderer.clear()
+            tex = Texture.from_surface(self.renderer, surf)
+            self.renderer.blit(tex, pygame.Rect(0, 0, W, H))
+            self.renderer.present()
+
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    running = False
+                elif e.type == pygame.KEYDOWN:
+                    if e.key in (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_SPACE):
+                        running = False
+                elif e.type == pygame.JOYBUTTONDOWN:
+                    running = False
             time.sleep(0.016)
