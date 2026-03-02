@@ -186,7 +186,7 @@ class KeyConfigMenu:
                         parts = raw_joy.split("_")
                         joy_display = f"D-PAD {parts[2]}"
                 
-                val_text = f"Key: {key_name}  |  Joy: {joy_display}"
+                val_text = f"{_t('key_label')}: {key_name}  |  {_t('joy_label')}: {joy_display}"
                 val_color = COLOR_TEXT_PRIMARY
 
             val_surf = self.font.render(val_text, True, val_color)

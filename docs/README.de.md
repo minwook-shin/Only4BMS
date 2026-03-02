@@ -49,6 +49,14 @@ Dieses Projekt verwendet Pygame, um BMS-Dateien zu parsen, und bietet eine Umgeb
              └── ...
      ```
 
+## 🎵 Kursmodus (Roguelike-Training)
+
+Müde von den gleichen Liedern? Betritt den **Kursmodus**, einen endlosen prozeduralen Trainingsmodus!
+- Prozedural generierte Notenblätter, die jedes Mal anders sind.
+- Progressive Schwierigkeiten: Anfänger (BPM 80~110), Fortgeschritten (BPM 120~160), Experte (BPM 160~200).
+- Stelle dich langen Noten und BPM-Gimmicks (Geschwindigkeitsänderungen), während du aufsteigst.
+- Jede Etappe dauert etwa 30 Sekunden. Überlebe und sieh, was als Nächstes kommt!
+
 ## 🤖 KI-Training & Multiplayer
 
 Only4BMS bietet einen KI-Multiplayer-Modus, der auf **Reinforcement Learning (PPO)** basiert.

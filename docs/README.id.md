@@ -49,6 +49,14 @@ Proyek ini menggunakan Pygame untuk mengurai file BMS dan menyediakan lingkungan
              └── ...
      ```
 
+## 🎵 Mode Kursus (Pelatihan Roguelike)
+
+Bosan dengan lagu yang itu-itu saja? Masuki **Mode Kursus**, mode pelatihan prosedural tanpa akhir!
+- Chart yang dihasilkan secara prosedural dan berbeda setiap saat.
+- Kesulitan progresif: Pemula (BPM 80~110), Menengah (BPM 120~160), Lanjutan (BPM 160~200).
+- Hadapi long notes dan gimmick perubahan BPM saat Anda naik peringkat.
+- Setiap stage berlangsung selama ~30 detik. Bertahanlah dan hadapi tantangan berikutnya!
+
 ## 🤖 Pelatihan AI & Multiplayer
 
 Only4BMS menghadirkan mode AI Multiplayer yang didukung oleh **Reinforcement Learning (PPO)**.

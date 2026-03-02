@@ -11,6 +11,53 @@ from .constants import (
     EFFECT_EXPAND_SPEED, EFFECT_FADE_SPEED
 )
 
+# ── Waveform visualizer (for Course Mode / intermission screens) ─────────────
+class WaveVisualizer:
+    """Draws a calm sine-wave animation on a pygame.Surface or via a renderer."""
+    def __init__(self, w: int, h: int):
+        self.w = w
+        self.h = h
+        self._layers = [
+            dict(amp=h * 0.08, freq=2.0, speed=0.6,  phase=0.0, color=(0, 180, 255, 60)),
+            dict(amp=h * 0.05, freq=3.5, speed=1.1,  phase=1.0, color=(0, 255, 180, 45)),
+            dict(amp=h * 0.12, freq=1.2, speed=0.35, phase=2.5, color=(60, 120, 255, 30)),
+        ]
+        self._t = 0.0
+
+    def update(self, dt: float):
+        self._t += dt
+        for L in self._layers:
+            L["phase"] += L["speed"] * dt
+
+    def draw_to_surface(self, surf: pygame.Surface, cx: int, cy: int, half_w: int):
+        for L in self._layers:
+            pts = []
+            steps = max(4, half_w // 2)
+            for i in range(steps + 1):
+                x = cx - half_w + i * (half_w * 2 // steps)
+                angle = (i / steps) * L["freq"] * math.pi * 2 + L["phase"]
+                y = int(cy + math.sin(angle) * L["amp"])
+                pts.append((x, y))
+            if len(pts) >= 2:
+                pygame.draw.lines(surf, L["color"], False, pts, 2)
+
+    def draw_to_renderer(self, renderer, cx: int, cy: int, half_w: int):
+        """Directly draw using SDL2 renderer points for performance."""
+        for L in self._layers:
+            pts = []
+            steps = max(4, half_w // 2)
+            for i in range(steps + 1):
+                x = cx - half_w + i * (half_w * 2 // steps)
+                angle = (i / steps) * L["freq"] * math.pi * 2 + L["phase"]
+                y = int(cy + math.sin(angle) * L["amp"])
+                pts.append((x, y))
+            if len(pts) >= 2:
+                renderer.draw_color = L["color"]
+                # We can't use draw_lines with SDL2 renderer easily without a loop or array
+                # But we can draw a series of lines via multiple calls
+                for j in range(len(pts) - 1):
+                    renderer.draw_line(pts[j], pts[j+1])
+
 class GameRenderer:
     def __init__(self, renderer, window_size, settings):
         self.renderer = renderer
@@ -46,6 +93,10 @@ class GameRenderer:
         self.lane_bg_texture = None # Pre-rendered static lane background
         self.note_head_bw = 0
         self.note_head_bh = 0
+        
+        # --- Wave Visualizer ---
+        self.wave_viz = WaveVisualizer(self.width, self.height)
+        self.last_wave_time = time.perf_counter()
         
     def _s(self, v): return int(v * self.sy)
     def _sx(self, v): return int(v * self.sx)
@@ -272,6 +323,37 @@ class GameRenderer:
                 vy = hit_y - vh
                 self._draw_ai_vision(lx[0], vy, ltw, vh, int(hit_alpha * 0.8 * fade_mult))
 
+            # ── Measure / Bar Lines with Speed Change Indicators ──
+            measures = game_state.get('measures', [])
+            if measures:
+                last_bpm = None  # Track BPM of previous measure
+                for m_data in measures:
+                    mv_time = m_data['visual_time_ms']
+                    td = mv_time - current_visual_time
+                    my = hit_y - td * spd
+                    
+                    if my < 0 or my > self.height:
+                        last_bpm = m_data.get('bpm')
+                        continue
+                        
+                    # Color based on BPM change (Speed Change Indicator)
+                    curr_bpm = m_data.get('bpm')
+                    color = (130, 130, 150, int(120 * fade_mult)) # Default Gray
+                    
+                    if last_bpm is not None and curr_bpm is not None:
+                        if curr_bpm > last_bpm + 0.1:   # Faster -> RED
+                            color = (255, 60, 60, int(220 * fade_mult))
+                        elif curr_bpm < last_bpm - 0.1: # Slower -> BLUE
+                            color = (60, 100, 255, int(220 * fade_mult))
+                    
+                    last_bpm = curr_bpm
+                    
+                    self.renderer.draw_color = color
+                    # Standard measure line (white/gray horizontal line)
+                    # We use fill_rect for a thicker line (2-3px) to improve visibility
+                    line_h = max(2, self._s(2))
+                    self.renderer.fill_rect((lx[0], int(my), ltw, line_h))
+
             # Judgment / Combo Text
             is_ai = game_state.get('is_ai', False)
             def get_bounce(timer, duration=200):
@@ -326,6 +408,53 @@ class GameRenderer:
                 spd_tex = self._get_text_texture(_t("speed_display").format(val=f"{speed_val:.1f}"), False, (200, 200, 200), size_override=self._s(18))
                 spd_tex.alpha = int(200 * fade_mult)
                 self.renderer.blit(spd_tex, pygame.Rect(lx[0], self.height - self._s(25), spd_tex.width, spd_tex.height))
+
+            # ── Course Mode HP Bar & Modifier badge (Player 1 only) ─────────
+            if not is_ai:
+                course_hp     = game_state.get('course_hp')
+                course_hp_max = game_state.get('course_hp_max', 100.0)
+                if course_hp is not None:
+                    # HP bar on the right side of the lane area
+                    hp_ratio = max(0.0, min(1.0, course_hp / (course_hp_max or 1)))
+                    bar_w = ltw
+                    bar_h = self._s(8)
+                    bar_x = lx[0]
+                    bar_y = self.height - self._s(46)
+                    # BG
+                    self.renderer.draw_color = (40, 10, 10, int(200 * fade_mult))
+                    self.renderer.fill_rect((bar_x, bar_y, bar_w, bar_h))
+                    # Fill
+                    fill_w = max(0, int(bar_w * hp_ratio))
+                    if fill_w:
+                        r_c = int(255 * (1.0 - hp_ratio))
+                        g_c = int(200 * hp_ratio)
+                        self.renderer.draw_color = (r_c, g_c, 40, int(220 * fade_mult))
+                        self.renderer.fill_rect((bar_x, bar_y, fill_w, bar_h))
+                    # Border
+                    border_col = (200, 80, 80, int(180 * fade_mult)) if hp_ratio < 0.25 else (80, 200, 120, int(160 * fade_mult))
+                    self.renderer.draw_color = border_col
+                    self.renderer.draw_rect((bar_x, bar_y, bar_w, bar_h))
+                    # HP text label  (e.g., "HP 65/100")
+                    hp_str = f"HP  {int(course_hp)}/{int(course_hp_max)}"
+                    hp_color = (255, 100, 100) if hp_ratio < 0.25 else (180, 230, 180)
+                    hp_label = self._get_text_texture(hp_str, False, hp_color, size_override=self._s(14))
+                    hp_label.alpha = int(220 * fade_mult)
+                    self.renderer.blit(hp_label, pygame.Rect(lx[0], bar_y - self._s(18), hp_label.width, hp_label.height))
+
+                    # Modifier badges (plural)
+                    course_mods = game_state.get('course_modifier')
+                    if course_mods:
+                        y_m = self._s(6)
+                        for mod in course_mods:
+                            key, is_buff, *_, desc_key = mod
+                            mod_text = _i18n.get(desc_key)
+                            # Using safe symbols instead of complex icons
+                            prefix = ">> " if is_buff else "<< "
+                            mod_color = (130, 255, 180) if is_buff else (255, 120, 100)
+                            mod_badge = self._get_text_texture(prefix + mod_text, True, mod_color, size_override=self._s(14))
+                            mod_badge.alpha = int(220 * fade_mult)
+                            self.renderer.blit(mod_badge, pygame.Rect(lx[0], y_m, mod_badge.width, mod_badge.height))
+                            y_m += self._s(18)
             
         # ── Note Rendering Optimization ──
         # 1. Render Held Long Notes first (guarantees they are drawn even if behind note_idx)
@@ -466,7 +595,7 @@ class GameRenderer:
             surf_h = bar_h * 2 + 2
             self.renderer.blit(self.jitter_texture, pygame.Rect(x, y - surf_h // 2, w, surf_h))
 
-    def draw_bga(self, current_time, bid, assets):
+    def draw_bga(self, current_time, bid, assets, is_course=False):
         tex = None
         if bid is not None:
             if bid in assets.videos:
@@ -496,6 +625,14 @@ class GameRenderer:
             dy = (self.height - dh) // 2
             
             self.renderer.blit(tex, pygame.Rect(dx, dy, dw, dh))
+        elif is_course:
+            # Draw wave visualization if it's course mode and no other BGA
+            now = time.perf_counter()
+            dt = now - self.last_wave_time
+            self.last_wave_time = now
+            self.wave_viz.update(dt)
+            self.wave_viz.draw_to_renderer(self.renderer, self.width // 2, self.height // 2 + int(self.height * 0.1), self.width // 2 - 40)
+
 
     def draw_score_bar(self, p1_judgs, ai_judgs):
         def get_weighted_points(judgs):
@@ -590,6 +727,13 @@ class GameRenderer:
             t_tex = self._get_text_texture(_t("result_title"), True, (255, 255, 255), size_override=self._s(50))
             t_tex.alpha = 255
             self.renderer.blit(t_tex, pygame.Rect(self.width // 2 - t_tex.width // 2, self._s(20), t_tex.width, t_tex.height))
+
+        # FAILED Stamp
+        if stats.get('failed'):
+            f_tex = self._get_text_texture(_t("failed_stamp"), True, (255, 50, 50), size_override=self._s(100))
+            f_tex.alpha = 180
+            # Center it, but slightly offset to look like a stamp
+            self.renderer.blit(f_tex, pygame.Rect(self.width // 2 - f_tex.width // 2 + self._sx(100), self.height // 2 - f_tex.height // 2, f_tex.width, f_tex.height))
 
         # ── Statistics Panel (Left) ──
         p1_x = self._sx(50)

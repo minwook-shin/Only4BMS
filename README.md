@@ -53,6 +53,14 @@ Format: Be-Music Script (.bms, .bme, .bml)
              └── ...
      ```
 
+## 🎵 Course Mode (Roguelike Training)
+
+Tired of the same songs? Enter **Course Mode**, an endless procedural training mode!
+- Procedurally generated charts that differ every time.
+- Progressive difficulties: Novice (BPM 80~110), Intermediate (BPM 120~160), Advanced (BPM 160~200).
+- Encounter long notes and BPM gimmicks (speed changes) as you rank up.
+- Each stage lasts ~30 seconds. Survive and see what comes next!
+
 ## 🤖 AI Training & Multiplayer
 
 Only4BMS features an AI Multiplayer mode powered by **Reinforcement Learning (PPO)**.

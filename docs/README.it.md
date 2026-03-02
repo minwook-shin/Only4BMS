@@ -49,6 +49,14 @@ Questo progetto utilizza Pygame per analizzare i file BMS e fornisce un ambiente
              └── ...
      ```
 
+## 🎵 Modalità Corso (Allenamento Roguelike)
+
+Stanco delle stesse canzoni? Entra nella **Modalità Corso**, una modalità di allenamento procedurale senza fine!
+- Spartiti generati proceduralmente, sempre diversi.
+- Difficoltà progressive: Principiante (BPM 80~110), Intermedio (BPM 120~160), Avanzato (BPM 160~200).
+- Affronta note lunghe e gimmick di cambio BPM man mano che sali di grado.
+- Ogni stage dura circa 30 secondi. Sopravvivi e scopri cosa ti aspetta!
+
 ## 🤖 Allenamento AI e Multiplayer
 
 Only4BMS dispone di una modalità AI Multiplayer alimentata da **Apprendimento per Rinforzo (PPO)**.

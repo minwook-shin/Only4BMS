@@ -149,6 +149,7 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "en": {
         # Main Menu
+        "menu_course": "COURSE MODE",
         "menu_single": "SINGLE PLAYER",
         "menu_ai_multi": "AI MULTI PLAYER",
         "menu_settings": "SETTINGS",
@@ -156,6 +157,34 @@ STRINGS = {
         "quit_confirm": "Quit Game?",
         "yes": "YES",
         "no": "NO",
+        
+        "course_beg_title": "Novice (30s)",
+        "course_beg_desc": "Absolute beginner 4ths",
+        "course_int_title": "Intermediate (30s)",
+        "course_int_desc": "4ths, 8ths, simple combinations",
+        "course_adv_title": "Advanced (30s)",
+        "course_adv_desc": "Streams, Jacks, Complex Stairs",
+        "course_ord_title": "Ordeal (30s)",
+        "course_ord_desc": "All debuffs active. No initial buff.",
+        
+        "gen_beg_desc": "Absolute Novice (BPM {bpm})",
+        "gen_int_desc": "Mixed Beginner/Int Patterns (BPM {bpm})",
+        "gen_adv_desc": "Advanced Streams (BPM {bpm})",
+        "gen_ord_desc": "The Final Trial (BPM {bpm})",
+        "gen_custom_trial": "Custom Trial (BPM {bpm})",
+        "gen_ln": ", w/ LNs",
+        "gen_sv": ", w/ SV Gimmicks",
+        
+        "course_next_title": "NEXT STAGE READY",
+        "course_continue_hint": "Press ENTER to Continue, ESC to Quit",
+        "course_mot_1": "Keep going! You can do it!",
+        "course_mot_2": "Great rhythm! Keep it up!",
+        "course_mot_3": "Don't give up! Challenge yourself!",
+        "course_mot_4": "You're on fire! Stay focused!",
+        "course_mot_5": "Feel the music!",
+        "key_label": "Key",
+        "joy_label": "Joy",
+        "song_selection_caption": "Song Selection",
 
         # Settings Menu
         "settings_title": "SYSTEM SETTINGS",
@@ -249,12 +278,47 @@ STRINGS = {
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
         "open_folder": "Open BMS Folder (O)",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "HP Regen Boost  (PERFECT recovers more)",
+        "buff_hp_regen":    "Double Recovery  (GREAT/PERFECT x2 regen)",
+        "buff_window_wide": "Wide Judgment  (+30% hit window)",
+        "buff_speed_slow":  "Slow Motion  (Speed x0.8 this stage)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "Fragile HP  (MISS drains x2)",
+        "debuff_window_tight":  "Tight Judgment  (-30% hit window)",
+        "debuff_speed_fast":    "Speed Rush  (Speed x1.3 this stage)",
+        "debuff_hp_drain":      "HP Drain  (Drain x1.5 / Regen x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "STAGE FAILED",
+        "failed_stamp":     "FAILED",
+        "course_fail_hint": "Press ENTER / ESC to return",
+
+        # UI Labels
+        "course_no_modifier": "NO MODIFIER",
+        "status_gen_bms": "Procedural Music...",
+        "course_note_mod": "NOTE MOD: {mod}",
+        "course_note_mod_none": "NOTE MOD: NONE",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  Total: {total:,}  |  Best: {best:,}",
+        "course_acc_row": "Acc: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── NEXT STAGE ──",
+        "course_buff_prefix": ">> BUFF",
+        "course_debuff_prefix": ">> DEBUFF",
+        "course_modifier_prefix": "MODIFIER: ",
+        "course_fail_stats": "Cleared {n} stage(s)  |  Total: {total:,}",
+        "course_last_stage_info": "Last Stage: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] Go Back to Menu",
+        "debuff_perfectionist": "Perfectionist (Judgments below PERFECT drain HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  KOREAN (한국어)                                                    ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "ko": {
+        "menu_course": "코스 모드",
         "menu_single": "싱글 플레이",
         "menu_ai_multi": "AI 멀티 플레이",
         "menu_settings": "설정",
@@ -262,6 +326,34 @@ STRINGS = {
         "quit_confirm": "게임을 종료할까요?",
         "yes": "예",
         "no": "아니오",
+        
+        "course_beg_title": "입문자 (30초)",
+        "course_beg_desc": "리듬게임 완전 초보를 위한 기본기",
+        "course_int_title": "중급 (30초)",
+        "course_int_desc": "초급/중급 혼합 단일/동시/트릴",
+        "course_adv_title": "고급 (30초)",
+        "course_adv_desc": "폭타, 잭해머, 복합 계단",
+        "course_ord_title": "시련 (30초)",
+        "course_ord_desc": "보너스 없이 모든 디버프가 상시 적용되는 극한의 시련",
+        
+        "gen_beg_desc": "입문자용 정박 연습 (BPM {bpm})",
+        "gen_int_desc": "초중급 혼합 패턴 (BPM {bpm})",
+        "gen_adv_desc": "고급 폭타 패턴 (BPM {bpm})",
+        "gen_ord_desc": "최후의 시련 (BPM {bpm})",
+        "gen_custom_trial": "개별 시련 (BPM {bpm})",
+        "gen_ln": ", 롱노트 포함",
+        "gen_sv": ", 변속(Gimmick) 포함",
+        
+        "course_next_title": "다음 코스 준비 완료",
+        "course_continue_hint": "ENTER를 눌러 계속진행, ESC로 메뉴로 나가기",
+        "course_mot_1": "계속해! 할 수 있어!",
+        "course_mot_2": "리듬이 좋아! 계속 가!",
+        "course_mot_3": "포기하지 마! 도전해!",
+        "course_mot_4": "불타고 있어! 집중해!",
+        "course_mot_5": "음악을 느껴!",
+        "key_label": "키",
+        "joy_label": "조이스틱",
+        "song_selection_caption": "음악 선택",
 
         "settings_title": "시스템 설정",
         "calibrate": "보정",
@@ -347,12 +439,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "HP 재생 강화  (PERFECT 시 회복 증가)",
+        "buff_hp_regen":    "이중 회복  (GREAT/PERFECT 재생 x2)",
+        "buff_window_wide": "판정 완화  (판정 범위 +30%)",
+        "buff_speed_slow":  "슬로우 모션  (이번 판 속도 x0.8)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":   "취약 HP  (MISS 시 HP 감소 x2)",
+        "debuff_window_tight": "판정 강화  (판정 범위 -30%)",
+        "debuff_speed_fast":   "스피드 러시  (이번 판 속도 x1.3)",
+        "debuff_hp_drain":     "HP 소모  (감소 x1.5 / 회복 x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "스테이지 실패",
+        "failed_stamp":     "실패",
+        "course_fail_hint": "ENTER / ESC 를 눌러 돌아가기",
+
+        # UI Labels
+        "course_no_modifier": "모디파이어 없음",
+        "status_gen_bms": "곡 생성 중...",
+        "course_note_mod": "노트 MOD: {mod}",
+        "course_note_mod_none": "노트 MOD: 없음",
+        "course_stage_clear": "스테이지 {n} 클리어  [{rank}]",
+        "course_stat_row": "{score:,}  |  총 합계: {total:,}  |  최고 기록: {best:,}",
+        "course_acc_row": "정확도: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── 다음 스테이지 ──",
+        "course_buff_prefix": ">> 버프",
+        "course_debuff_prefix": ">> 디버프",
+        "course_modifier_prefix": "모디파이어: ",
+        "course_fail_stats": "{n}개의 스테이지 클리어  |  총 합계: {total:,}",
+        "course_last_stage_info": "마지막 스테이지: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] 메뉴로 돌아가기",
+        "debuff_perfectionist": "완벽주의자 (PERFECT 미만 판정 시 HP 감소)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  JAPANESE (日本語)                                                  ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "ja": {
+        "menu_course": "コースモード",
         "menu_single": "シングルプレイ",
         "menu_ai_multi": "AIマルチプレイ",
         "menu_settings": "設定",
@@ -360,6 +487,34 @@ STRINGS = {
         "quit_confirm": "ゲームを終了しますか？",
         "yes": "はい",
         "no": "いいえ",
+        
+        "course_beg_title": "入門者 (30秒)",
+        "course_beg_desc": "完全な初心者のための基礎",
+        "course_int_title": "中級 (30秒)",
+        "course_int_desc": "初〜中級の同時押しやトリル",
+        "course_adv_title": "上級 (30秒)",
+        "course_adv_desc": "乱打、縦連、複合階段",
+        "course_ord_title": "試練 (30秒)",
+        "course_ord_desc": "すべてのデバフが有効。初期バフなし。",
+        
+        "gen_beg_desc": "初心者向けの練習 (BPM {bpm})",
+        "gen_int_desc": "初・中級混合パターン (BPM {bpm})",
+        "gen_adv_desc": "上級乱打パターン (BPM {bpm})",
+        "gen_ord_desc": "最終試練 (BPM {bpm})",
+        "gen_custom_trial": "カスタム試練 (BPM {bpm})",
+        "gen_ln": "、LNあり",
+        "gen_sv": "、ソフランあり",
+        
+        "course_next_title": "次のステージ準備完了",
+        "course_continue_hint": "ENTERで続行、ESCで終了",
+        "course_mot_1": "続けて！できる！",
+        "course_mot_2": "リズムがいい！続けよう！",
+        "course_mot_3": "諦めないで！挑戦しよう！",
+        "course_mot_4": "燃えてる！集中して！",
+        "course_mot_5": "音楽を感じて！",
+        "key_label": "キー",
+        "joy_label": "ジョイ",
+        "song_selection_caption": "曲選択",
 
         "settings_title": "システム設定",
         "calibrate": "キャリブレーション",
@@ -446,12 +601,47 @@ STRINGS = {
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
         "open_folder": "Open BMS Folder (O)",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "HP回復強化 (PERFECT時の回復量アップ)",
+        "buff_hp_regen":    "ダブル回復 (GREAT/PERFECTの回復量2倍)",
+        "buff_window_wide": "判定緩和 (判定範囲+30%)",
+        "buff_speed_slow":  "スローモーション (このステージの速度x0.8)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "脆いHP (MISS時の減少量2倍)",
+        "debuff_window_tight":  "判定強化 (判定範囲-30%)",
+        "debuff_speed_fast":    "スピードラッシュ (このステージの速度x1.3)",
+        "debuff_hp_drain":      "HPドレイン (減少量x1.5 / 回復量x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "ステージ失敗",
+        "failed_stamp":     "不合格",
+        "course_fail_hint": "ENTER / ESC を押して戻る",
+
+        # UI Labels
+        "course_no_modifier": "モディファイアなし",
+        "status_gen_bms": "曲を生成中...",
+        "course_note_mod": "ノートMOD: {mod}",
+        "course_note_mod_none": "ノートMOD: なし",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  合計: {total:,}  |  ベスト: {best:,}",
+        "course_acc_row": "精度: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── 次のステージ ──",
+        "course_buff_prefix": ">> バフ",
+        "course_debuff_prefix": ">> デバフ",
+        "course_modifier_prefix": "モディファイア: ",
+        "course_fail_stats": "{n} ステージクリア  |  合計: {total:,}",
+        "course_last_stage_info": "最終ステージ: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] メニューに戻る",
+        "debuff_perfectionist": "完璧主義 (PERFECT未満の判定でHP減少)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  CHINESE SIMPLIFIED (中文简体)                                      ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "zh": {
+        "menu_course": "课程模式",
         "menu_single": "单人模式",
         "menu_ai_multi": "AI对战模式",
         "menu_settings": "设置",
@@ -459,6 +649,34 @@ STRINGS = {
         "quit_confirm": "确定退出游戏？",
         "yes": "是",
         "no": "否",
+        
+        "course_beg_title": "入门者 (30秒)",
+        "course_beg_desc": "适合完全新手的基本练习",
+        "course_int_title": "中级 (30秒)",
+        "course_int_desc": "初中级混合双押与颤音",
+        "course_adv_title": "高级 (30秒)",
+        "course_adv_desc": "乱打、纵连、复合阶梯",
+        "course_ord_title": "试练 (30秒)",
+        "course_ord_desc": "所有减益生效。无初始增益。",
+        
+        "gen_beg_desc": "入门者正拍练习 (BPM {bpm})",
+        "gen_int_desc": "初中级混合模式 (BPM {bpm})",
+        "gen_adv_desc": "高级乱打模式 (BPM {bpm})",
+        "gen_ord_desc": "最终试练 (BPM {bpm})",
+        "gen_custom_trial": "自定义试练 (BPM {bpm})",
+        "gen_ln": "，含长音符",
+        "gen_sv": "，含变速",
+        
+        "course_next_title": "下一关准备完毕",
+        "course_continue_hint": "按ENTER继续执行，或按ESC结束",
+        "course_mot_1": "继续！你能做到！",
+        "course_mot_2": "节奏很好！继续！",
+        "course_mot_3": "不要放弃！挑战自我！",
+        "course_mot_4": "你在发光！保持专注！",
+        "course_mot_5": "感受音乐！",
+        "key_label": "按键",
+        "joy_label": "手柄",
+        "song_selection_caption": "选曲",
 
         "settings_title": "系统设置",
         "calibrate": "校准",
@@ -482,7 +700,7 @@ STRINGS = {
 
         "music_selection": "选曲",
         "reload": "刷新 (R)",
-        "search_bms": "搜索BMS (B)",
+        "search_bms": "BMS 搜索 (B)",
         "settings_btn": "设置 (S)",
         "no_bms_files": "'bms/' 目录中未找到BMS文件。",
         "scanning": "扫描歌曲中...",
@@ -544,12 +762,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "HP恢复强化 (PERFECT恢复更多)",
+        "buff_hp_regen":    "双倍恢复 (GREAT/PERFECT 两倍回复)",
+        "buff_window_wide": "判定宽松 (判定范围+30%)",
+        "buff_speed_slow":  "慢动作 (本关速度x0.8)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "脆皮HP (MISS时扣血x2)",
+        "debuff_window_tight":  "判定严苛 (判定范围-30%)",
+        "debuff_speed_fast":    "极速冲刺 (本关速度x1.3)",
+        "debuff_hp_drain":      "HP流失 (流失x1.5 / 回复x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "关卡失败",
+        "failed_stamp":     "失败",
+        "course_fail_hint": "按 ENTER / ESC 返回",
+
+        # UI Labels
+        "course_no_modifier": "无模组",
+        "status_gen_bms": "正在生成曲目...",
+        "course_note_mod": "音符模组: {mod}",
+        "course_note_mod_none": "音符模组: 无",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  总分: {total:,}  |  最高: {best:,}",
+        "course_acc_row": "准确度: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── 下一阶段 ──",
+        "course_buff_prefix": ">> 增益",
+        "course_debuff_prefix": ">> 减益",
+        "course_modifier_prefix": "模组: ",
+        "course_fail_stats": "已通关 {n} 关  |  总分: {total:,}",
+        "course_last_stage_info": "最后一关: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] 返回主菜单",
+        "debuff_perfectionist": "完美主义 (PERFECT以下判定扣除HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  THAI (ไทย)                                                        ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "th": {
+        "menu_course": "โหมดคอร์ส",
         "menu_single": "เล่นคนเดียว",
         "menu_ai_multi": "เล่นกับ AI",
         "menu_settings": "ตั้งค่า",
@@ -557,6 +810,35 @@ STRINGS = {
         "quit_confirm": "ออกจากเกม?",
         "yes": "ใช่",
         "no": "ไม่",
+
+        "course_beg_title": "ผู้เริ่มต้น (30 วิ)",
+        "course_beg_desc": "พื้นฐานสำหรับผู้เริ่มต้นเรียนรู้",
+        "course_int_title": "ระดับกลาง (30 วิ)",
+        "course_int_desc": "ผสมสำหรับระดับประถมต้น-กลาง",
+        "course_adv_title": "ระดับสูง (30 วิ)",
+        "course_adv_desc": "รัวโน้ตและบันไดโน้ตที่ซับซ้อน",
+        "course_ord_title": "บททดสอบ (30วินาที)",
+        "course_ord_desc": "ดีบัฟทั้งหมดแสดงผล ไม่มีบัฟเริ่มต้น",
+        
+        "gen_beg_desc": "ฝึกจับจังหวะพื้นฐาน (BPM {bpm})",
+        "gen_int_desc": "รวมรูปแบบพื้นฐาน (BPM {bpm})",
+        "gen_adv_desc": "รวมรูปแบบระดับสูง (BPM {bpm})",
+        "gen_ord_desc": "บททดสอบสุดท้าย (BPM {bpm})",
+        "gen_custom_trial": "บททดสอบแบบปรับแต่ง (BPM {bpm})",
+        "gen_ln": ", มีโน้ตยาว",
+        "gen_sv": ", มีเปลี่ยนความเร็ว",
+        
+        "course_next_title": "เตรียมพร้อมขั้นต่อไป",
+        "course_continue_hint": "กด ENTER ทำต่อ, ESC ออก",
+        "course_mot_1": "สู้ต่อไป! คุณทำได้!",
+        "course_mot_2": "จังหวะดีมาก! ต่อไป!",
+        "course_mot_3": "อย่ายอมแพ้! ท้าทายตัวเอง!",
+        "course_mot_4": "เร่าร้อนมาก! มีสมาธิ!",
+        "course_mot_5": "รู้สึกถึงเสียงดนตรี!",
+        "key_label": "คีย์",
+        "joy_label": "จอย",
+        "song_selection_caption": "เลือกเพลง",
+
 
         "settings_title": "ตั้งค่าระบบ",
         "calibrate": "ปรับจูน",
@@ -642,12 +924,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "เพิ่มการฟื้นฟู HP (PERFECT ฟื้นฟูมากขึ้น)",
+        "buff_hp_regen":    "ฟื้นฟูสองเท่า (GREAT/PERFECT ฟื้นฟู x2)",
+        "buff_window_wide": "ขยายช่วงคำตัดสิน (ช่วงคำตัดสิน +30%)",
+        "buff_speed_slow":  "สโลว์โมชั่น (ความเร็ว x0.8 ในด่านนี้)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "HP เปราะบาง (MISS ลด HP x2)",
+        "debuff_window_tight":  "กระชับช่วงคำตัดสิน (ช่วงคำตัดสิน -30%)",
+        "debuff_speed_fast":    "เพิ่มความเร็ว (ความเร็ว x1.3 ในด่านนี้)",
+        "debuff_hp_drain":      "HP ลดลง (ลด x1.5 / ฟื้นฟู x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "ด่านล้มเหลว",
+        "failed_stamp":     "ไม่ผ่าน",
+        "course_fail_hint": "กด ENTER / ESC เพื่อกลับ",
+
+        # UI Labels
+        "course_no_modifier": "ไม่มี MOD",
+        "status_gen_bms": "กำลังสร้างเพลง...",
+        "course_note_mod": "โน้ต MOD: {mod}",
+        "course_note_mod_none": "โน้ต MOD: ไม่มี",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  รวม: {total:,}  |  สูงสุด: {best:,}",
+        "course_acc_row": "ความแม่น: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── ด่านต่อไป ──",
+        "course_buff_prefix": ">> บัฟ",
+        "course_debuff_prefix": ">> ดีบัฟ",
+        "course_modifier_prefix": "MODIFIER: ",
+        "course_fail_stats": "ผ่าน {n} ด่าน  |  รวม: {total:,}",
+        "course_last_stage_info": "ด่านล่าสุด: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] กลับสู่เมนู",
+        "debuff_perfectionist": "เน้นสมบูรณ์แบบ (คำตัดสินต่ำกว่า PERFECT จะลด HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  PORTUGUESE (Português)                                            ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "pt": {
+        "menu_course": "MODO CURSO",
         "menu_single": "UM JOGADOR",
         "menu_ai_multi": "MULTIJOGADOR IA",
         "menu_settings": "CONFIGURAÇÕES",
@@ -655,6 +972,35 @@ STRINGS = {
         "quit_confirm": "Sair do jogo?",
         "yes": "SIM",
         "no": "NÃO",
+
+        "course_beg_title": "Iniciante (30s)",
+        "course_beg_desc": "Dedicado a novos jogadores",
+        "course_int_title": "Intermediário (30s)",
+        "course_int_desc": "Combinação suave intermediária",
+        "course_adv_title": "Avançado (30s)",
+        "course_adv_desc": "Padrões extremamente difíceis",
+        "course_ord_title": "Provação (30s)",
+        "course_ord_desc": "Todos os debuffs ativos. Sem buff inicial.",
+        
+        "gen_beg_desc": "Prática Básica (BPM {bpm})",
+        "gen_int_desc": "Padrões Clássicos (BPM {bpm})",
+        "gen_adv_desc": "Avançado Streams (BPM {bpm})",
+        "gen_ord_desc": "A Provação Final (BPM {bpm})",
+        "gen_custom_trial": "Provação Personalizada (BPM {bpm})",
+        "gen_ln": ", Notas longas",
+        "gen_sv": ", Mudanças Gimmick",
+        
+        "course_next_title": "PRÓXIMA FASE PRONTA",
+        "course_continue_hint": "Pressione ENTER ou ESC para SAIR",
+        "course_mot_1": "Continue! Você consegue!",
+        "course_mot_2": "Ótimo ritmo! Continue assim!",
+        "course_mot_3": "Não desista! Se desafie!",
+        "course_mot_4": "Está em chamas! Foque!",
+        "course_mot_5": "Sinta a música!",
+        "key_label": "Tecla",
+        "joy_label": "Joy",
+        "song_selection_caption": "Seleção de Música",
+
 
         "settings_title": "CONFIGURAÇÕES DO SISTEMA",
         "calibrate": "CALIBRAR",
@@ -740,12 +1086,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "Aumento de Regen de HP (PERFECT recupera mais)",
+        "buff_hp_regen":    "Recuperação Dupla (GREAT/PERFECT x2 regen)",
+        "buff_window_wide": "Julgamento Amplo (+30% janela de acerto)",
+        "buff_speed_slow":  "Câmera Lenta (Velocidade x0.8 nesta fase)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "HP Frágil (MISS drena x2)",
+        "debuff_window_tight":  "Julgamento Rigoroso (-30% janela de acerto)",
+        "debuff_speed_fast":    "Corrida de Velocidade (Velocidade x1.3 nesta fase)",
+        "debuff_hp_drain":      "Dreno de HP (Dreno x1.5 / Regen x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "ESTÁGIO FALHOU",
+        "failed_stamp":     "FALHOU",
+        "course_fail_hint": "Pressione ENTER / ESC para voltar",
+
+        # UI Labels
+        "course_no_modifier": "SEM MODIFICADOR",
+        "status_gen_bms": "Música Procedural...",
+        "course_note_mod": "MOD DE NOTA: {mod}",
+        "course_note_mod_none": "MOD DE NOTA: NENHUM",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  Total: {total:,}  |  Melhor: {best:,}",
+        "course_acc_row": "Acc: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── PRÓXIMA FASE ──",
+        "course_buff_prefix": ">> BUFF",
+        "course_debuff_prefix": ">> DEBUFF",
+        "course_modifier_prefix": "MODIFICADOR: ",
+        "course_fail_stats": "Passou {n} estágio(s)  |  Total: {total:,}",
+        "course_last_stage_info": "Última Fase: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] Voltar ao Menu",
+        "debuff_perfectionist": "Perfeccionista (Julgamentos abaixo de PERFECT drenam HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  INDONESIAN (Bahasa Indonesia)                                     ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "id": {
+        "menu_course": "MODE KURSUS",
         "menu_single": "PEMAIN TUNGGAL",
         "menu_ai_multi": "MULTI PEMAIN AI",
         "menu_settings": "PENGATURAN",
@@ -753,6 +1134,35 @@ STRINGS = {
         "quit_confirm": "Keluar dari game?",
         "yes": "YA",
         "no": "TIDAK",
+
+        "course_beg_title": "Pemula (30s)",
+        "course_beg_desc": "Sangat mudah untuk pemula",
+        "course_int_title": "Menengah (30s)",
+        "course_int_desc": "Latihan campuran paduan",
+        "course_adv_title": "Lanjutan (30s)",
+        "course_adv_desc": "Air terjun sangat sulit",
+        "course_ord_title": "Cobaan (30d)",
+        "course_ord_desc": "Semua debuff aktif. Tanpa buff awal.",
+        
+        "gen_beg_desc": "Ketukan Lambat Pemula (BPM {bpm})",
+        "gen_int_desc": "Campuran Menengah (BPM {bpm})",
+        "gen_adv_desc": "Lanjutan Streams (BPM {bpm})",
+        "gen_ord_desc": "Ujian Terakhir (BPM {bpm})",
+        "gen_custom_trial": "Ujian Kustom (BPM {bpm})",
+        "gen_ln": ", Notes Panjang",
+        "gen_sv": ", Perubahan Tempo Gimmick",
+        
+        "course_next_title": "TAHAP SELANJUTNYA SIAP",
+        "course_continue_hint": "Tekan ENTER, atau ESC Keluar",
+        "course_mot_1": "Terus! Kamu bisa!",
+        "course_mot_2": "Ritme bagus! Teruskan!",
+        "course_mot_3": "Jangan menyerah! Tantang dirimu!",
+        "course_mot_4": "Kamu hebat! Tetap fokus!",
+        "course_mot_5": "Rasakan musiknya!",
+        "key_label": "Tombol",
+        "joy_label": "Joy",
+        "song_selection_caption": "Pilih Lagu",
+
 
         "settings_title": "PENGATURAN SISTEM",
         "calibrate": "KALIBRASI",
@@ -838,12 +1248,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "Peningkatan Regenerasi HP (PERFECT memulihkan lebih banyak)",
+        "buff_hp_regen":    "Pemulihan Ganda (GREAT/PERFECT regenerasi x2)",
+        "buff_window_wide": "Penilaian Longgar (+30% jendela ketukan)",
+        "buff_speed_slow":  "Gerak Lambat (Kecepatan x0.8 di tahap ini)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "HP Rapuh (MISS menguras x2)",
+        "debuff_window_tight":  "Penilaian Ketat (-30% jendela ketukan)",
+        "debuff_speed_fast":    "Kecepatan Tinggi (Kecepatan x1.3 di tahap ini)",
+        "debuff_hp_drain":      "Penyusutan HP (Penyusutan x1.5 / Regenerasi x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "TAHAP GAGAL",
+        "failed_stamp":     "GAGAL",
+        "course_fail_hint": "Tekan ENTER / ESC untuk kembali",
+
+        # UI Labels
+        "course_no_modifier": "TANPA MOD",
+        "status_gen_bms": "Musik Prosedural...",
+        "course_note_mod": "MOD NOT: {mod}",
+        "course_note_mod_none": "MOD NOT: TANPA MOD",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  Total: {total:,}  |  Terbaik: {best:,}",
+        "course_acc_row": "Acc: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── TAHAP BERIKUTNYA ──",
+        "course_buff_prefix": ">> BUFF",
+        "course_debuff_prefix": ">> DEBUFF",
+        "course_modifier_prefix": "MODIFIKATOR: ",
+        "course_fail_stats": "Selesai {n} tahap  |  Total: {total:,}",
+        "course_last_stage_info": "Tahap Terakhir: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] Kembali ke Menu",
+        "debuff_perfectionist": "Perfeksionis (Penilaian di bawah PERFECT menguras HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  SPANISH (Español)                                                 ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "es": {
+        "menu_course": "MODO CURSO",
         "menu_single": "UN JUGADOR",
         "menu_ai_multi": "MULTIJUGADOR IA",
         "menu_settings": "AJUSTES",
@@ -851,6 +1296,35 @@ STRINGS = {
         "quit_confirm": "¿Salir del juego?",
         "yes": "SÍ",
         "no": "NO",
+
+        "course_beg_title": "Novato (30s)",
+        "course_beg_desc": "Práctica súper básica",
+        "course_int_title": "Intermedio (30s)",
+        "course_int_desc": "Patrones suaves",
+        "course_adv_title": "Avanzado (30s)",
+        "course_adv_desc": "Avalancha extrema",
+        "course_ord_title": "Calvario (30s)",
+        "course_ord_desc": "Todos los debuffs activos. Sin buff inicial.",
+        
+        "gen_beg_desc": "Batería Novice (BPM {bpm})",
+        "gen_int_desc": "Mix Intermedio (BPM {bpm})",
+        "gen_adv_desc": "Avalancha Avanzada (BPM {bpm})",
+        "gen_ord_desc": "El Juicio Final (BPM {bpm})",
+        "gen_custom_trial": "Juicio Personalizado (BPM {bpm})",
+        "gen_ln": ", con Notas Largas",
+        "gen_sv": ", con Cambios de Velocidad",
+        
+        "course_next_title": "SIGUIENTE NIVEL PREPARADO",
+        "course_continue_hint": "Pulsa ENTER para seguir, ESC para salir",
+        "course_mot_1": "¡Sigue! ¡Puedes hacerlo!",
+        "course_mot_2": "¡Buen ritmo! ¡Sigue así!",
+        "course_mot_3": "¡No te rindas! ¡Desafíate!",
+        "course_mot_4": "¡Estás en llamas! ¡Concéntrate!",
+        "course_mot_5": "¡Siente la música!",
+        "key_label": "Tecla",
+        "joy_label": "Joy",
+        "song_selection_caption": "Selección de Música",
+
 
         "settings_title": "AJUSTES DEL SISTEMA",
         "calibrate": "CALIBRAR",
@@ -936,12 +1410,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "Aumento de Regeneración HP (PERFECT recupera más)",
+        "buff_hp_regen":    "Recuperación Doble (GREAT/PERFECT x2 regen)",
+        "buff_window_wide": "Juicio Amplio (+30% ventana de acierto)",
+        "buff_speed_slow":  "Cámara Lenta (Velocidade x0.8 en esta fase)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "HP Frágil (MISS drena x2)",
+        "debuff_window_tight":  "Juicio Estricto (-30% ventana de acierto)",
+        "debuff_speed_fast":    "Ataque Rápido (Velocidade x1.3 en esta fase)",
+        "debuff_hp_drain":      "Drenaje de HP (Drenaje x1.5 / Regen x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "ESCENARIO FALLIDO",
+        "failed_stamp":     "FALLIDO",
+        "course_fail_hint": "Presione ENTER / ESC para volver",
+
+        # UI Labels
+        "course_no_modifier": "SIN MODIFICADOR",
+        "status_gen_bms": "Música Procedural...",
+        "course_note_mod": "MOD NOTA: {mod}",
+        "course_note_mod_none": "MOD NOTA: NINGUNO",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  Total: {total:,}  |  Mejor: {best:,}",
+        "course_acc_row": "Acc: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── SIGUIENTE NIVEL ──",
+        "course_buff_prefix": ">> BUFF",
+        "course_debuff_prefix": ">> DEBUFF",
+        "course_modifier_prefix": "MODIFICADOR: ",
+        "course_fail_stats": "Pasó {n} escenario(s)  |  Total: {total:,}",
+        "course_last_stage_info": "Último Nivel: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] Volver al Menú",
+        "debuff_perfectionist": "Perfeccionista (Juicios por debajo de PERFECT drenan HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  FRENCH (Français)                                                 ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "fr": {
+        "menu_course": "MODE COURSE",
         "menu_single": "SOLO",
         "menu_ai_multi": "MULTI IA",
         "menu_settings": "PARAMÈTRES",
@@ -949,6 +1458,35 @@ STRINGS = {
         "quit_confirm": "Quitter le jeu ?",
         "yes": "OUI",
         "no": "NON",
+
+        "course_beg_title": "Débutant (30s)",
+        "course_beg_desc": "Entraînement de base très lent",
+        "course_int_title": "Intermédiaire (30s)",
+        "course_int_desc": "Combinaison pour niveaux intermédiaires",
+        "course_adv_title": "Avancé (30s)",
+        "course_adv_desc": "Pluie de notes très difficile",
+        "course_ord_title": "Épreuve (30s)",
+        "course_ord_desc": "Tous les malus actifs. Aucun bonus initial.",
+        
+        "gen_beg_desc": "Rythmes lents (BPM {bpm})",
+        "gen_int_desc": "Mix Intermédiaire (BPM {bpm})",
+        "gen_adv_desc": "Chute de notes (BPM {bpm})",
+        "gen_ord_desc": "L'Épreuve Finale (BPM {bpm})",
+        "gen_custom_trial": "Épreuve Personnalisée (BPM {bpm})",
+        "gen_ln": ", avec notes longues",
+        "gen_sv": ", et gimmicks de vitesse",
+        
+        "course_next_title": "ÉTAPE SUIVANTE PRÊTE",
+        "course_continue_hint": "Appuyez sur ENTER, ou ESC pour quitter",
+        "course_mot_1": "Continue ! Tu peux le faire !",
+        "course_mot_2": "Bon rythme ! Continues !",
+        "course_mot_3": "Ne lâche pas ! Défie-toi !",
+        "course_mot_4": "Tu es en feu ! Concentre-toi !",
+        "course_mot_5": "Ressens la musique !",
+        "key_label": "Touche",
+        "joy_label": "Joy",
+        "song_selection_caption": "Sélection de musique",
+
 
         "settings_title": "PARAMÈTRES SYSTÈME",
         "calibrate": "CALIBRER",
@@ -1034,12 +1572,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "Boost de Régén HP (PERFECT récupère plus)",
+        "buff_hp_regen":    "Double Récupération (GREAT/PERFECT x2 régén)",
+        "buff_window_wide": "Jugement Large (+30% fenêtre de frappe)",
+        "buff_speed_slow":  "Ralenti (Vitesse x0.8 pour ce stage)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "HP Fragile (MISS draine x2)",
+        "debuff_window_tight":  "Jugement Serré (-30% fenêtre de frappe)",
+        "debuff_speed_fast":    "Course Rapide (Vitesse x1.3 pour ce stage)",
+        "debuff_hp_drain":      "Drain de HP (Drain x1.5 / Régén x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "STAGE ÉCHOUÉ",
+        "failed_stamp":     "ÉCHEC",
+        "course_fail_hint": "Appuyez sur ENTRÉE / ÉCHAP pour revenir",
+
+        # UI Labels
+        "course_no_modifier": "SANS MODIFICATEUR",
+        "status_gen_bms": "Musique Procédurale...",
+        "course_note_mod": "MOD NOTE : {mod}",
+        "course_note_mod_none": "MOD NOTE : AUCUN",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  Total : {total:,}  |  Record : {best:,}",
+        "course_acc_row": "Préc : {acc:.1f}%   PERFECT : {p}  GREAT : {g}  MISS : {m}",
+        "course_next_stage_label": "── PROCHAIN ÉTAGE ──",
+        "course_buff_prefix": ">> BUFF",
+        "course_debuff_prefix": ">> DEBUFF",
+        "course_modifier_prefix": "MODIFICATEUR : ",
+        "course_fail_stats": "Passé {n} stage(s)  |  Total : {total:,}",
+        "course_last_stage_info": "Dernier Stage : {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] Retour au Menu",
+        "debuff_perfectionist": "Perfectionniste (Jugements sous PERFECT drainent les HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  ITALIAN (Italiano)                                                ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "it": {
+        "menu_course": "MODALITÀ CORSO",
         "menu_single": "GIOCATORE SINGOLO",
         "menu_ai_multi": "MULTI IA",
         "menu_settings": "IMPOSTAZIONI",
@@ -1047,6 +1620,35 @@ STRINGS = {
         "quit_confirm": "Uscire dal gioco?",
         "yes": "SÌ",
         "no": "NO",
+
+        "course_beg_title": "Principiante (30s)",
+        "course_beg_desc": "Ritmo base per principianti",
+        "course_int_title": "Intermedio (30s)",
+        "course_int_desc": "Combinazione media dolce",
+        "course_adv_title": "Avanzato (30s)",
+        "course_adv_desc": "Cascata di note ad alta velocità",
+        "course_ord_title": "Calvario (30s)",
+        "course_ord_desc": "Tutti i debuff attivi. Nessun buff iniziale.",
+        
+        "gen_beg_desc": "Facile Principiante (BPM {bpm})",
+        "gen_int_desc": "Miscela Intermedia (BPM {bpm})",
+        "gen_adv_desc": "Avanzato Intenso (BPM {bpm})",
+        "gen_ord_desc": "Il Giudizio Finale (BPM {bpm})",
+        "gen_custom_trial": "Giudizio Personalizzato (BPM {bpm})",
+        "gen_ln": ", con Note Lunghe",
+        "gen_sv": ", con Variazioni BPM",
+        
+        "course_next_title": "PROSSIMA FASE PRONTA",
+        "course_continue_hint": "Premi ENTER per procedere, ESC per uscire",
+        "course_mot_1": "Continua! Ce la fai!",
+        "course_mot_2": "Ottimo ritmo! Vai avanti!",
+        "course_mot_3": "Non mollare! Sfidati!",
+        "course_mot_4": "Sei in fiamme! Resta concentrato!",
+        "course_mot_5": "Senti la musica!",
+        "key_label": "Tasto",
+        "joy_label": "Joy",
+        "song_selection_caption": "Selezione Musica",
+
 
         "settings_title": "IMPOSTAZIONI DI SISTEMA",
         "calibrate": "CALIBRA",
@@ -1132,12 +1734,47 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "Potenziamento Rigenerazione HP (PERFECT recupera di più)",
+        "buff_hp_regen":    "Recupero Doppio (GREAT/PERFECT x2 rigenerazione)",
+        "buff_window_wide": "Giudizio Ampio (+30% finestra di battuta)",
+        "buff_speed_slow":  "Rallentatore (Velocità x0.8 in questo stage)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "HP Fragili (MISS sottrae x2)",
+        "debuff_window_tight":  "Giudizio Severo (-30% finestra di battuta)",
+        "debuff_speed_fast":    "Corsa Rapida (Velocità x1.3 in questo stage)",
+        "debuff_hp_drain":      "Drenaggio HP (Sottrazione x1.5 / Rigenerazione x0.5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "STAGE FALLITO",
+        "failed_stamp":     "FALLITO",
+        "course_fail_hint": "Premi INVIO / ESC para tornare",
+
+        # UI Labels
+        "course_no_modifier": "NESSUN MODIFICATORE",
+        "status_gen_bms": "Musica Procedurale...",
+        "course_note_mod": "MOD NOTA: {mod}",
+        "course_note_mod_none": "MOD NOTA: NESSUNO",
+        "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
+        "course_stat_row": "{score:,}  |  Totale: {total:,}  |  Migliore: {best:,}",
+        "course_acc_row": "Acc: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── PROSSIMO STAGE ──",
+        "course_buff_prefix": ">> BUFF",
+        "course_debuff_prefix": ">> DEBUFF",
+        "course_modifier_prefix": "MODIFICATORE: ",
+        "course_fail_stats": "Superati {n} stage  |  Totale: {total:,}",
+        "course_last_stage_info": "Ultimo Stage: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] Torna al Menu",
+        "debuff_perfectionist": "Perfezionista (Giudizi sotto PERFECT riducono HP)",
     },
 
     # ╔══════════════════════════════════════════════════════════════════════╗
     # ║  GERMAN (Deutsch)                                                  ║
     # ╚══════════════════════════════════════════════════════════════════════╝
     "de": {
+        "menu_course": "KURSMODUS",
         "menu_single": "EINZELSPIELER",
         "menu_ai_multi": "KI-MEHRSPIELER",
         "menu_settings": "EINSTELLUNGEN",
@@ -1145,6 +1782,35 @@ STRINGS = {
         "quit_confirm": "Spiel beenden?",
         "yes": "JA",
         "no": "NEIN",
+
+        "course_beg_title": "Anfänger (30s)",
+        "course_beg_desc": "Sehr leichte Grundeinstiegsübung",
+        "course_int_title": "Mittelstufe (30s)",
+        "course_int_desc": "Gemischte Muster üben",
+        "course_adv_title": "Fortgeschritten (30s)",
+        "course_adv_desc": "Sehr schwieriger Wasserfall",
+        "course_ord_title": "Prüfung (30s)",
+        "course_ord_desc": "Alle Debuffs aktiv. Kein Anfangsbuff.",
+        
+        "gen_beg_desc": "Einstiegstakt Übung (BPM {bpm})",
+        "gen_int_desc": "Mittelstück Variationen (BPM {bpm})",
+        "gen_adv_desc": "Extremes Notenmuster (BPM {bpm})",
+        "gen_ord_desc": "Die Letzte Prüfung (BPM {bpm})",
+        "gen_custom_trial": "Eigene Prüfung (BPM {bpm})",
+        "gen_ln": ", mit langen Noten",
+        "gen_sv": ", Tempowechsel",
+        
+        "course_next_title": "NÄCHSTE STUFE BEREIT",
+        "course_continue_hint": "Drücke ENTER um fortzufahren, ESC zum Beenden",
+        "course_mot_1": "Weiter so! Du schaffst das!",
+        "course_mot_2": "Super Rhythmus! Mach weiter!",
+        "course_mot_3": "Gib nicht auf! Fordere dich!",
+        "course_mot_4": "Du brennst! Bleib fokussiert!",
+        "course_mot_5": "Fühle die Musik!",
+        "key_label": "Taste",
+        "joy_label": "Joy",
+        "song_selection_caption": "Musikauswahl",
+
 
         "settings_title": "SYSTEMEINSTELLUNGEN",
         "calibrate": "KALIBRIEREN",
@@ -1230,5 +1896,39 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
+
+        # Course Mode – Buffs
+        "buff_hp_boost":    "HP-Regen-Boost (PERFECT stellt mehr wieder her)",
+        "buff_hp_regen":    "Doppelte Erholung (GREAT/PERFECT x2 Regen)",
+        "buff_window_wide": "Großzügiges Timing (+30% Trefferfenster)",
+        "buff_speed_slow":  "Zeitlupe (Geschwindigkeit x0,8 in dieser Stufe)",
+
+        # Course Mode – Debuffs
+        "debuff_hp_fragile":    "Zerbrechliche HP (MISS zieht x2 ab)",
+        "debuff_window_tight":  "Strenge Bewertung (-30% Trefferfenster)",
+        "debuff_speed_fast":    "Geschwindigkeitsrausch (Geschwindigkeit x1,3 in dieser Stufe)",
+        "debuff_hp_drain":      "HP-Drain (Entzug x1,5 / Regen x0,5)",
+
+        # Course Mode – Fail screen
+        "course_fail":      "STUFE FEHLGESCHLAGEN",
+        "failed_stamp":     "FEHLGESCHLAGEN",
+        "course_fail_hint": "ENTER / ESC zum Zurückkehren drücken",
+
+        # UI Labels
+        "course_no_modifier": "KEIN MODIFIKATOR",
+        "status_gen_bms": "Musikprozedur...",
+        "course_note_mod": "NOTEN-MOD: {mod}",
+        "course_note_mod_none": "NOTEN-MOD: KEINER",
+        "course_stage_clear": "STUFE {n} KLÄREN  [{rank}]",
+        "course_stat_row": "{score:,}  |  Gesamt: {total:,}  |  Beste: {best:,}",
+        "course_acc_row": "Acc: {acc:.1f}%   PERFECT: {p}  GREAT: {g}  MISS: {m}",
+        "course_next_stage_label": "── NÄCHSTE STUFE ──",
+        "course_buff_prefix": ">> BUFF",
+        "course_debuff_prefix": ">> DEBUFF",
+        "course_modifier_prefix": "MODIFIKATOR: ",
+        "course_fail_stats": "{n} Stufe(n) abgeschlossen  |  Gesamt: {total:,}",
+        "course_last_stage_info": "Letzte Stufe: {score:,}  [{rank}]",
+        "course_back_hint": "[ESC] Zurück zum Menü",
+        "debuff_perfectionist": "Perfektionist (Bewertungen unter PERFECT ziehen HP ab)",
     },
 }

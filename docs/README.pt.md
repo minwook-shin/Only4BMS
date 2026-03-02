@@ -49,6 +49,14 @@ Este projeto usa Pygame para analisar arquivos BMS e fornece um ambiente onde vo
              └── ...
      ```
 
+## 🎵 Modo Curso (Treinamento Roguelike)
+
+Cansado das mesmas músicas? Entre no **Modo Curso**, um modo de treinamento processual e infinito!
+- Gráficos gerados proceduralmente que são diferentes a cada vez.
+- Dificuldades progressivas: Iniciante (BPM 80~110), Intermediário (BPM 120~160), Avançado (BPM 160~200).
+- Encontre notas longas e truques de BPM (mudanças de velocidade) conforme avança.
+- Cada estágio dura cerca de 30 segundos. Sobreviva e veja o que vem a seguir!
+
 ## 🤖 Treinamento de IA e Multiplayer
 
 O Only4BMS apresenta um modo Multiplayer de IA alimentado por **Aprendizagem por Reforço (PPO)**.

@@ -48,7 +48,7 @@ class SongSelectMenu:
         self.screen = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
         self.texture = None # Will hold the uploaded frame
         
-        pygame.display.set_caption("Song Selection")
+        pygame.display.set_caption(_t("song_selection_caption"))
         self.clock = pygame.time.Clock()
         self.font = _i18n.font("select_body", self.sy)
         self.font_bold = _i18n.font("select_bold", self.sy, bold=True)

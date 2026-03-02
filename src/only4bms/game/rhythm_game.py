@@ -13,15 +13,27 @@ from .engine import GameEngine
 from .renderer import GameRenderer
 
 class RhythmGame:
-    def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal', note_mod='None'):
+    def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, measures=None, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal', note_mod='None',
+                 course_hp=None, course_hp_max=100.0, course_modifier=None):
         self.mode = mode
         self.ai_difficulty = ai_difficulty
         self.renderer = renderer
         self.window = window
         self.width, self.height = window.size
+        self.notes_orig = notes_orig
+        self.bgms = bgms
+        self.bgas = bgas or []
+        self.visual_timing_map = visual_timing_map or []
+        self.measures = measures or []
+        self.wav_map = wav_map
         self.title = title
         self.settings = settings
         self.metadata = metadata or {}
+        # ── Course mode HP overlay ────────────────────────────────────────
+        self.course_hp      = course_hp        # None means non-course mode
+        self.course_hp_max  = course_hp_max
+        self.course_modifier = course_modifier  # list of modifier tuples or None
+        self.course_failed   = False
         
         # Deepcopy notes so modifications like Mirror/Random don't persist across restarts
         notes = copy.deepcopy(notes_orig)
@@ -157,6 +169,8 @@ class RhythmGame:
             self.hit_history.append((t, 0, "MISS"))
             
         self.judgments[key] += 1
+        self._update_course_hp(key)
+
         if key in ("PERFECT", "GREAT"):
             self.combo += 1
             self.max_combo = max(self.max_combo, self.combo)
@@ -432,6 +446,8 @@ class RhythmGame:
                 last_render_time = time.perf_counter()
         
         pygame.mouse.set_visible(True)
+        if getattr(self, 'quit_flag', False):
+            return "QUIT"
 
     def _update_ai(self, current_time):
         miss_window = JUDGMENT_DEFS["MISS"]["threshold_ms"] * self.hw_mult
@@ -456,7 +472,7 @@ class RhythmGame:
     def _draw(self, t):
         self.renderer.draw_color = (0, 0, 0, 255)
         self.renderer.clear()
-        self.game_renderer.draw_bga(t, self.engine.current_bga_img, self.assets)
+        self.game_renderer.draw_bga(t, self.engine.current_bga_img, self.assets, is_course=(self.course_hp is not None))
         
         # Player 1 View
         p1_state = self._get_draw_state('p1', t)
@@ -527,6 +543,10 @@ class RhythmGame:
             d['all_notes_passed_time'] = self.engine.all_notes_passed_time
             d['note_type'] = self.note_type
             d['is_ai'] = False
+            d['measures'] = self.measures
+            d['course_hp']       = self.course_hp
+            d['course_hp_max']   = self.course_hp_max
+            d['course_modifier'] = self.course_modifier
             if self.mode == 'ai_multi':
                 d['ai_judgments'] = self.ai_judgments
                 d['ai_hit_history'] = self.ai_hit_history
@@ -553,6 +573,7 @@ class RhythmGame:
             d['all_notes_passed_time'] = self.ai_engine.all_notes_passed_time
             d['note_type'] = self.ai_note_type
             d['is_ai'] = True
+            d['measures'] = self.measures
         return d
 
     def _draw_paused(self):
@@ -576,9 +597,11 @@ class RhythmGame:
                 self._resume()
             elif event.key in (pygame.K_q, pygame.K_RETURN, pygame.K_BACKSPACE):
                 self.is_running = False
+                self.quit_flag = True
         elif event.type == pygame.JOYBUTTONDOWN:
             if event.button == 0: # A
                 self.is_running = False
+                self.quit_flag = True
             elif event.button == 1: # B
                 self._resume()
 
@@ -607,7 +630,7 @@ class RhythmGame:
             'max_time': self.engine.max_time,
             'total_notes': len(self.engine.notes),
             'cover_texture': self.assets.cover_texture,
-            'failed': False
+            'failed': self.course_failed
         }
         self.game_renderer.draw_result(stats)
 
@@ -623,3 +646,48 @@ class RhythmGame:
             random.shuffle(mapping)
             for n in notes:
                 n['lane'] = mapping[n['lane']]
+
+    def _update_course_hp(self, key):
+        if self.course_hp is None: return
+
+        # Constants (Matching course_session.py)
+        MISS_DRAIN    = 8.0
+        GOOD_DRAIN    = 2.0
+        GREAT_REGEN   = 0.5
+        PERFECT_REGEN = 1.0
+
+        drain_val = 0.0
+        regen_val = 0.0
+
+        if key == "PERFECT": regen_val = PERFECT_REGEN
+        elif key == "GREAT": regen_val = GREAT_REGEN
+        elif key == "GOOD":  drain_val = GOOD_DRAIN
+        elif key == "MISS":  drain_val = MISS_DRAIN
+
+        # Modifier adjustments
+        if self.course_modifier:
+            for modifier in self.course_modifier:
+                mod_key = modifier[0]
+                if mod_key == "mod_hp_boost":
+                    regen_val *= 1.5
+                elif mod_key == "mod_hp_regen":
+                    regen_val *= 2.0
+                elif mod_key == "mod_hp_fragile":
+                    drain_val *= 2.0
+                elif mod_key == "mod_hp_drain":
+                    drain_val *= 1.5
+                    regen_val *= 0.5
+                elif mod_key == "mod_perfectionist":
+                    if key != "PERFECT":
+                        if key == "GREAT": drain_val += 1.5
+                        elif key == "GOOD": drain_val += 2.0
+                        elif key == "MISS": drain_val += 1.0
+
+        self.course_hp += (regen_val - drain_val)
+        self.course_hp = max(0.0, min(self.course_hp_max, self.course_hp))
+
+        if self.course_hp <= 0 and not self.course_failed:
+            self.course_failed = True
+            self.state = "RESULT"
+            pygame.mouse.set_visible(True)
+            pygame.mixer.stop()

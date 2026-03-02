@@ -71,6 +71,7 @@ class BMSParser:
         self.bgms = []      # [{time_ms, sample_id}]
         self.bgas = []      # [{time_ms, bmp_id}]
         self.measure_lengths = {}  # measure → length ratio
+        self.measures = []  # [{measure, real_time, visual_time}]
 
     # ── Quick metadata scan (no full parse) ──────────────────────────────
 
@@ -93,7 +94,7 @@ class BMSParser:
         self._parse_header(metadata_only=False)
         self._parse_channels()
         self._resolve_wav_paths()
-        return self.notes, self.bgms, self.bgas, self.bmp_map, self.visual_timing_map
+        return self.notes, self.bgms, self.bgas, self.bmp_map, self.visual_timing_map, self.measures
 
     # ── Internal: header ─────────────────────────────────────────────────
 
@@ -218,8 +219,17 @@ class BMSParser:
         
         # Segment: (start_real, start_visual, speed_factor)
         self.visual_timing_map = [(0.0, 0.0, 1.0)]
+        self.measures = []
 
         for m in range(max_measure + 1):
+            # Record each measure's start time and current BPM for bar-line rendering
+            self.measures.append({
+                'measure': m,
+                'real_time_ms': current_real_time,
+                'visual_time_ms': current_visual_time,
+                'bpm': current_bpm
+            })
+            
             m_len = self.measure_lengths.get(m, 1.0)
             m_data = events_by_measure.get(m, {})
             all_positions = sorted(set(pos for ch_data in m_data.values() for pos in ch_data))
@@ -252,6 +262,8 @@ class BMSParser:
                 
                 if timing_changed:
                     self.visual_timing_map.append((current_real_time, current_visual_time, current_bpm / initial_bpm))
+                    if pos == 0.0:
+                        self.measures[-1]['bpm'] = current_bpm
 
                 if '09' in m_data and pos in m_data['09']: # STOP
                     stop_id = m_data['09'][pos][0].upper()

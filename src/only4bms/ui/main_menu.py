@@ -30,11 +30,12 @@ class MainMenu:
         pygame.display.set_caption("Only4BMS - Main Menu")
         self.clock = pygame.time.Clock()
         self.title_font = _i18n.font("menu_title", self.sy, bold=True)
-        self.font = _i18n.font("menu_option", self.sy)
+        self.font = _i18n.font("menu_option", self.sy * 0.85)  # slightly smaller
         self.small_font = _i18n.font("menu_small", self.sy)
 
         self.options = [
             (lambda: _t("menu_single"), "SINGLE"),
+            (lambda: _t("menu_course"), "COURSE"),
             (lambda: _t("menu_ai_multi"), "AI_MULTI"),
             (lambda: _t("menu_settings"), "SETTINGS"),
             (lambda: _t("menu_quit"), "QUIT")
@@ -202,7 +203,7 @@ class MainMenu:
     def _update_hover(self, mx, my):
         if self.show_quit_confirm: return False
         # Center panel logic matching _draw
-        panel_w, panel_h = self._s(400), self._s(320)
+        panel_w, panel_h = self._s(400), self._s(390)
         start_y = (self.h - panel_h) // 2 + self._s(20)
         spacing = self._s(70)
         for i, (_, _act) in enumerate(self.options):
@@ -270,13 +271,16 @@ class MainMenu:
         # 1.5. Subtle 4-lane Background Animation
         self._draw_bg_animation()
 
-        # 2. Main Title (Centered Top)
+        # 2. Main Title (Centered Top) — rendered LAST so always on top
         title_surf = self.title_font.render("Only4BMS", True, COLOR_ACCENT)
-        self.screen.blit(title_surf, (self._cx(title_surf), self._s(80)))
+        title_y = self._s(55)
+        self.screen.blit(title_surf, (self._cx(title_surf), title_y))
         
-        # 3. Center Menu Panel (Glassmorphism)
-        panel_w, panel_h = self._s(400), self._s(320)
-        px, py = (self.w - panel_w) // 2, (self.h - panel_h) // 2 + self._s(40)
+        # 3. Center Menu Panel (Glassmorphism) — starts below title
+        panel_w, panel_h = self._s(400), self._s(330)
+        title_bottom = title_y + title_surf.get_height() + self._s(18)
+        py = title_bottom
+        px = (self.w - panel_w) // 2
         
         # Panel Background
         panel_surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
@@ -286,11 +290,11 @@ class MainMenu:
 
         # 4. Menu Options
         mx, my = pygame.mouse.get_pos()
-        item_spacing = self._s(70)
-        opt_start_y = py + self._s(20)
+        item_spacing = self._s(58)
+        opt_start_y = py + self._s(15)
         
         for i, (label_fn, _) in enumerate(self.options):
-            item_rect = pygame.Rect(px + self._s(10), opt_start_y + i * item_spacing, panel_w - self._s(20), self._s(60))
+            item_rect = pygame.Rect(px + self._s(10), opt_start_y + i * item_spacing, panel_w - self._s(20), self._s(50))
             
             # Hover/Select Highlight
             if i == self.selected_index:

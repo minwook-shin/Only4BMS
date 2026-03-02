@@ -341,6 +341,19 @@ def main():
             save_settings(settings)
             continue
 
+        if menu_action == "COURSE":
+            from only4bms.ui.course_menu import CourseMenu
+            course_res = CourseMenu(settings, renderer=renderer, window=window).run()
+            if course_res and course_res[0] == "START":
+                difficulty, duration_ms = course_res[1], course_res[2]
+                from only4bms.game.course_session import CourseSession
+                CourseSession(
+                    settings, renderer, window,
+                    difficulty, duration_ms, paths,
+                    init_mixer_fn=_init_mixer,
+                ).run()
+            continue
+
         if menu_action in ("SINGLE", "AI_MULTI"):
             mode = 'ai_multi' if menu_action == "AI_MULTI" else 'single'
             cached_songs = None  # First entry scans; re-entries reuse cache
@@ -366,7 +379,7 @@ def main():
                     # Inlined _play_song logic with new RhythmGame instantiation
                     print(f"Loading {selected_song}...")
                     parser = BMSParser(selected_song)
-                    notes, bgms, bgas, bmp_map, visual_timing_map = parser.parse()
+                    notes, bgms, bgas, bmp_map, visual_timing_map, measures = parser.parse()
 
                     if not notes and not bgms:
                         print("No notes or bgm parsed from file.")
@@ -385,7 +398,7 @@ def main():
                     while True:
                         game = RhythmGame(
                             notes, bgms, bgas, parser.wav_map, bmp_map,
-                            parser.title, settings, visual_timing_map=visual_timing_map, mode=mode, metadata=metadata,
+                            parser.title, settings, visual_timing_map=visual_timing_map, measures=measures, mode=mode, metadata=metadata,
                             renderer=renderer, window=window,
                             ai_difficulty=ai_difficulty, note_mod=note_mod
                         )
