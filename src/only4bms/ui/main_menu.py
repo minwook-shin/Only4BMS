@@ -37,6 +37,7 @@ class MainMenu:
             (lambda: _t("menu_single"), "SINGLE"),
             (lambda: _t("menu_course"), "COURSE"),
             (lambda: _t("menu_ai_multi"), "AI_MULTI"),
+            (lambda: _t("menu_challenge"), "CHALLENGE"),
             (lambda: _t("menu_settings"), "SETTINGS"),
             (lambda: _t("menu_quit"), "QUIT")
         ]
@@ -277,7 +278,7 @@ class MainMenu:
         self.screen.blit(title_surf, (self._cx(title_surf), title_y))
         
         # 3. Center Menu Panel (Glassmorphism) — starts below title
-        panel_w, panel_h = self._s(400), self._s(330)
+        panel_w, panel_h = self._s(400), self._s(390)
         title_bottom = title_y + title_surf.get_height() + self._s(18)
         py = title_bottom
         px = (self.w - panel_w) // 2

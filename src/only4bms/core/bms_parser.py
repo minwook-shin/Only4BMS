@@ -56,6 +56,7 @@ class BMSParser:
         self.total = 200.0 # Default total
         self.preview = None # preview audio path
         self.total_notes = 0
+        self.lanes_compressed = False
 
         # Asset maps
         self.wav_map = {}   # wav_id → filepath
@@ -85,7 +86,7 @@ class BMSParser:
             self.banner = self._resolve_image_path(None)
             
         return (self.title, self.artist, self.bpm, self.playlevel, 
-                self.genre, self.total_notes, self.preview, self.stagefile, self.banner, self.hash)
+                self.genre, self.total_notes, self.preview, self.stagefile, self.banner, self.hash, self.lanes_compressed)
 
     # ── Full parse ───────────────────────────────────────────────────────
 
@@ -296,6 +297,8 @@ class BMSParser:
                 
                 if is_playable:
                     grouped_notes.setdefault(real_time, []).append({'ch': ch, 'ev': ev, 'v_time_ms': visual_time})
+                    if ch[1].isalpha() or (ch[1].isdigit() and int(ch[1]) > 4):
+                        self.lanes_compressed = True
                 elif ch == BGM_CHANNEL:
                     self.bgms.append({'time_ms': real_time, 'sample_id': ev})
                 elif ch == BGA_CHANNEL:
