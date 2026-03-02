@@ -8,6 +8,10 @@
 
 [![Only4BMS AI Battle1](https://img.youtube.com/vi/mrSUp4h7DnE/0.jpg)](https://youtu.be/mrSUp4h7DnE)
 
+
+- v1.7.0 play video 1 : https://youtu.be/kdtN0erNST0
+- v1.7.0 play video 2 :  https://youtu.be/ji6ta4Gegb4
+
 7 keys? No thanks. 
 
 This is a Pygame-based BMS driver that **forcefully rearranges** all BMS charts into **4 keys (DFJK)** for playback.
