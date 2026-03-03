@@ -1,5 +1,6 @@
 import math
 import time
+import random
 import pygame
 from pygame._sdl2.video import Texture
 from only4bms.i18n import get as _t, FONT_NAME, FONT_SIZES
@@ -84,6 +85,11 @@ class GameRenderer:
         self.ai_vision_texture = None # Pre-rendered scanner static part
         self.jitter_texture = None # Pre-rendered jitter bar
         self.jitter_gen = -1 # Track jitter history generation for cache invalidation
+        # Gold skin caches
+        self.gold_bar_cache = {}    # (lane_w,) -> Texture
+        self.gold_circle_cache = {} # (lane_w,) -> Texture
+        self.gold_ln_body_cache = {} # (lane_w,) -> Texture
+        self.gold_effect_cache = {} # (lane_w,) -> Texture
         
         # --- Pre-calculated values ---
         self.note_h = self._s(NOTE_H)
@@ -174,6 +180,147 @@ class GameRenderer:
             pygame.draw.circle(surf, (255, 255, 255, 255), (base_r, base_r), core_r)
             self.circle_effect_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.circle_effect_cache[key]
+
+    # ── Golden Skin Textures ──────────────────────────────────────────────
+    def _get_gold_bar_note_texture(self, lane_w):
+        key = lane_w
+        if key not in self.gold_bar_cache:
+            bw, bh = int(lane_w * 0.8), int(self._s(NOTE_H) * 1.5)
+            glow_r = self._s(4)
+            surf = pygame.Surface((bw + glow_r * 2, bh + glow_r * 2), pygame.SRCALPHA)
+            
+            # 1. Subtle Outer Glow (Slightly more saturated to avoid gray)
+            for r in range(glow_r, 0, -1):
+                alpha = int(50 * (1.0 - r / glow_r))
+                pygame.draw.rect(surf, (255, 180, 0, alpha), (glow_r - r, glow_r - r, bw + r * 2, bh + r * 2), border_radius=r)
+
+            inner_surf = pygame.Surface((bw, bh), pygame.SRCALPHA)
+            # 2. 3D Body Gradient (Concentrated colors to avoid muddy grays)
+            for yy in range(bh):
+                ratio = yy / max(1, bh)
+                if ratio < 0.2: # Top Bevel
+                    v = ratio / 0.2
+                    r, g, b = 255, int(220 + 35 * v), int(140 + 60 * v)
+                elif ratio > 0.8: # Bottom Bevel
+                    v = (ratio - 0.8) / 0.2
+                    r, g, b = int(180 - 60 * v), int(120 - 40 * v), 0
+                else: # Main body
+                    v = (ratio - 0.2) / 0.6
+                    r, g, b = int(255 - 85 * v), int(200 - 80 * v), int(30 * v)
+                pygame.draw.line(inner_surf, (r, g, b, 255), (0, yy), (bw, yy))
+            
+            # 3. Metallic Highlights (Moved from edges to avoid black artifacts)
+            pygame.draw.line(inner_surf, (255, 255, 220, 200), (1, 1), (bw - 2, 1)) # Top edge inner
+            pygame.draw.line(inner_surf, (255, 255, 255, 120), (0, bh // 3), (bw, bh // 3)) # Shine
+            
+            # 4. Clear Side Bevels
+            pygame.draw.line(inner_surf, (255, 255, 200, 120), (1, 0), (1, bh))
+            pygame.draw.line(inner_surf, (140, 90, 0, 150), (bw - 2, 0), (bw - 2, bh))
+            
+            surf.blit(inner_surf, (glow_r, glow_r))
+            self.gold_bar_cache[key] = Texture.from_surface(self.renderer, surf)
+        return self.gold_bar_cache[key]
+
+    def _get_gold_circle_note_texture(self, lane_w):
+        key = lane_w
+        if key not in self.gold_circle_cache:
+            cr = int(lane_w * 0.44)
+            glow_r = self._s(8)
+            size = lane_w + glow_r * 2
+            surf = pygame.Surface((size, size), pygame.SRCALPHA)
+            cx, cy = size // 2, size // 2
+            
+            # 1. Warm Outer Glow (Orange-Gold to keep it hot)
+            for r in range(glow_r, 0, -2):
+                alpha = int(45 * (1.0 - r / glow_r))
+                pygame.draw.circle(surf, (255, 160, 0, alpha), (cx, cy), cr + r)
+
+            # 2. Solid Deep Gold Base
+            pygame.draw.circle(surf, (180, 120, 0, 255), (cx, cy), cr)
+            pygame.draw.circle(surf, (255, 200, 0, 255), (cx, cy), cr - 2)
+            
+            # 3. Metallic Rim (Bright circular edge for 3D depth)
+            pygame.draw.circle(surf, (255, 255, 180, 150), (cx, cy), cr - 1, 2)
+            
+            # 4. Top-Left Vibrant Specular (Concentrated & Hot)
+            hx, hy = cx - cr // 3.2, cy - cr // 3.2
+            
+            # High-saturation 'Heat' layer
+            pygame.draw.circle(surf, (255, 180, 0, 220), (int(hx), int(hy)), cr // 2.5)
+            # Vivid gold transition 
+            pygame.draw.circle(surf, (255, 230, 50, 240), (int(hx), int(hy)), cr // 4)
+            # White-hot core
+            pygame.draw.circle(surf, (255, 255, 220, 255), (int(hx), int(hy)), cr // 6)
+            # Pure sharp glint
+            pygame.draw.circle(surf, (255, 255, 255, 255), (int(hx), int(hy)), self._s(2))
+            
+            # 5. Concentrated Rim Accents (Symmetric to fix the 'biased line' issue)
+            pygame.draw.circle(surf, (255, 255, 200, 100), (cx, cy), cr - 1, 1)
+            pygame.draw.circle(surf, (255, 150, 0, 80), (cx, cy), cr - 3, 1)
+            
+            self.gold_circle_cache[key] = Texture.from_surface(self.renderer, surf)
+        return self.gold_circle_cache[key]
+
+    def _get_gold_ln_body_texture(self, lane_w):
+        key = lane_w
+        if key not in self.gold_ln_body_cache:
+            surf = pygame.Surface((lane_w, 1), pygame.SRCALPHA)
+            body_margin = int(lane_w * 0.12)
+            # Gold center fill
+            pygame.draw.rect(surf, (255, 200, 0, 150), (body_margin, 0, lane_w - body_margin * 2, 1))
+            # Gold borders
+            pygame.draw.rect(surf, (255, 215, 0, 255), (body_margin, 0, 1, 1))
+            pygame.draw.rect(surf, (255, 215, 0, 255), (lane_w - body_margin - 1, 0, 1, 1))
+            self.gold_ln_body_cache[key] = Texture.from_surface(self.renderer, surf)
+        return self.gold_ln_body_cache[key]
+
+    def _get_gold_effect_texture(self, lane_w):
+        """Create a more powerful, explosive gold shattering particle effect texture."""
+        key = lane_w
+        if key not in self.gold_effect_cache:
+            size = self._s(150) # Increased size for more particles
+            surf = pygame.Surface((size, size), pygame.SRCALPHA)
+            cx, cy = size // 2, size // 2
+            
+            # 1. Background radial glows (Further reduced 'faint' look)
+            pygame.draw.circle(surf, (255, 200, 0, 25), (cx, cy), self._s(40))
+            pygame.draw.circle(surf, (255, 255, 200, 15), (cx, cy), self._s(60))
+            
+            # 2. Explosive fragments (More 'Saturated/Deep' 진하게)
+            for _ in range(45):
+                angle = random.uniform(0, math.pi * 2)
+                dist = random.uniform(size * 0.05, size * 0.48)
+                px = int(cx + math.cos(angle) * dist)
+                py = int(cy + math.sin(angle) * dist)
+                
+                is_streak = random.random() < 0.35
+                if is_streak:
+                    fw = random.randint(self._s(12), self._s(30))
+                    fh = random.randint(1, self._s(2))
+                else:
+                    fw = random.randint(self._s(5), self._s(12))
+                    fh = random.randint(self._s(4), self._s(10))
+                
+                # Deeper, more varied gold palette
+                gold_shade = random.choice([
+                    (255, 215, 0), (255, 180, 0), (255, 255, 50),
+                    (220, 150, 0), (255, 230, 100), (255, 255, 255)
+                ])
+                alpha = random.randint(180, 255) # More solid fragments
+                
+                shard = pygame.Surface((fw, fh), pygame.SRCALPHA)
+                shard.fill((*gold_shade, alpha))
+                rot_angle = math.degrees(-angle) if is_streak else random.uniform(0, 360)
+                rotated = pygame.transform.rotate(shard, rot_angle)
+                rw, rh = rotated.get_size()
+                surf.blit(rotated, (px - rw // 2, py - rh // 2))
+                
+            # 3. Central burst (Clearer & Tighter)
+            pygame.draw.circle(surf, (255, 255, 255, 180), (cx, cy), self._s(6))
+            pygame.draw.circle(surf, (255, 215, 0, 80), (cx, cy), self._s(12), self._s(1))
+            
+            self.gold_effect_cache[key] = Texture.from_surface(self.renderer, surf)
+        return self.gold_effect_cache[key]
 
     def _get_text_texture(self, text, is_bold, color, size_override=None):
         key = (text, is_bold, color, size_override)
@@ -275,6 +422,7 @@ class GameRenderer:
         spd = game_state['speed']
         hw = game_state['hw_mult']
         note_type = game_state['note_type'] # Already pre-fetched in rhythm_game
+        note_skin = game_state.get('note_skin', 'default')  # 'default' or 'gold'
         current_visual_time = game_state.get('current_visual_time', current_time)
         lane_w = lx[1] - lx[0] if len(lx) > 1 else self._sx(75)
         ltw = game_state['lane_total_w']
@@ -462,8 +610,8 @@ class GameRenderer:
         for note in held_lns:
             if note is not None:
                 # Use simplified inline drawing for held notes
-                color = (0, 255, 255)
-                alpha = 60 if note.get('is_auto', False) else 255
+                is_auto = note.get('is_auto', False)
+                alpha = 60 if is_auto else 255
                 nx, ny = lx[note['lane']], int(self.hit_y_minus_note_h)
                 
                 # Long Note Body for held LN
@@ -472,19 +620,36 @@ class GameRenderer:
                 ey = self.hit_y_minus_note_h - etd * spd
                 body_h = int(self.hit_y_minus_note_h - ey)
                 if body_h > 0:
-                    tex = self._get_ln_body_texture(color, alpha, lane_w)
+                    if note_skin == 'gold' and not is_auto:
+                        tex = self._get_gold_ln_body_texture(lane_w)
+                    else:
+                        tex = self._get_ln_body_texture((0, 255, 255), alpha, lane_w)
                     self.renderer.blit(tex, pygame.Rect(nx, int(ey) + note_h // 2, lane_w, body_h))
 
                 # Head
-                if note_type == 0:
-                    tex = self._get_bar_note_texture(color, alpha, lane_w)
-                    bw, bh = tex.width, tex.height
-                    bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
-                    self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
+                if note_skin == 'gold' and not is_auto:
+                    if note_type == 0:
+                        tex = self._get_gold_bar_note_texture(lane_w)
+                        glow_r = self._s(4)
+                        bw, bh = tex.width, tex.height
+                        # Align the TOP of the gold body with 'ny'
+                        bx, by = nx + (lane_w - bw) // 2, ny - glow_r
+                        self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
+                    else:
+                        tex = self._get_gold_circle_note_texture(lane_w)
+                        glow_r = self._s(8)
+                        self.renderer.blit(tex, pygame.Rect(nx - glow_r, ny + note_h // 2 - tex.height // 2, tex.width, tex.height))
                 else:
-                    tex = self._get_circle_note_texture(color, lane_w)
-                    tex.alpha = alpha
-                    self.renderer.blit(tex, pygame.Rect(nx, ny + note_h // 2 - lane_w // 2, lane_w, lane_w))
+                    color = (0, 255, 255)
+                    if note_type == 0:
+                        tex = self._get_bar_note_texture(color, alpha, lane_w)
+                        bw, bh = tex.width, tex.height
+                        bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
+                        self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
+                    else:
+                        tex = self._get_circle_note_texture(color, lane_w)
+                        tex.alpha = alpha
+                        self.renderer.blit(tex, pygame.Rect(nx, ny + note_h // 2 - lane_w // 2, lane_w, lane_w))
 
         # 2. Main Loop from note_idx
         start_idx = game_state.get('note_idx', 0)
@@ -502,9 +667,11 @@ class GameRenderer:
                 break
                 
             if y <= self.height:
-                color, is_auto = (0, 255, 255), note.get('is_auto', False)
+                is_auto = note.get('is_auto', False)
                 alpha = 60 if is_auto else 255
                 nx, ny = lx[note['lane']], int(y)
+                use_gold = (note_skin == 'gold' and not is_auto)
+                color = (0, 255, 255)
                 
                 # Long Note Body
                 if note.get('is_ln'):
@@ -513,7 +680,10 @@ class GameRenderer:
                     ey = self.hit_y_minus_note_h - etd * spd
                     body_h = int(y - ey)
                     if body_h > 0:
-                        tex = self._get_ln_body_texture(color, alpha, lane_w)
+                        if use_gold:
+                            tex = self._get_gold_ln_body_texture(lane_w)
+                        else:
+                            tex = self._get_ln_body_texture(color, alpha, lane_w)
                         self.renderer.blit(tex, pygame.Rect(nx, int(ey) + note_h // 2, lane_w, body_h))
                 
                 # Handling Hit Connector (Jack) - Skip for AI side (performance)
@@ -523,19 +693,36 @@ class GameRenderer:
                     connector_h = int(prev_y - y)
                     if connector_h > 0:
                         c_alpha = int(100 * fade_mult)
-                        c_tex = self._get_ln_body_texture(color, c_alpha, lane_w)
+                        if use_gold:
+                            c_tex = self._get_gold_ln_body_texture(lane_w)
+                            c_tex.alpha = c_alpha
+                        else:
+                            c_tex = self._get_ln_body_texture(color, c_alpha, lane_w)
                         self.renderer.blit(c_tex, pygame.Rect(nx + int(lane_w * 0.08), int(y) + note_h // 2, lane_w - int(lane_w * 0.16), connector_h))
 
                 # Note Head
-                if note_type == 0:
-                    tex = self._get_bar_note_texture(color, alpha, lane_w)
-                    bw, bh = tex.width, tex.height
-                    bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
-                    self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
+                if use_gold:
+                    if note_type == 0:
+                        tex = self._get_gold_bar_note_texture(lane_w)
+                        glow_r = self._s(4)
+                        bw, bh = tex.width, tex.height
+                        # Align the TOP of the gold body with 'ny'
+                        bx, by = nx + (lane_w - bw) // 2, ny - glow_r
+                        self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
+                    else:
+                        tex = self._get_gold_circle_note_texture(lane_w)
+                        glow_r = self._s(8) # Match gold circle definition
+                        self.renderer.blit(tex, pygame.Rect(nx - glow_r, ny + note_h // 2 - tex.height // 2, tex.width, tex.height))
                 else:
-                    tex = self._get_circle_note_texture(color, lane_w)
-                    tex.alpha = alpha
-                    self.renderer.blit(tex, pygame.Rect(nx, ny + note_h // 2 - lane_w // 2, lane_w, lane_w))
+                    if note_type == 0:
+                        tex = self._get_bar_note_texture(color, alpha, lane_w)
+                        bw, bh = tex.width, tex.height
+                        bx, by = nx + (lane_w - bw) // 2, ny + (note_h - bh)
+                        self.renderer.blit(tex, pygame.Rect(bx, by, bw, bh))
+                    else:
+                        tex = self._get_circle_note_texture(color, lane_w)
+                        tex.alpha = alpha
+                        self.renderer.blit(tex, pygame.Rect(nx, ny + note_h // 2 - lane_w // 2, lane_w, lane_w))
 
     def _draw_jitter_bar(self, x, y, w, jitter, current_time):
         jitter_len = len(jitter)
@@ -676,10 +863,28 @@ class GameRenderer:
             alive.append(eff)
             
             note_type = eff.get('note_type', 0)
+            skin = eff.get('skin', 'default')
             r = self._s(eff['radius'])
             tx = lanes_x[eff['lane']] + lane_w // 2
             
-            if note_type == 0: # ── Bar Effect ──
+            if skin == 'gold':
+                # ── Gold Shattering Particle Effect ──
+                tex = self._get_gold_effect_texture(lane_w)
+                tex.alpha = eff['alpha']
+                base_size = self._s(150)
+                # Faster pop-in scaling: starts small, hits full size quickly, then fades out
+                # Life ratio goes from 1.0 (start) to 0.0 (end)
+                life_ratio = eff['alpha'] / 255.0
+                if life_ratio > 0.8: # Initial pop
+                    scale = 0.3 + (1.0 - life_ratio) * 4.0 
+                else: # Gradual expansion
+                    scale = 0.7 + (1.0 - life_ratio) * 1.5
+                
+                ew = int(base_size * scale)
+                eh = int(base_size * scale)
+                self.renderer.blit(tex, pygame.Rect(tx - ew // 2, ty - eh // 2, ew, eh))
+                
+            elif note_type == 0: # ── Bar Effect ──
                 tex = self._get_bar_effect_texture(eff['color'], lane_w)
                 tex.alpha = eff['alpha']
                 bw = int(lane_w * 0.8) + r * 2
@@ -862,12 +1067,31 @@ class GameRenderer:
         # Challenges
         for i, ch in enumerate(newly_completed):
             ch_name = _t(f"ch_{ch['id']}_title")
+            is_hidden = ch.get('hidden', False)
             ch_txt = f"{i+1}. {ch_name}"
-            ch_tex = self._get_text_texture(ch_txt, False, (255, 255, 255), size_override=self._s(18))
+            
+            if is_hidden:
+                # Golden text for hidden challenges
+                ch_tex = self._get_text_texture(ch_txt, True, (255, 215, 0), size_override=self._s(18))
+            else:
+                ch_tex = self._get_text_texture(ch_txt, False, (255, 255, 255), size_override=self._s(18))
             ch_tex.alpha = alpha
             self.renderer.blit(ch_tex, pygame.Rect(tx + self._sx(30), ty + self._s(50 + i * 30), ch_tex.width, ch_tex.height))
+            
             # [Completed] badge
-            compl_txt = f"[{_t('challenge_completed')}]"
-            compl_tex = self._get_text_texture(compl_txt, True, (0, 255, 100), size_override=self._s(14))
+            if is_hidden:
+                compl_txt = f"[{_t('challenge_completed')}]"
+                compl_tex = self._get_text_texture(compl_txt, True, (255, 215, 0), size_override=self._s(14))
+            else:
+                compl_txt = f"[{_t('challenge_completed')}]"
+                compl_tex = self._get_text_texture(compl_txt, True, (0, 255, 100), size_override=self._s(14))
             compl_tex.alpha = alpha
             self.renderer.blit(compl_tex, pygame.Rect(tx + tw - compl_tex.width - self._sx(20), ty + self._s(53 + i * 30), compl_tex.width, compl_tex.height))
+        
+        # If perfect_player was just completed, show skin unlock message
+        if any(ch['id'] == 'perfect_player' for ch in newly_completed):
+            skin_txt = _t("skin_unlocked_toast")
+            skin_tex = self._get_text_texture(skin_txt, True, (255, 215, 0), size_override=self._s(16))
+            skin_tex.alpha = alpha
+            sy = ty + th - self._s(25)
+            self.renderer.blit(skin_tex, pygame.Rect(tx + tw // 2 - skin_tex.width // 2, sy, skin_tex.width, skin_tex.height))

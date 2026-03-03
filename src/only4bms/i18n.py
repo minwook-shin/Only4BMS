@@ -367,6 +367,13 @@ STRINGS = {
         "ch_aesthetics_of_zero_desc": "Finish a song with exactly 0 hits.",
         "ch_first_time_rhythm_game_title": "First Time Playing a Rhythm Game?",
         "ch_first_time_rhythm_game_desc": "Complete a song with less than 50% accuracy.",
+        "ch_perfect_player_title": "The Perfect One",
+        "ch_perfect_player_desc": "Get a PERFECT score in single play or beat the AI hard bot.",
+        "challenge_hidden_label": "HIDDEN",
+        "note_skin_label": "NOTE SKIN",
+        "note_skin_default": "DEFAULT",
+        "note_skin_gold": "GOLD",
+        "skin_unlocked_toast": "Golden Skin Unlocked!",
 
     },
 
@@ -584,6 +591,13 @@ STRINGS = {
         "ch_aesthetics_of_zero_desc": "단 한 개의 노트도 맞히지 않고 곡을 끝내세요.",
         "ch_first_time_rhythm_game_title": "이번 리겜은 처음이라",
         "ch_first_time_rhythm_game_desc": "판정 정확도 50% 미만으로 곡을 완주하세요.",
+        "ch_perfect_player_title": "완벽한 사람",
+        "ch_perfect_player_desc": "싱글 플레이에서 퍼펙트하거나 AI 하드 봇에게 이기세요.",
+        "challenge_hidden_label": "히든",
+        "note_skin_label": "노트 스킨",
+        "note_skin_default": "기본",
+        "note_skin_gold": "황금",
+        "skin_unlocked_toast": "황금 스킨 해금!",
 
     },
 
@@ -802,6 +816,13 @@ STRINGS = {
         "ch_aesthetics_of_zero_desc": "ヒット数0で曲を終了する。",
         "ch_first_time_rhythm_game_title": "音ゲーは初めてですか？",
         "ch_first_time_rhythm_game_desc": "精度50%未満で曲を完走する。",
+        "ch_perfect_player_title": "完璧な人",
+        "ch_perfect_player_desc": "シングルプレイでPERFECTを達成するか、AI Hard Botに勝利する。",
+        "challenge_hidden_label": "HIDDEN",
+        "note_skin_label": "ノートスキン",
+        "note_skin_default": "デフォルト",
+        "note_skin_gold": "ゴールド",
+        "skin_unlocked_toast": "ゴールドスキン解禁！",
 
     },
 
@@ -1019,6 +1040,13 @@ STRINGS = {
         "ch_aesthetics_of_zero_desc": "以恰好 0 次击中完成歌曲。",
         "ch_first_time_rhythm_game_title": "第一次玩音游？",
         "ch_first_time_rhythm_game_desc": "以低于 50% 的准确度完成歌曲。",
+        "ch_perfect_player_title": "完美之人",
+        "ch_perfect_player_desc": "在单人模式下获得完美评分，或者击败高级 AI。",
+        "challenge_hidden_label": "隐藏",
+        "note_skin_label": "音符皮肤",
+        "note_skin_default": "默认",
+        "note_skin_gold": "黄金",
+        "skin_unlocked_toast": "黄金皮肤已解锁！",
 
     },
 
@@ -1235,8 +1263,15 @@ STRINGS = {
         "ch_notes_are_mean_desc": "พลาดโน้ตตัวแรกสุดของเพลง",
         "ch_aesthetics_of_zero_title": "สุนทรียศาสตร์แห่งศูนย์",
         "ch_aesthetics_of_zero_desc": "จบเพลงด้วยจานวนการกดถูก 0 ครั้งพอดี",
-        "ch_first_time_rhythm_game_title": "เพิ่งเคยเล่นเกมจังหวะครั้งแรกเหรอ?",
-        "ch_first_time_rhythm_game_desc": "เล่นจบเพลงด้วยความแม่นยำน้อยกว่า 50%",
+        "ch_first_time_rhythm_game_title": "เล่นเกมนับจังหวะครั้งแรกเหรอ?",
+        "ch_first_time_rhythm_game_desc": "เล่นจบหนึ่งเพลงด้วยความแม่นยำต่ำกว่า 50%",
+        "ch_perfect_player_title": "บุคคลที่สมบูรณ์แบบ",
+        "ch_perfect_player_desc": "ทำคะแนน PERFECT ในการเล่นคนเดียวหรือชนะบอท AI ระดับยาก",
+        "challenge_hidden_label": "ลับ",
+        "note_skin_label": "สกินโน้ต",
+        "note_skin_default": "พื้นฐาน",
+        "note_skin_gold": "ทอง",
+        "skin_unlocked_toast": "ปลดล็อกสกินทองแล้ว!",
 
     },
 
@@ -1455,6 +1490,13 @@ STRINGS = {
         "ch_aesthetics_of_zero_desc": "Termine uma música com exatamente 0 acertos.",
         "ch_first_time_rhythm_game_title": "Primeira vez em um jogo de ritmo?",
         "ch_first_time_rhythm_game_desc": "Complete uma música com menos de 50% de precisão.",
+        "ch_perfect_player_title": "A Pessoa Perfeita",
+        "ch_perfect_player_desc": "Consiga uma pontuação PERFEITA no modo solo ou vença o bot de IA no difícil.",
+        "challenge_hidden_label": "OCULTO",
+        "note_skin_label": "SKIN DE NOTA",
+        "note_skin_default": "PADRÃO",
+        "note_skin_gold": "OURO",
+        "skin_unlocked_toast": "Skin de Ouro Desbloqueada!",
 
     },
 
@@ -1631,7 +1673,7 @@ STRINGS = {
 
         # UI Labels
         "course_no_modifier": "TANPA MOD",
-        "status_gen_bms": "Musik Prosedural...",
+        "status_gen_bms": "Música Procedural...",
         "course_note_mod": "MOD NOT: {mod}",
         "course_note_mod_none": "MOD NOT: TANPA MOD",
         "course_stage_clear": "STAGE {n} CLEAR  [{rank}]",
@@ -1671,8 +1713,15 @@ STRINGS = {
         "ch_notes_are_mean_desc": "Lewatkan not pertama dalam sebuah lagu.",
         "ch_aesthetics_of_zero_title": "Estetika Nol",
         "ch_aesthetics_of_zero_desc": "Selesaikan lagu dengan tepat 0 hit.",
-        "ch_first_time_rhythm_game_title": "Pertama Kali Main Game Ritme?",
-        "ch_first_time_rhythm_game_desc": "Selesaikan lagu dengan akurasi kurang dari 50%.",
+        "ch_first_time_rhythm_game_title": "Pertama kali bermain permainan ritme?",
+        "ch_first_time_rhythm_game_desc": "Lengkapkan lagu dengan ketepatan kurang daripada 50%.",
+        "ch_perfect_player_title": "Pemain Sempurna",
+        "ch_perfect_player_desc": "Dapatkan skor SEMPURNA dalam mod solo atau kalahkan bot AI sukar.",
+        "challenge_hidden_label": "TERSEMBUNYI",
+        "note_skin_label": "KULIT NOTA",
+        "note_skin_default": "ASAL",
+        "note_skin_gold": "EMAS",
+        "skin_unlocked_toast": "Kulit Emas Dibuka!",
 
     },
 
@@ -1889,8 +1938,15 @@ STRINGS = {
         "ch_notes_are_mean_desc": "Falla la primerísima nota de una canción.",
         "ch_aesthetics_of_zero_title": "Estética del Cero",
         "ch_aesthetics_of_zero_desc": "Termina una canción con exactamente 0 aciertos.",
-        "ch_first_time_rhythm_game_title": "¿Primera vez en un juego de ritmo?",
+        "ch_first_time_rhythm_game_title": "¿Primera vez jugando un juego de ritmo?",
         "ch_first_time_rhythm_game_desc": "Completa una canción con menos del 50% de precisión.",
+        "ch_perfect_player_title": "La Persona Perfecta",
+        "ch_perfect_player_desc": "Consigue una puntuación PERFECTA en solitario o vence al bot de IA en difícil.",
+        "challenge_hidden_label": "OCULTO",
+        "note_skin_label": "SKIN DE NOTA",
+        "note_skin_default": "ESTÁNDAR",
+        "note_skin_gold": "ORO",
+        "skin_unlocked_toast": "¡Aspecto Dorado Desbloqueado!",
 
     },
 
@@ -2107,8 +2163,15 @@ STRINGS = {
         "ch_notes_are_mean_desc": "Ratez la toute première note d'une chanson.",
         "ch_aesthetics_of_zero_title": "Esthétique du Zéro",
         "ch_aesthetics_of_zero_desc": "Finissez une chanson avec exactement 0 coup réussi.",
-        "ch_first_time_rhythm_game_title": "Première fois sur un jeu de rythme ?",
-        "ch_first_time_rhythm_game_desc": "Terminez une chanson avec moins de 50% de précision.",
+        "ch_first_time_rhythm_game_title": "Première fois dans un jeu de rythme ?",
+        "ch_first_time_rhythm_game_desc": "Terminez une chanson avec moins de 50 % de précision.",
+        "ch_perfect_player_title": "La Personne Parfaite",
+        "ch_perfect_player_desc": "Obtenez un score PARFAIT en mode solo ou battez l'IA en mode difficile.",
+        "challenge_hidden_label": "CACHÉ",
+        "note_skin_label": "SKIN DE NOTE",
+        "note_skin_default": "PAR DÉFAUT",
+        "note_skin_gold": "OR",
+        "skin_unlocked_toast": "Skin Dorée Débloquée !",
 
     },
 
@@ -2327,6 +2390,13 @@ STRINGS = {
         "ch_aesthetics_of_zero_desc": "Finisci un brano con esattamente 0 colpi a segno.",
         "ch_first_time_rhythm_game_title": "Prima volta con un rhythm game?",
         "ch_first_time_rhythm_game_desc": "Completa un brano con meno del 50% di precisione.",
+        "ch_perfect_player_title": "La Persona Perfetta",
+        "ch_perfect_player_desc": "Ottieni un punteggio PERFETTO in modalità singola o sconfiggi l'IA a livello difficile.",
+        "challenge_hidden_label": "NASCOSTO",
+        "note_skin_label": "SKIN NOTA",
+        "note_skin_default": "DEFAULT",
+        "note_skin_gold": "ORO",
+        "skin_unlocked_toast": "Skin Dorata Sbloccata!",
 
     },
 
@@ -2543,8 +2613,15 @@ STRINGS = {
         "ch_notes_are_mean_desc": "Verpasse die allerserste Note eines Songs.",
         "ch_aesthetics_of_zero_title": "Ästhetik der Null",
         "ch_aesthetics_of_zero_desc": "Beende einen Song mit exakt 0 Treffern.",
-        "ch_first_time_rhythm_game_title": "Das erste Mal ein Rhythmusspiel?",
-        "ch_first_time_rhythm_game_desc": "Schaffe einen Song mit weniger als 50% Genauigkeit.",
+        "ch_first_time_rhythm_game_title": "Erste Mal in einem Rhythmusspiel?",
+        "ch_first_time_rhythm_game_desc": "Schließe einen Song mit weniger als 50% Genauigkeit ab.",
+        "ch_perfect_player_title": "Die perfekte Person",
+        "ch_perfect_player_desc": "Erreiche ein PERFEKTES Ergebnis im Einzelspiel oder besiege die KI auf schwer.",
+        "challenge_hidden_label": "GEHEIM",
+        "note_skin_label": "NOTEN-SKIN",
+        "note_skin_default": "STANDARD",
+        "note_skin_gold": "GOLD",
+        "skin_unlocked_toast": "Goldener Skin freigeschaltet!",
 
     },
 }

@@ -63,6 +63,7 @@ class RhythmGame:
         # Cache frequently accessed settings
         self.note_type = self.settings.get('note_type', 0)
         self.ai_note_type = self.settings.get('ai_note_type', 0)
+        self.note_skin = self.settings.get('note_skin', 'default')  # 'default' or 'gold'
         
         # Lane grouping
         if self.mode == 'single':
@@ -199,9 +200,10 @@ class RhythmGame:
         elif key == "MISS":
             self.combo = 0
         if lane is not None:
+            eff_skin = self.note_skin if self.note_skin != 'default' else 'default'
             self.effects.append({
                 'lane': lane, 'radius': 30, 'color': j["color"], 'alpha': 255,
-                'note_type': self.note_type
+                'note_type': self.note_type, 'skin': eff_skin
             })
 
     def set_ai_judgment(self, key, lane, t=None, timing_diff=0):
@@ -452,9 +454,10 @@ class RhythmGame:
                     if self.frame_count % 4 == 0:
                         for lane, note in enumerate(self.engine.held_lns):
                             if note:
+                                eff_skin = self.note_skin if self.note_skin != 'default' else 'default'
                                 self.effects.append({
                                     'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
-                                    'note_type': self.note_type
+                                    'note_type': self.note_type, 'skin': eff_skin
                                 })
                         # AI LN effects at half frequency (every 8 frames)
                         if self.mode == 'ai_multi' and self.frame_count % 8 == 0:
@@ -620,6 +623,7 @@ class RhythmGame:
             d['all_notes_passed'] = self.engine.all_notes_passed
             d['all_notes_passed_time'] = self.engine.all_notes_passed_time
             d['note_type'] = self.note_type
+            d['note_skin'] = self.note_skin
             d['is_ai'] = False
             d['measures'] = self.measures
             d['course_hp']       = self.course_hp
@@ -650,6 +654,7 @@ class RhythmGame:
             d['all_notes_passed'] = self.ai_engine.all_notes_passed
             d['all_notes_passed_time'] = self.ai_engine.all_notes_passed_time
             d['note_type'] = self.ai_note_type
+            d['note_skin'] = 'default'  # AI always uses default skin
             d['is_ai'] = True
             d['measures'] = self.measures
         return d

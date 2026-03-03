@@ -506,6 +506,13 @@ class SongSelectMenu:
             pygame.mixer.music.stop()
         elif key == pygame.K_a: # Toggle AI Difficulty
             self.ai_diff_idx = (self.ai_diff_idx + 1) % len(self.ai_difficulties)
+        elif key == pygame.K_g: # Toggle Note Skin
+            from ..game.challenge import ChallengeManager
+            _cm = ChallengeManager()
+            if _cm.is_golden_skin_unlocked():
+                current = self.settings.get('note_skin', 'default')
+                self.settings['note_skin'] = 'gold' if current == 'default' else 'default'
+                self._save()
 
     def _handle_click(self, pos, button=1):
         if self.show_guide:
@@ -523,6 +530,12 @@ class SongSelectMenu:
                     self.settings['speed'] = max(0.1, min(2.0, self.settings.get('speed', 1.0) + delta))
                 elif action == "TYPE": self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
                 elif action == "AI_TYPE": self.settings['ai_note_type'] = 1 if self.settings.get('ai_note_type', 0) == 0 else 0
+                elif action == "SKIN":
+                    from ..game.challenge import ChallengeManager
+                    _cm = ChallengeManager()
+                    if _cm.is_golden_skin_unlocked():
+                        current = self.settings.get('note_skin', 'default')
+                        self.settings['note_skin'] = 'gold' if current == 'default' else 'default'
                 self._save()
                 return
 
@@ -916,6 +929,29 @@ class SongSelectMenu:
             pygame.draw.rect(self.screen, COLOR_HOVERED_BG, a_rect, border_radius=5)
         self.screen.blit(self.small_font.render(f"{_t('ai_note')}: {ai_n_type} (Shift+T)", True, COLOR_TEXT_SECONDARY), (cx, y))
         opt_rects.append((a_rect, "AI_TYPE"))
+        y += iy
+
+        # Note Skin
+        from ..game.challenge import ChallengeManager
+        _cm = ChallengeManager()
+        gold_unlocked = _cm.is_golden_skin_unlocked()
+        current_skin = self.settings.get('note_skin', 'default')
+        if current_skin == 'gold' and not gold_unlocked:
+            self.settings['note_skin'] = 'default'
+            current_skin = 'default'
+        
+        skin_rect = pygame.Rect(cx, y, panel_w - 40, iy)
+        if skin_rect.collidepoint(mx, my):
+            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, skin_rect, border_radius=5)
+        
+        if gold_unlocked:
+            skin_label = _t("note_skin_gold") if current_skin == 'gold' else _t("note_skin_default")
+            skin_color = (255, 215, 0) if current_skin == 'gold' else COLOR_TEXT_SECONDARY
+            self.screen.blit(self.small_font.render(f"{_t('note_skin_label')}: {skin_label} (G)", True, skin_color), (cx, y))
+        else:
+            self.screen.blit(self.small_font.render(f"{_t('note_skin_label')}: {_t('note_skin_default')}", True, COLOR_TEXT_SECONDARY), (cx, y))
+        opt_rects.append((skin_rect, "SKIN"))
+        
         self._opt_rects = opt_rects # Store for click handler
 
         # ── NOTE MOD ──

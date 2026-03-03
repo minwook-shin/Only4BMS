@@ -120,6 +120,17 @@ def get_default_challenges():
         {
             "id": "first_time_rhythm_game",
             "condition": {"max_accuracy": 49.9, "must_clear": True}
+        },
+        # ── Hidden Challenge (not shown until 100% regular completion) ──
+        {
+            "id": "perfect_player",
+            "hidden": True,
+            "or_conditions": [
+                # Path 1: All Perfect in single play
+                {"mode": "single", "require_all_perfect": True, "must_clear": True, "min_notes": 1},
+                # Path 2: Win against hard AI bot  
+                {"mode": "ai_multi", "must_win": True, "ai_difficulty": "hard"}
+            ]
         }
     ]
 
@@ -140,6 +151,23 @@ class ChallengeManager:
             except Exception as e:
                 print(f"Error loading progress: {e}")
                 self.completed_ids = set()
+
+    def get_visible_challenges(self):
+        """Return challenges that are not hidden."""
+        return [c for c in self.challenges if not c.get('hidden', False)]
+
+    def get_hidden_challenges(self):
+        """Return only hidden challenges."""
+        return [c for c in self.challenges if c.get('hidden', False)]
+
+    def all_regular_completed(self):
+        """Check if all non-hidden challenges are completed."""
+        visible = self.get_visible_challenges()
+        return all(c['id'] in self.completed_ids for c in visible)
+
+    def is_golden_skin_unlocked(self):
+        """Check if the golden skin is unlocked (perfect_player challenge completed)."""
+        return 'perfect_player' in self.completed_ids
 
     def save_progress(self):
         try:
@@ -177,6 +205,15 @@ class ChallengeManager:
         return newly_completed
 
     def _evaluate(self, challenge, stats):
+        # Support or_conditions (any of the sub-conditions can pass)
+        or_conds = challenge.get('or_conditions')
+        if or_conds:
+            for sub_cond in or_conds:
+                sub_challenge = {"id": challenge["id"], "condition": sub_cond}
+                if self._evaluate(sub_challenge, stats):
+                    return True
+            return False
+        
         cond = challenge.get('condition', {})
         
         # Mode check
