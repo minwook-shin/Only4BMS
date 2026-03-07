@@ -131,6 +131,16 @@ def get_default_challenges():
                 # Path 2: Win against hard AI bot  
                 {"mode": "ai_multi", "must_win": True, "ai_difficulty": "hard"}
             ]
+        },
+        {
+            "id": "forest_of_trials",
+            "hidden": True,
+            "condition": {
+                "mode": "course_stage",
+                "difficulty_exact": "ORDEAL",
+                "must_clear": True,
+                "proceed_to_next": True,
+            }
         }
     ]
 
@@ -168,6 +178,10 @@ class ChallengeManager:
     def is_golden_skin_unlocked(self):
         """Check if the golden skin is unlocked (perfect_player challenge completed)."""
         return 'perfect_player' in self.completed_ids
+
+    def is_blue_skin_unlocked(self):
+        """Check if the blue portal skin is unlocked (forest_of_trials challenge completed)."""
+        return 'forest_of_trials' in self.completed_ids
 
     def save_progress(self):
         try:
@@ -310,6 +324,15 @@ class ChallengeManager:
         # BMS scan completion
         min_bms = cond.get('min_bms_count', 0)
         if min_bms > 0 and stats.get('total_songs', 0) < min_bms:
+            return False
+
+        # Course specific: Exact Difficulty match
+        exact_diff = cond.get('difficulty_exact')
+        if exact_diff and stats.get('difficulty', '') != exact_diff:
+            return False
+
+        # Course stage: must proceed to next (i.e., not quit/fail)
+        if cond.get('proceed_to_next') and not stats.get('proceeded_to_next', False):
             return False
 
         # Course specific: Difficulty index check

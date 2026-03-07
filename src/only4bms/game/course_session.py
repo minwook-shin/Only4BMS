@@ -387,6 +387,7 @@ class CourseSession:
                 stage_stats['accuracy'] = acc
                 stage_stats['failed'] = (self.hp <= 0)
                 stage_stats['difficulty'] = self.difficulty
+                stage_stats['proceeded_to_next'] = (self.hp > 0)  # True if stage was passed
                 newly_done_stage = self.challenge_manager.check_challenges(stage_stats)
 
             self.stage_scores.append(stage_score)

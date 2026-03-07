@@ -31,8 +31,15 @@ class ChallengeMenu:
         self.regular_challenges = self.manager.get_visible_challenges()
         self.hidden_challenges = self.manager.get_hidden_challenges()
         self.show_hidden = self.manager.all_regular_completed()
+        self._any_hidden_early = any(
+            c['id'] in self.manager.completed_ids
+            for c in self.hidden_challenges
+        ) and not self.show_hidden
         
         if self.show_hidden:
+            self.options = self.regular_challenges + self.hidden_challenges
+        elif self._any_hidden_early:
+            # Always show hidden section if ANY hidden challenge was completed early
             self.options = self.regular_challenges + self.hidden_challenges
         else:
             self.options = self.regular_challenges[:]
@@ -109,25 +116,31 @@ class ChallengeMenu:
                 rect = pygame.Rect(px + self._s(10), py + self._s(15) + i * spacing, panel_w - self._s(20), box_h)
                 
                 if is_hidden:
-                    # Golden shimmer background for hidden challenge
-                    shimmer = (math.sin(t_now * 3.0) + 1) / 2
-                    gold_r = int(80 + 40 * shimmer)
-                    gold_g = int(60 + 30 * shimmer)
-                    gold_b = int(10 + 10 * shimmer)
-                    pygame.draw.rect(self.screen, (gold_r, gold_g, gold_b, 200), rect, border_radius=5)
-                    
-                    # Gold border with pulse
-                    border_alpha = int(180 + 75 * shimmer)
-                    gold_border = (255, 215, 0)
-                    pygame.draw.rect(self.screen, gold_border, rect, 2, border_radius=5)
-                    
-                    # Selection highlight
-                    if idx == self.selected_index:
-                        pygame.draw.rect(self.screen, (255, 215, 0, 40), rect, border_radius=5)
-                        pygame.draw.rect(self.screen, (255, 230, 100), rect, 3, border_radius=5)
+                    is_early_unlock = is_completed and not self.show_hidden
+                    if is_early_unlock:
+                        # Dimmed appearance for early hidden unlock
+                        pygame.draw.rect(self.screen, (30, 30, 40, 180), rect, border_radius=5)
+                        pygame.draw.rect(self.screen, (100, 100, 120), rect, 1, border_radius=5)
+                        if idx == self.selected_index:
+                            pygame.draw.rect(self.screen, (60, 60, 80, 160), rect, border_radius=5)
+                            pygame.draw.rect(self.screen, (150, 150, 170), rect, 2, border_radius=5)
+                    else:
+                        # Normal golden shimmer background for hidden challenge
+                        shimmer = (math.sin(t_now * 3.0) + 1) / 2
+                        gold_r = int(80 + 40 * shimmer)
+                        gold_g = int(60 + 30 * shimmer)
+                        gold_b = int(10 + 10 * shimmer)
+                        pygame.draw.rect(self.screen, (gold_r, gold_g, gold_b, 200), rect, border_radius=5)
+                        # Gold border with pulse
+                        gold_border = (255, 215, 0)
+                        pygame.draw.rect(self.screen, gold_border, rect, 2, border_radius=5)
+                        if idx == self.selected_index:
+                            pygame.draw.rect(self.screen, (255, 215, 0, 40), rect, border_radius=5)
+                            pygame.draw.rect(self.screen, (255, 230, 100), rect, 3, border_radius=5)
                     
                     # "★ HIDDEN" label
-                    hidden_label = self.small_font.render(_t("challenge_hidden_label"), True, (255, 215, 0))
+                    label_color = (100, 100, 120) if is_early_unlock else (255, 215, 0)
+                    hidden_label = self.small_font.render(_t("challenge_hidden_label"), True, label_color)
                     self.screen.blit(hidden_label, (rect.left + self._s(20), rect.top + self._s(2)))
                 else:
                     # Selection highlight (regular)
@@ -136,30 +149,48 @@ class ChallengeMenu:
                         pygame.draw.rect(self.screen, (255, 200, 0), rect, 2, border_radius=5)
                 
                 # Completion status bg
+                is_early_unlock = is_hidden and is_completed and not self.show_hidden
                 if is_hidden:
-                    status_color = (255, 215, 0) if is_completed else (180, 150, 60)
+                    if is_early_unlock:
+                        status_color = (100, 100, 120)  # Dimmed for early unlock
+                    else:
+                        status_color = (255, 215, 0) if is_completed else (180, 150, 60)
                 else:
                     status_color = (0, 255, 100) if is_completed else (150, 150, 150)
                 
                 # Title
                 title_key = f"ch_{challenge['id']}_title"
-                title_color = (255, 215, 0) if (is_hidden and is_completed) else (status_color if is_completed else (200, 200, 200))
+                if is_early_unlock:
+                    title_color = (80, 80, 100)
+                elif is_hidden and is_completed:
+                    title_color = (255, 215, 0)
+                elif is_completed:
+                    title_color = status_color
+                else:
+                    title_color = (200, 200, 200)
                 title_surf = self.font.render(_t(title_key), True, title_color)
                 title_y_off = self._s(5) if not is_hidden else self._s(18)
                 self.screen.blit(title_surf, (rect.left + self._s(20), rect.top + title_y_off))
                 
                 # Description
                 desc_key = f"ch_{challenge['id']}_desc"
-                desc_color = (200, 180, 100) if is_hidden else (160, 160, 170)
+                if is_early_unlock:
+                    desc_color = (60, 60, 80)
+                elif is_hidden:
+                    desc_color = (200, 180, 100)
+                else:
+                    desc_color = (160, 160, 170)
                 desc_surf = self.desc_font.render(_t(desc_key), True, desc_color)
                 desc_y_off = self._s(42) if not is_hidden else self._s(50)
                 self.screen.blit(desc_surf, (rect.left + self._s(25), rect.top + desc_y_off))
                 
                 # Status Label
                 if is_hidden:
-                    if is_completed:
+                    if is_early_unlock:
+                        status_label = "???"
+                        status_surf = self.small_font.render(status_label, True, (80, 80, 100))
+                    elif is_completed:
                         status_label = _t("challenge_completed")
-                        # Gold sparkle text
                         sparkle_r = int(255 - 30 * shimmer)
                         sparkle_g = int(215 - 20 * shimmer)
                         status_surf = self.small_font.render(status_label, True, (sparkle_r, sparkle_g, 0))
