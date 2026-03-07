@@ -37,6 +37,7 @@ class MainMenu:
             (lambda: _t("menu_single"), "SINGLE"),
             (lambda: _t("menu_course"), "COURSE"),
             (lambda: _t("menu_ai_multi"), "AI_MULTI"),
+            (lambda: _t("menu_online_multi"), "ONLINE_MULTI"),
             (lambda: _t("menu_challenge"), "CHALLENGE"),
             (lambda: _t("menu_settings"), "SETTINGS"),
             (lambda: _t("menu_quit"), "QUIT")

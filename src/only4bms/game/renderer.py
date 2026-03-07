@@ -1108,7 +1108,7 @@ class GameRenderer:
         max_ex = stats.get('total_notes', 1) * 2
         ratio_h = min(1.0, ex_h / max_ex)
         
-        score_ai = calc_score(stats['ai_judgments']) if stats['mode'] == 'ai_multi' else 0
+        score_ai = calc_score(stats['ai_judgments']) if stats['mode'] in ('ai_multi', 'online_multi') else 0
         ex_ai = calc_ex_score(stats['ai_judgments'])
         ratio_ai = min(1.0, ex_ai / max_ex)
 
@@ -1117,10 +1117,17 @@ class GameRenderer:
         self.renderer.fill_rect((0, 0, self.width, self.height))
 
         # Title/Banner
-        if stats['mode'] == 'ai_multi':
-            p1_win = score_h >= score_ai
-            win_txt = _t("you_win") if p1_win else _t("ai_wins")
-            win_color = (0, 255, 255) if p1_win else (255, 50, 50)
+        if stats['mode'] in ('ai_multi', 'online_multi'):
+            if score_h > score_ai:
+                win_txt = _t("you_win")
+                win_color = (0, 255, 255)
+            elif score_h < score_ai:
+                win_txt = _t("ai_wins") if stats['mode'] == 'ai_multi' else _t("opponent_wins")
+                win_color = (255, 50, 50)
+            else:
+                win_txt = _t("draw")
+                win_color = (255, 255, 0)
+                
             bs_tex = self._get_text_texture(win_txt, True, win_color, size_override=self._s(60))
             bs_tex.alpha = 255
             self.renderer.blit(bs_tex, pygame.Rect(self.width // 2 - bs_tex.width // 2, self._s(20), bs_tex.width, bs_tex.height))
@@ -1147,6 +1154,7 @@ class GameRenderer:
         y += self._s(50)
 
         # Judgments List
+        y_save = y
         for key in JUDGMENT_ORDER:
             color = JUDGMENT_DEFS[key]["color"]
             text = self._get_text_texture(f"{key:<10} {stats['judgments'][key]:>4}", False, color, size_override=self._s(22))
@@ -1172,46 +1180,71 @@ class GameRenderer:
             ai_score_txt = self._get_text_texture(_t("score_label").format(val=f"{score_ai:,}"), False, (255, 150, 150), size_override=self._s(22))
             ai_score_txt.alpha = 255
             self.renderer.blit(ai_score_txt, pygame.Rect(p1_x, y, ai_score_txt.width, ai_score_txt.height))
+            
+        elif stats['mode'] == 'online_multi':
+            p2_x = self._sx(450)
+            y_p2 = y_save
+            ai_title = self._get_text_texture(_t("opponent_performance"), True, (255, 100, 100), size_override=self._s(24))
+            ai_title.alpha = 255
+            self.renderer.blit(ai_title, pygame.Rect(p2_x, y_p2 - self._s(40), ai_title.width, ai_title.height))
+            
+            opp_judgments = stats.get('ai_judgments', {k: 0 for k in JUDGMENT_ORDER})
+            for key in JUDGMENT_ORDER:
+                color = JUDGMENT_DEFS[key]["color"]
+                text = self._get_text_texture(f"{key:<10} {opp_judgments.get(key, 0):>4}", False, color, size_override=self._s(22))
+                text.alpha = 255
+                self.renderer.blit(text, pygame.Rect(p2_x, y_p2, text.width, text.height))
+                y_p2 += self._s(32)
+            
+            y_p2 += self._s(20)
+            ai_score_txt = self._get_text_texture(_t("score_label").format(val=f"{score_ai:,}"), True, (255, 100, 100), size_override=self._s(32))
+            ai_score_txt.alpha = 255
+            self.renderer.blit(ai_score_txt, pygame.Rect(p2_x, y_p2, ai_score_txt.width, ai_score_txt.height))
+            y_p2 += self._s(40)
+            ai_ex_text = self._get_text_texture(_t("ex_label").format(ex=ex_ai, max=max_ex, pct=f"{ratio_ai*100:.1f}"), False, (255, 200, 200), size_override=self._s(20))
+            ai_ex_text.alpha = 255
+            self.renderer.blit(ai_ex_text, pygame.Rect(p2_x, y_p2, ai_ex_text.width, ai_ex_text.height))
 
         # ── Analytics Graphs (Timing Scatter Plot) ──
-        graph_x = self._sx(400)
-        graph_y = self._s(100)
-        graph_w = self.width - graph_x - self._sx(50)
-        graph_h = self.height - graph_y - self._s(100) # Enlarged to fill space
-        
-        # Timing Scatter Plot Box (Semi-transparent)
-        self.renderer.draw_color = (20, 20, 30, 150) # Darker, semi-transparent
-        self.renderer.fill_rect((graph_x, graph_y, graph_w, graph_h))
-        
-        # Border
-        self.renderer.draw_color = (255, 255, 255, 40)
-        self.renderer.draw_rect((graph_x, graph_y, graph_w, graph_h))
-        
-        # Perfect Line
-        self.renderer.draw_color = (255, 255, 255, 60)
-        self.renderer.draw_line((graph_x, graph_y + graph_h // 2), (graph_x + graph_w, graph_y + graph_h // 2))
-        
-        # Label
-        t_label = self._get_text_texture(_t("hit_timing"), True, (200, 200, 200), size_override=self._s(16))
-        t_label.alpha = 180
-        self.renderer.blit(t_label, pygame.Rect(graph_x + self._sx(10), graph_y + self._s(5), t_label.width, t_label.height))
+        if stats['mode'] != 'online_multi':
+            graph_x = self._sx(400)
+            graph_y = self._s(100)
+            graph_w = self.width - graph_x - self._sx(50)
+            graph_h = self.height - graph_y - self._s(100) # Enlarged to fill space
+            
+            # Timing Scatter Plot Box (Semi-transparent)
+            self.renderer.draw_color = (20, 20, 30, 150) # Darker, semi-transparent
+            self.renderer.fill_rect((graph_x, graph_y, graph_w, graph_h))
+            
+            # Border
+            self.renderer.draw_color = (255, 255, 255, 40)
+            self.renderer.draw_rect((graph_x, graph_y, graph_w, graph_h))
+            
+            # Perfect Line
+            self.renderer.draw_color = (255, 255, 255, 60)
+            self.renderer.draw_line((graph_x, graph_y + graph_h // 2), (graph_x + graph_w, graph_y + graph_h // 2))
+            
+            # Label
+            t_label = self._get_text_texture(_t("hit_timing"), True, (200, 200, 200), size_override=self._s(16))
+            t_label.alpha = 180
+            self.renderer.blit(t_label, pygame.Rect(graph_x + self._sx(10), graph_y + self._s(5), t_label.width, t_label.height))
 
-        max_time = stats.get('max_time', 1)
-        max_err = 200 # Fixed scale +/- 200ms
-        
-        def draw_hits(history, color_scale=1.0, size=2):
-            for t_hit, err, key in history:
-                if key == "MISS": continue
-                gx = graph_x + int((t_hit / max_time) * graph_w)
-                gy = graph_y + graph_h // 2 + int((err / max_err) * (graph_h // 2))
-                if graph_x <= gx < graph_x + graph_w and graph_y <= gy < graph_y + graph_h:
-                    c = JUDGMENT_DEFS[key]["color"]
-                    self.renderer.draw_color = (c[0], c[1], c[2], int(200 * color_scale))
-                    self.renderer.fill_rect((gx - size//2, gy - size//2, size, size))
+            max_time = stats.get('max_time', 1)
+            max_err = 200 # Fixed scale +/- 200ms
+            
+            def draw_hits(history, color_scale=1.0, size=2):
+                for t_hit, err, key in history:
+                    if key == "MISS": continue
+                    gx = graph_x + int((t_hit / max_time) * graph_w)
+                    gy = graph_y + graph_h // 2 + int((err / max_err) * (graph_h // 2))
+                    if graph_x <= gx < graph_x + graph_w and graph_y <= gy < graph_y + graph_h:
+                        c = JUDGMENT_DEFS[key]["color"]
+                        self.renderer.draw_color = (c[0], c[1], c[2], int(200 * color_scale))
+                        self.renderer.fill_rect((gx - size//2, gy - size//2, size, size))
 
-        if stats.get('ai_hit_history'):
-            draw_hits(stats['ai_hit_history'], color_scale=0.4, size=1)
-        draw_hits(stats.get('hit_history', []))
+            if stats.get('ai_hit_history'):
+                draw_hits(stats['ai_hit_history'], color_scale=0.4, size=1)
+            draw_hits(stats.get('hit_history', []))
 
         f_info = self._get_text_texture(_t("return_hint"), False, (150, 150, 150), size_override=self._s(18))
         f_info.alpha = 255

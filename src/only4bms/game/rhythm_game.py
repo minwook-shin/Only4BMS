@@ -14,7 +14,7 @@ from .renderer import GameRenderer
 
 class RhythmGame:
     def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, measures=None, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal', note_mod='None',
-                 course_hp=None, course_hp_max=100.0, course_modifier=None, challenge_manager=None):
+                 course_hp=None, course_hp_max=100.0, course_modifier=None, challenge_manager=None, p1_modifiers=None, p1_buffs=None, p1_debuffs=None):
         self.mode = mode
         self.ai_difficulty = ai_difficulty
         self.renderer = renderer
@@ -47,6 +47,25 @@ class RhythmGame:
         self.lanes_compressed = self.metadata.get('lanes_compressed', False)
         self.used_dfjk       = self.settings.get('keybinds', ['d', 'f', 'j', 'k']) == ['d', 'f', 'j', 'k']
         
+        # Merge network buffs/debuffs into course_modifier logic
+        if p1_buffs or p1_debuffs:
+            if self.course_modifier is None:
+                self.course_modifier = []
+            for buff in (p1_buffs or []):
+                val = buff.lower()
+                if not val.startswith("buff_"): val = f"buff_{val}"
+                self.course_modifier.append((val, 1))
+            for debuff in (p1_debuffs or []):
+                val = debuff.lower()
+                if not val.startswith("debuff_"): val = f"debuff_{val}"
+                self.course_modifier.append((val, 1))
+        
+        # Override note_mod if network modifiers insist
+        if p1_modifiers:
+            p1_mods = [m.lower() for m in p1_modifiers]
+            if "random" in p1_mods: note_mod = "Random"
+            elif "mirror" in p1_mods: note_mod = "Mirror"
+        
         # Deepcopy notes so modifications like Mirror/Random don't persist across restarts
         notes = copy.deepcopy(notes_orig)
         
@@ -69,7 +88,7 @@ class RhythmGame:
         if self.mode == 'single':
             start_x = (self.width - self.lane_total_w) // 2
             self.lane_x = [start_x + i * self.lane_w for i in range(NUM_LANES)]
-        else: # ai_multi
+        else: # ai_multi or online_multi
             p1_start_x = self.width // 4 - self.lane_total_w // 2
             self.p1_lane_x = [p1_start_x + i * self.lane_w for i in range(NUM_LANES)]
             p2_start_x = (self.width * 3) // 4 - self.lane_total_w // 2
@@ -113,6 +132,12 @@ class RhythmGame:
             self.ai_notes = [n.copy() for n in notes] # Lighter than deepcopy, enough for note modification
             self.ai_engine = GameEngine(self.ai_notes, [], [], self.hw_mult, lambda s: None, self.set_ai_judgment, max_time, visual_timing_map, last_note_time, self.on_ai_ln_tick)
             self.ai_lane_pressed = [False] * NUM_LANES
+        elif self.mode == 'online_multi':
+            from ..core.network_manager import NetworkManager
+            self.net = NetworkManager()
+            self.ai_notes = [n.copy() for n in notes]
+            self.ai_engine = GameEngine(self.ai_notes, [], [], self.hw_mult, lambda s: None, lambda *args: None, max_time, visual_timing_map, last_note_time, lambda *args: None)
+            self.ai_lane_pressed = [False] * NUM_LANES
         
         # Calculate total judgments (LN counts twice: hit + release)
         self.total_judgments = sum(2 if n.get('is_ln') else 1 for n in notes)
@@ -149,7 +174,7 @@ class RhythmGame:
         self.effects = []
         self.needs_restart = False
 
-        if self.mode == 'ai_multi':
+        if self.mode in ('ai_multi', 'online_multi'):
             self.ai_judgments = {k: 0 for k in JUDGMENT_ORDER}
             self.ai_combo = 0
             self.ai_max_combo = 0
@@ -199,6 +224,10 @@ class RhythmGame:
             self.combo_timer = t
         elif key == "MISS":
             self.combo = 0
+            
+        if self.mode == 'online_multi':
+            self.net.send_score(self.judgments, self.combo)
+            
         if lane is not None:
             eff_skin = self.note_skin if self.note_skin != 'default' else 'default'
             self.effects.append({
@@ -435,11 +464,30 @@ class RhythmGame:
                     accumulator = 0 # Drop frames if we can't keep up
                     break 
             
-            # 1c. Separate AI Update (Throttled to 120Hz)
+            # 1c. Separate AI/Network Update
             if self.mode == 'ai_multi' and self.state == "PLAYING":
                 if t_now - self.ai_update_timer >= self.ai_dt:
                     sim_time_ms = (t_now - self.start_time) * 1000.0
                     self._update_ai(sim_time_ms)
+                    self.ai_update_timer = t_now
+            elif self.mode == 'online_multi' and self.state == "PLAYING":
+                if t_now - self.ai_update_timer >= self.ai_dt:
+                    sim_time_ms = (t_now - self.start_time) * 1000.0
+                    self.ai_engine.update(sim_time_ms)
+                    if self.net.opponent_state:
+                        self.ai_judgments = self.net.opponent_state.get('judgments', self.ai_judgments)
+                        new_combo = self.net.opponent_state.get('combo', self.ai_combo)
+                        if new_combo > self.ai_combo:
+                            self.ai_judgment_text = "HIT"
+                            self.ai_judgment_color = (0, 255, 255)
+                            self.ai_judgment_timer = sim_time_ms
+                        elif new_combo == 0 and self.ai_combo > 0:
+                            self.ai_judgment_text = "MISS"
+                            self.ai_judgment_color = (255, 0, 0)
+                            self.ai_judgment_timer = sim_time_ms
+                        self.ai_combo = new_combo
+                        self.ai_max_combo = max(self.ai_max_combo, self.ai_combo)
+                        self.net.opponent_state = None
                     self.ai_update_timer = t_now
             
             # 2. Render Loop (Capped)
@@ -459,8 +507,8 @@ class RhythmGame:
                                     'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
                                     'note_type': self.note_type, 'skin': eff_skin
                                 })
-                        # AI LN effects at half frequency (every 8 frames)
-                        if self.mode == 'ai_multi' and self.frame_count % 8 == 0:
+                        # AI/Opponent LN effects at half frequency (every 8 frames)
+                        if self.mode in ('ai_multi', 'online_multi') and self.frame_count % 8 == 0:
                             for lane, note in enumerate(self.ai_engine.held_lns):
                                 if note:
                                     self.effects.append({
@@ -501,7 +549,7 @@ class RhythmGame:
         accuracy = (p1_ex / max_ex) * 100.0
         
         ai_p1_ex = getattr(self, 'ai_judgments', {}).get("PERFECT", 0) * 2 + getattr(self, 'ai_judgments', {}).get("GREAT", 0)
-        ai_acc = (ai_p1_ex / max_ex) * 100.0 if self.mode == 'ai_multi' else 0.0
+        ai_acc = (ai_p1_ex / max_ex) * 100.0 if self.mode in ('ai_multi', 'online_multi') else 0.0
         
         return {
             'mode': self.mode,
@@ -514,17 +562,17 @@ class RhythmGame:
             'total_score': p1_ex,
             'total_notes': len(self.engine.notes),
             'failed': self.course_failed,
-            'ai_paused': self.ai_paused,
-            'ai_restarted': self.ai_restarted,
-            'speed_changed': self.speed_changed,
-            'first_note_miss': self.first_note_miss,
+            'ai_paused': getattr(self, 'ai_paused', False),
+            'ai_restarted': getattr(self, 'ai_restarted', False),
+            'speed_changed': getattr(self, 'speed_changed', False),
+            'first_note_miss': getattr(self, 'first_note_miss', False),
             'lanes_compressed': self.lanes_compressed,
             'used_dfjk': self.used_dfjk,
             'used_mod': getattr(self, 'used_mod', False),
             'note_mod': getattr(self, 'note_mod', 'None'),
             'has_ln': getattr(self, 'has_ln', False),
-            'ai_diff': self.ai_difficulty,
-            'must_win': (self.mode == 'ai_multi' and p1_ex > ai_p1_ex),
+            'ai_diff': getattr(self, 'ai_difficulty', 'normal'),
+            'must_win': (self.mode in ('ai_multi', 'online_multi') and p1_ex > ai_p1_ex),
             'ai_judgments': getattr(self, 'ai_judgments', None),
             'ai_max_combo': getattr(self, 'ai_max_combo', 0),
             'newly_completed': self.newly_completed
@@ -561,7 +609,7 @@ class RhythmGame:
         
         # Effects Rendering (Handles both P1 and AI effects)
         all_lanes = self.lane_x
-        if self.mode == 'ai_multi':
+        if self.mode in ('ai_multi', 'online_multi'):
             all_lanes = self.p1_lane_x + self.p2_lane_x
         self.game_renderer.draw_effects(self.effects, all_lanes, self.lane_w)
 
@@ -582,17 +630,17 @@ class RhythmGame:
         if self.mode == 'single':
             gx = self.lane_x[0] - gw - self.game_renderer._sx(10)
             self.game_renderer.draw_vertical_gauge(gx, gy, gw, gh, p1_ratio, (0, 255, 255), ga)
-        else: # ai_multi
+        else: # ai_multi or online_multi
             # Player Gauge (Right of Player lanes, Center)
             gx_p1 = self.p1_lane_x[-1] + self.lane_w + self.game_renderer._sx(5)
             self.game_renderer.draw_vertical_gauge(gx_p1, gy, gw, gh, p1_ratio, (0, 255, 255), ga)
             
-            # AI View
+            # Opponent View
             ai_state = self._get_draw_state('ai', t)
             self.game_renderer.draw_playing(t, ai_state)
             self.game_renderer.draw_score_bar(self.judgments, self.ai_judgments)
 
-            # AI Gauge (Left of AI lanes, Center)
+            # Opponent Gauge (Left of Opponent lanes, Center)
             ai_ex = self.ai_judgments["PERFECT"] * 2 + self.ai_judgments["GREAT"] * 1
             ai_ratio = min(1.0, ai_ex / max_ex)
             gx_ai = self.p2_lane_x[0] - gw - self.game_renderer._sx(5)
@@ -601,7 +649,7 @@ class RhythmGame:
     def _get_draw_state(self, side, t):
         d = self._draw_state_cache[side]
         if side == 'p1':
-            d['lane_x'] = self.p1_lane_x if self.mode == 'ai_multi' else self.lane_x
+            d['lane_x'] = self.p1_lane_x if self.mode in ('ai_multi', 'online_multi') else self.lane_x
             d['notes'] = self.engine.notes
             d['note_idx'] = self.engine.note_idx
             d['lane_pressed'] = self.lane_pressed
@@ -629,7 +677,7 @@ class RhythmGame:
             d['course_hp']       = self.course_hp
             d['course_hp_max']   = self.course_hp_max
             d['course_modifier'] = self.course_modifier
-            if self.mode == 'ai_multi':
+            if self.mode in ('ai_multi', 'online_multi'):
                 d['ai_judgments'] = self.ai_judgments
                 d['ai_hit_history'] = self.ai_hit_history
         else:  # side == 'ai'
@@ -719,6 +767,7 @@ class RhythmGame:
         self.game_renderer.draw_result(stats, t)
 
     def _apply_note_mod(self, notes, mod):
+        print(f"DEBUG: _apply_note_mod called with mod={mod}")
         if mod == 'Mirror':
             for n in notes:
                 n['lane'] = (NUM_LANES - 1) - n['lane']

@@ -20,7 +20,10 @@ dependencies = [
     "torch>=2.0.0",
     "numpy<2.0",
     "shimmy",
-    "pyinstaller"
+    "pyinstaller",
+    "requests",
+    "python-socketio",
+    "websocket-client"
 ]
 
 # 2. 깃허브 및 관련 링크 추가
