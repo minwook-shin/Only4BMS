@@ -56,19 +56,23 @@ def generate_random_course(duration_ms, out_path, template_dir, difficulty="BEGI
     if not os.path.exists(os.path.dirname(out_path)):
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
-    # Force regeneration of key_tap if we want to hear the new sound
+    # Force regeneration of all procedural WAV assets so volume changes take effect
+    for wav_name in ("key_tap.wav", "kick_soft.wav", "snare_soft.wav", "hat_soft.wav"):
+        wav_path = os.path.join(template_dir, wav_name)
+        if os.path.exists(wav_path):
+            try: os.remove(wav_path)
+            except: pass
     tap_path = os.path.join(template_dir, "key_tap.wav")
-    if os.path.exists(tap_path):
-        try: os.remove(tap_path)
-        except: pass
 
     # Generate procedural WAV assets if they don't exist
-    _generate_wav(os.path.join(template_dir, "kick_soft.wav"), 80, 0.5, 'kick', volume=0.4)
-    _generate_wav(os.path.join(template_dir, "snare_soft.wav"), 400, 0.3, 'noise', volume=0.15)
-    _generate_wav(os.path.join(template_dir, "hat_soft.wav"), 800, 0.1, 'noise', volume=0.08)
-    
-    # Improved keyboard-like clack (sharper attack, lower volume)
-    _generate_wav(tap_path, 2500, 0.05, 'clack', volume=0.12)
+    # Volume levels match typical BMS WAV files (~1.0 peak) so that
+    # the in-game volume slider controls perceived loudness correctly.
+    _generate_wav(os.path.join(template_dir, "kick_soft.wav"), 80, 0.5, 'kick', volume=0.9)
+    _generate_wav(os.path.join(template_dir, "snare_soft.wav"), 400, 0.3, 'noise', volume=0.7)
+    _generate_wav(os.path.join(template_dir, "hat_soft.wav"), 800, 0.1, 'noise', volume=0.5)
+
+    # Keyboard-like clack for key tap feedback
+    _generate_wav(tap_path, 2500, 0.05, 'clack', volume=0.8)
 
     has_ln = False
     has_sv = False
