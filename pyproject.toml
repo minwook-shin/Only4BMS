@@ -22,7 +22,6 @@ dependencies = [
     "shimmy",
     "pyinstaller",
     "requests",
-    "python-socketio",
     "websocket-client"
 ]
 

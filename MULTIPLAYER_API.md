@@ -1,7 +1,7 @@
 # Only4BMS Multiplayer Server API
 
-This document describes the API and socket events required to build a custom online multiplayer server for Only4BMS.
-The server must support retrieving songs via HTTP and real-time syncing via Socket.IO.
+This document describes the API and WebSocket events required to build a custom online multiplayer server for Only4BMS.
+The server must support retrieving songs via HTTP and real-time syncing via WebSocket.
 
 ## 1. HTTP Endpoints
 
@@ -42,43 +42,59 @@ Returns the raw binary content of the requested file.
 
 ---
 
-## 2. Socket.IO Events
+## 2. WebSocket Events
 
-The game uses Socket.IO for real-time multiplayer logic.
+The game uses a WebSocket connection at `/ws` for real-time multiplayer logic.
+All messages are JSON strings with a `"type"` field indicating the event type.
 
-### Client -> Server Events
+### Client -> Server Messages
 
 *   `join`: Client connects to the lobby.
-    *   Payload: `{ "name": "Player 1", "password": "optional_server_password" }`
-*   `select_song`: Host (Player 1) selects a song and a specific difficulty (BMS file), alongside match settings.
-    *   Payload: `{ "song_id": "song_01", "bms_file": "hard.bms", "match_settings": {"speed": 2.0, "modifiers": ["RANDOM"]} }`
+    ```json
+    { "type": "join", "name": "Player 1", "password": "optional_server_password" }
+    ```
+*   `select_song`: Host selects a song and a specific difficulty (BMS file), alongside match settings.
+    ```json
+    { "type": "select_song", "song_id": "song_01", "bms_file": "hard.bms", "match_settings": {"speed": 2.0, "modifiers": ["RANDOM"]} }
+    ```
 *   `ready`: Client signals they have finished downloading the song and are ready to play.
-    *   Payload: `{}`
+    ```json
+    { "type": "ready" }
+    ```
 *   `sync_score`: Client sends their current game state continuously.
-    *   Payload: `{ "combo": 10, "judgments": {"PERFECT": 10, "GREAT": 0, "GOOD": 0, "MISS": 0} }`
+    ```json
+    { "type": "sync_score", "combo": 10, "judgments": {"PERFECT": 10, "GREAT": 0, "GOOD": 0, "MISS": 0} }
+    ```
 
-### Server -> Client Events
+### Server -> Client Messages
 
 *   `lobby_state`: Server broadcasts the current lobby status.
-    *   Payload: `{ "players": [{"id": 1, "name": "P1"}], "host_id": 1, "selected_song_id": "song_01", "selected_bms_file": "hard.bms" }`
+    ```json
+    { "type": "lobby_state", "players": [{"id": 1, "name": "P1"}], "host_id": 1, "selected_song_id": "song_01", "selected_bms_file": "hard.bms", "ready_players": [1] }
+    ```
 *   `start_game`: Server commands clients to begin the rhythm game scene.
-    *   Payload: 
-      ```json
-      { 
-        "start_time_offset": 3000, 
-        "song_id": "song_01", 
-        "bms_file": "hard.bms",
-        "match_settings": {
-            "speed": 5.0,
-            "skin": "GOLD",
-            "modifiers": ["RANDOM"],
-            "buffs": ["HP_BOOST"],
-            "debuffs": []
-        }
+    ```json
+    {
+      "type": "start_game",
+      "start_time_offset": 3000,
+      "match_settings": {
+        "speed": 5.0,
+        "modifiers": ["RANDOM"],
+        "buffs": ["HP_BOOST"],
+        "debuffs": []
       }
-      ```
-      (Wait 3000ms before first note, load specific chart, apply settings. If `match_settings` is omitted or values are missing, client will use local user preferences.)
+    }
+    ```
+    (Wait `start_time_offset` ms before first note. If `match_settings` is omitted or values are missing, client will use local user preferences.)
 *   `join_error`: Server rejects a join request (e.g., wrong password, full lobby).
-    *   Payload: `{ "message": "Invalid password" }`
+    ```json
+    { "type": "join_error", "message": "Invalid password" }
+    ```
+*   `join_success`: Server confirms a successful join.
+    ```json
+    { "type": "join_success", "player_id": 1, "host_id": 1 }
+    ```
 *   `opponent_score`: Server forwards the opponent's score to the client.
-    *   Payload: `{ "combo": 10, "judgments": {"PERFECT": 10, "GREAT": 0, "GOOD": 0, "MISS": 0} }`
+    ```json
+    { "type": "opponent_score", "combo": 10, "judgments": {"PERFECT": 10, "GREAT": 0, "GOOD": 0, "MISS": 0} }
+    ```
