@@ -1082,13 +1082,6 @@ class GameRenderer:
             t_tex.alpha = 255
             self.renderer.blit(t_tex, pygame.Rect(self.width // 2 - t_tex.width // 2, self._s(20), t_tex.width, t_tex.height))
 
-        # FAILED Stamp
-        if stats.get('failed'):
-            f_tex = self._get_text_texture(_t("failed_stamp"), True, (255, 50, 50), size_override=self._s(100))
-            f_tex.alpha = 180
-            # Center it, but slightly offset to look like a stamp
-            self.renderer.blit(f_tex, pygame.Rect(self.width // 2 - f_tex.width // 2 + self._sx(100), self.height // 2 - f_tex.height // 2, f_tex.width, f_tex.height))
-
         # ── Statistics Panel (Left) ──
         p1_x = self._sx(50)
         y = self._s(100)

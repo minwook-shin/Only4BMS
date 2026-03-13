@@ -3,7 +3,7 @@ import random
 import wave
 import numpy as np
 
-import only4bms.i18n as i18n
+from .i18n import t as _t
 
 # ── A minor pentatonic frequencies across octaves ──────────────────────────
 # A, C, D, E, G
@@ -222,28 +222,28 @@ def generate_random_course(duration_ms, out_path, template_dir, difficulty="BEGI
 
     if difficulty == "BEGINNER":
         bpm = random.randint(80, 110)
-        desc_str = i18n.get("gen_beg_desc").format(bpm=bpm)
+        desc_str = _t("gen_beg_desc").format(bpm=bpm)
     elif difficulty == "INTERMEDIATE":
         bpm = random.randint(120, 160)
         has_ln = random.random() < 0.3
         has_sv = False
-        desc_str = i18n.get("gen_int_desc").format(bpm=bpm)
+        desc_str = _t("gen_int_desc").format(bpm=bpm)
     elif difficulty == "ADVANCED":
         bpm = random.randint(160, 200)
         has_ln = random.random() < 0.5
         has_sv = random.random() < 0.4
-        desc_str = i18n.get("gen_adv_desc").format(bpm=bpm)
+        desc_str = _t("gen_adv_desc").format(bpm=bpm)
     elif difficulty == "ORDEAL":
         bpm = random.randint(180, 220)
         has_ln = True
         has_sv = True
-        desc_str = i18n.get("gen_ord_desc").format(bpm=bpm)
+        desc_str = _t("gen_ord_desc").format(bpm=bpm)
     else:
         bpm = 150
-        desc_str = i18n.get("gen_custom_trial").format(bpm=bpm)
+        desc_str = _t("gen_custom_trial").format(bpm=bpm)
 
-    if has_ln: desc_str += i18n.get("gen_ln")
-    if has_sv: desc_str += i18n.get("gen_sv")
+    if has_ln: desc_str += _t("gen_ln")
+    if has_sv: desc_str += _t("gen_sv")
 
     header = f"""#PLAYER 1
 #GENRE AI COURSE ({difficulty})

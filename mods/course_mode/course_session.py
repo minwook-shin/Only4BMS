@@ -423,7 +423,7 @@ class CourseSession:
         f_sm = i18n.font("menu_small", sy)
 
         t1 = f1.render(
-            i18n.get("loading").format(status=i18n.get("status_gen_bms")),
+            i18n.get("loading").format(status=_ct("status_gen_bms")),
             True, (0, 255, 200))
         surf.blit(t1, ((W - t1.get_width()) // 2, H // 2 - int(sy * 40)))
 

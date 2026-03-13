@@ -202,13 +202,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Complete an Advanced or higher course.",
         
         
-        "gen_beg_desc": "Absolute Novice (BPM {bpm})",
-        "gen_int_desc": "Mixed Beginner/Int Patterns (BPM {bpm})",
-        "gen_adv_desc": "Advanced Streams (BPM {bpm})",
-        "gen_ord_desc": "The Final Trial (BPM {bpm})",
-        "gen_custom_trial": "Custom Trial (BPM {bpm})",
-        "gen_ln": ", w/ LNs",
-        "gen_sv": ", w/ SV Gimmicks",
         
         "key_label": "Key",
         "joy_label": "Joy",
@@ -309,23 +302,12 @@ STRINGS = {
         "open_folder": "Open BMS Folder (O)",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "HP Regen Boost  (PERFECT recovers more)",
-        "buff_hp_regen":    "Double Recovery  (GREAT/PERFECT x2 regen)",
-        "buff_window_wide": "Wide Judgment  (+30% hit window)",
-        "buff_speed_slow":  "Slow Motion  (Speed x0.8 this stage)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "Fragile HP  (MISS drains x2)",
-        "debuff_window_tight":  "Tight Judgment  (-30% hit window)",
-        "debuff_speed_fast":    "Speed Rush  (Speed x1.3 this stage)",
-        "debuff_hp_drain":      "HP Drain  (Drain x1.5 / Regen x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "FAILED",
 
         # UI Labels
-        "status_gen_bms": "Procedural Music...",
-        "debuff_perfectionist": "Perfectionist (Judgments below PERFECT drain HP)",
         "ch_you_are_already_dead_title": "You Are Already Dead",
         "ch_you_are_already_dead_desc": "Select Hard AI Bot in AI Multiplayer.",
         "ch_vibe_coding_title": "Vibe Coding",
@@ -410,13 +392,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Advanced 이상의 코스를 완주하세요.",
         
         
-        "gen_beg_desc": "입문자용 정박 연습 (BPM {bpm})",
-        "gen_int_desc": "초중급 혼합 패턴 (BPM {bpm})",
-        "gen_adv_desc": "고급 폭타 패턴 (BPM {bpm})",
-        "gen_ord_desc": "최후의 시련 (BPM {bpm})",
-        "gen_custom_trial": "개별 시련 (BPM {bpm})",
-        "gen_ln": ", 롱노트 포함",
-        "gen_sv": ", 변속(Gimmick) 포함",
         
         "key_label": "키",
         "joy_label": "조이스틱",
@@ -509,23 +484,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "HP 재생 강화  (PERFECT 시 회복 증가)",
-        "buff_hp_regen":    "이중 회복  (GREAT/PERFECT 재생 x2)",
-        "buff_window_wide": "판정 완화  (판정 범위 +30%)",
-        "buff_speed_slow":  "슬로우 모션  (이번 판 속도 x0.8)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":   "취약 HP  (MISS 시 HP 감소 x2)",
-        "debuff_window_tight": "판정 강화  (판정 범위 -30%)",
-        "debuff_speed_fast":   "스피드 러시  (이번 판 속도 x1.3)",
-        "debuff_hp_drain":     "HP 소모  (감소 x1.5 / 회복 x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "실패",
 
         # UI Labels
-        "status_gen_bms": "곡 생성 중...",
-        "debuff_perfectionist": "완벽주의자 (PERFECT 미만 판정 시 HP 감소)",
         "ch_you_are_already_dead_title": "너는 이미 죽어있다",
         "ch_you_are_already_dead_desc": "AI 멀티 플레이에서 하드 봇을 선택하세요.",
         "ch_vibe_coding_title": "바이브 코딩",
@@ -610,13 +574,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Advanced以上のコースを完走する。",
         
         
-        "gen_beg_desc": "初心者向けの練習 (BPM {bpm})",
-        "gen_int_desc": "初・中級混合パターン (BPM {bpm})",
-        "gen_adv_desc": "上級乱打パターン (BPM {bpm})",
-        "gen_ord_desc": "最終試練 (BPM {bpm})",
-        "gen_custom_trial": "カスタム試練 (BPM {bpm})",
-        "gen_ln": "、LNあり",
-        "gen_sv": "、ソフランあり",
         
         "key_label": "キー",
         "joy_label": "ジョイ",
@@ -710,23 +667,12 @@ STRINGS = {
         "open_folder": "Open BMS Folder (O)",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "HP回復強化 (PERFECT時の回復量アップ)",
-        "buff_hp_regen":    "ダブル回復 (GREAT/PERFECTの回復量2倍)",
-        "buff_window_wide": "判定緩和 (判定範囲+30%)",
-        "buff_speed_slow":  "スローモーション (このステージの速度x0.8)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "脆いHP (MISS時の減少量2倍)",
-        "debuff_window_tight":  "判定強化 (判定範囲-30%)",
-        "debuff_speed_fast":    "スピードラッシュ (このステージの速度x1.3)",
-        "debuff_hp_drain":      "HPドレイン (減少量x1.5 / 回復量x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "不合格",
 
         # UI Labels
-        "status_gen_bms": "曲を生成中...",
-        "debuff_perfectionist": "完璧主義 (PERFECT未満の判定でHP減少)",
         "ch_you_are_already_dead_title": "お前はもう死んでいる",
         "ch_you_are_already_dead_desc": "AIマルチプレイでHard AI Botを選択する。",
         "ch_vibe_coding_title": "バイブコーディング",
@@ -810,13 +756,6 @@ STRINGS = {
         "ch_course_advanced_desc": "完成 Advanced 或更难的课程。",
         
         
-        "gen_beg_desc": "入门者正拍练习 (BPM {bpm})",
-        "gen_int_desc": "初中级混合模式 (BPM {bpm})",
-        "gen_adv_desc": "高级乱打模式 (BPM {bpm})",
-        "gen_ord_desc": "最终试练 (BPM {bpm})",
-        "gen_custom_trial": "自定义试练 (BPM {bpm})",
-        "gen_ln": "，含长音符",
-        "gen_sv": "，含变速",
         
         "key_label": "按键",
         "joy_label": "手柄",
@@ -908,23 +847,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "HP恢复强化 (PERFECT恢复更多)",
-        "buff_hp_regen":    "双倍恢复 (GREAT/PERFECT 两倍回复)",
-        "buff_window_wide": "判定宽松 (判定范围+30%)",
-        "buff_speed_slow":  "慢动作 (本关速度x0.8)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "脆皮HP (MISS时扣血x2)",
-        "debuff_window_tight":  "判定严苛 (判定范围-30%)",
-        "debuff_speed_fast":    "极速冲刺 (本关速度x1.3)",
-        "debuff_hp_drain":      "HP流失 (流失x1.5 / 回复x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "失败",
 
         # UI Labels
-        "status_gen_bms": "正在生成曲目...",
-        "debuff_perfectionist": "完美主义 (PERFECT以下判定扣除HP)",
         "ch_you_are_already_dead_title": "你已经死了",
         "ch_you_are_already_dead_desc": "在AI对战中选择困难AI机器人。",
         "ch_vibe_coding_title": "氛围编程",
@@ -1009,13 +937,6 @@ STRINGS = {
         "ch_course_advanced_desc": "เล่นจบโหมดคอร์ส Advanced ขึ้นไป",
 
         
-        "gen_beg_desc": "ฝึกจับจังหวะพื้นฐาน (BPM {bpm})",
-        "gen_int_desc": "รวมรูปแบบพื้นฐาน (BPM {bpm})",
-        "gen_adv_desc": "รวมรูปแบบระดับสูง (BPM {bpm})",
-        "gen_ord_desc": "บททดสอบสุดท้าย (BPM {bpm})",
-        "gen_custom_trial": "บททดสอบแบบปรับแต่ง (BPM {bpm})",
-        "gen_ln": ", มีโน้ตยาว",
-        "gen_sv": ", มีเปลี่ยนความเร็ว",
         
         "key_label": "คีย์",
         "joy_label": "จอย",
@@ -1108,23 +1029,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "เพิ่มการฟื้นฟู HP (PERFECT ฟื้นฟูมากขึ้น)",
-        "buff_hp_regen":    "ฟื้นฟูสองเท่า (GREAT/PERFECT สองเท่า回复)",
-        "buff_window_wide": "ขยายช่วงคำตัดสิน (ช่วงคำตัดสิน +30%)",
-        "buff_speed_slow":  "สโลว์โมชั่น (ความเร็ว x0.8 ในด่านนี้)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "HP เปราะบาง (MISS ลด HP x2)",
-        "debuff_window_tight":  "กระชับช่วงคำตัดสิน (ช่วงคำตัดสิน -30%)",
-        "debuff_speed_fast":    "เพิ่มความเร็ว (ความเร็ว x1.3 ในด่านนี้)",
-        "debuff_hp_drain":      "HP ลดลง (ลด x1.5 / ฟื้นฟู x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "ไม่ผ่าน",
 
         # UI Labels
-        "status_gen_bms": "กำลังสร้างเพลง...",
-        "debuff_perfectionist": "เน้นสมบูรณ์แบบ (คำตัดสินต่ำกว่า PERFECT จะลด HP)",
         "ch_you_are_already_dead_title": "เจ้าตายแล้ว",
         "ch_you_are_already_dead_desc": "เลือก AI Bot ระดับ Hard ในการเล่นกับ AI",
         "ch_vibe_coding_title": "Vibe Coding",
@@ -1209,13 +1119,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Complete um curso Advanced ou superior.",
 
         
-        "gen_beg_desc": "Prática Básica (BPM {bpm})",
-        "gen_int_desc": "Padrões Clássicos (BPM {bpm})",
-        "gen_adv_desc": "Avançado Streams (BPM {bpm})",
-        "gen_ord_desc": "A Provação Final (BPM {bpm})",
-        "gen_custom_trial": "Provação Personalizada (BPM {bpm})",
-        "gen_ln": ", Notas longas",
-        "gen_sv": ", Mudanças Gimmick",
         
         "key_label": "Tecla",
         "joy_label": "Joy",
@@ -1308,23 +1211,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "Aumento de Regen de HP (PERFECT recupera mais)",
-        "buff_hp_regen":    "Recuperação Dupla (GREAT/PERFECT x2 regen)",
-        "buff_window_wide": "Julgamento Amplo (+30% janela de acerto)",
-        "buff_speed_slow":  "Câmera Lenta (Velocidade x0.8 nesta fase)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "HP Frágil (MISS drena x2)",
-        "debuff_window_tight":  "Julgamento Rigoroso (-30% janela de acerto)",
-        "debuff_speed_fast":    "Corrida de Velocidade (Velocidade x1.3 nesta fase)",
-        "debuff_hp_drain":      "Dreno de HP (Dreno x1.5 / Regen x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "FALHOU",
 
         # UI Labels
-        "status_gen_bms": "Música Procedural...",
-        "debuff_perfectionist": "Perfeccionista (Julgamentos abaixo de PERFECT drenam HP)",
         "ch_you_are_already_dead_title": "Você já está morto",
         "ch_you_are_already_dead_desc": "Selecione o Robô IA Difícil no Multijogador IA.",
         "ch_vibe_coding_title": "Vibe Coding",
@@ -1408,13 +1300,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Selesaikan kursus Advanced atau lebih sulit.",
 
         
-        "gen_beg_desc": "Ketukan Lambat Pemula (BPM {bpm})",
-        "gen_int_desc": "Campuran Menengah (BPM {bpm})",
-        "gen_adv_desc": "Lanjutan Streams (BPM {bpm})",
-        "gen_ord_desc": "Ujian Terakhir (BPM {bpm})",
-        "gen_custom_trial": "Ujian Kustom (BPM {bpm})",
-        "gen_ln": ", Notes Panjang",
-        "gen_sv": ", Perubahan Tempo Gimmick",
         
         "key_label": "Tombol",
         "joy_label": "Joy",
@@ -1507,23 +1392,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "Peningkatan Regenerasi HP (PERFECT memulihkan lebih banyak)",
-        "buff_hp_regen":    "Pemulihan Ganda (GREAT/PERFECT regenerasi x2)",
-        "buff_window_wide": "Penilaian Longgar (+30% jendela ketukan)",
-        "buff_speed_slow":  "Gerak Lambat (Kecepatan x0.8 di tahap ini)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "HP Rapuh (MISS menguras x2)",
-        "debuff_window_tight":  "Penilaian Ketat (-30% jendela ketukan)",
-        "debuff_speed_fast":    "Kecepatan Tinggi (Kecepatan x1.3 di tahap ini)",
-        "debuff_hp_drain":      "Penyusutan HP (Penyusutan x1.5 / Regenerasi x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "GAGAL",
 
         # UI Labels
-        "status_gen_bms": "Música Procedural...",
-        "debuff_perfectionist": "Perfeksionis (Penilaian di bawah PERFECT menguras HP)",
         "ch_you_are_already_dead_title": "Kamu Sudah Mati",
         "ch_you_are_already_dead_desc": "Pilih Bot AI Sulit di Multi Pemain AI.",
         "ch_vibe_coding_title": "Vibe Coding",
@@ -1607,13 +1481,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Completa un curso Advanced o superior.",
 
         
-        "gen_beg_desc": "Batería Novice (BPM {bpm})",
-        "gen_int_desc": "Mix Intermedio (BPM {bpm})",
-        "gen_adv_desc": "Avalancha Avanzada (BPM {bpm})",
-        "gen_ord_desc": "El Juicio Final (BPM {bpm})",
-        "gen_custom_trial": "Juicio Personalizado (BPM {bpm})",
-        "gen_ln": ", con Notas Largas",
-        "gen_sv": ", con Cambios de Velocidad",
         
         "key_label": "Tecla",
         "joy_label": "Joy",
@@ -1706,23 +1573,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "Aumento de Regeneración HP (PERFECT recupera más)",
-        "buff_hp_regen":    "Recuperación Doble (GREAT/PERFECT x2 regen)",
-        "buff_window_wide": "Juicio Amplio (+30% ventana de acierto)",
-        "buff_speed_slow":  "Cámara Lenta (Velocidade x0.8 en esta fase)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "HP Frágil (MISS drena x2)",
-        "debuff_window_tight":  "Juicio Estricto (-30% ventana de acierto)",
-        "debuff_speed_fast":    "Ataque Rápido (Velocidade x1.3 en esta fase)",
-        "debuff_hp_drain":      "Drenaje de HP (Drenaje x1.5 / Regen x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "FALLIDO",
 
         # UI Labels
-        "status_gen_bms": "Música Procedural...",
-        "debuff_perfectionist": "Perfeccionista (Juicios por debajo de PERFECT drenan HP)",
         "ch_you_are_already_dead_title": "Ya estás muerto",
         "ch_you_are_already_dead_desc": "Selecciona el Bot IA Difícil en el Multijugador IA.",
         "ch_vibe_coding_title": "Vibe Coding",
@@ -1806,13 +1662,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Termine un parcours Advanced ou supérieur.",
 
         
-        "gen_beg_desc": "Rythmes lents (BPM {bpm})",
-        "gen_int_desc": "Mix Intermédiaire (BPM {bpm})",
-        "gen_adv_desc": "Chute de notes (BPM {bpm})",
-        "gen_ord_desc": "L'Épreuve Finale (BPM {bpm})",
-        "gen_custom_trial": "Épreuve Personnalisée (BPM {bpm})",
-        "gen_ln": ", avec notes longues",
-        "gen_sv": ", et gimmicks de vitesse",
         
         "key_label": "Touche",
         "joy_label": "Joy",
@@ -1905,23 +1754,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "Boost de Régén HP (PERFECT récupère plus)",
-        "buff_hp_regen":    "Double Récupération (GREAT/PERFECT x2 régén)",
-        "buff_window_wide": "Jugement Large (+30% fenêtre de frappe)",
-        "buff_speed_slow":  "Ralenti (Vitesse x0.8 pour ce stage)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "HP Fragile (MISS draine x2)",
-        "debuff_window_tight":  "Jugement Serré (-30% fenêtre de frappe)",
-        "debuff_speed_fast":    "Course Rapide (Vitesse x1.3 pour ce stage)",
-        "debuff_hp_drain":      "Drain de HP (Drain x1.5 / Régén x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "ÉCHEC",
 
         # UI Labels
-        "status_gen_bms": "Musique Procédurale...",
-        "debuff_perfectionist": "Perfectionniste (Jugements sous PERFECT drainent les HP)",
         "ch_you_are_already_dead_title": "Tu es déjà mort",
         "ch_you_are_already_dead_desc": "Sélectionnez l'IA difficile en multijoueur IA.",
         "ch_vibe_coding_title": "Vibe Coding",
@@ -2005,13 +1843,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Completa un corso Advanced o superiore.",
 
         
-        "gen_beg_desc": "Facile Principiante (BPM {bpm})",
-        "gen_int_desc": "Miscela Intermedia (BPM {bpm})",
-        "gen_adv_desc": "Avanzato Intenso (BPM {bpm})",
-        "gen_ord_desc": "Il Giudizio Finale (BPM {bpm})",
-        "gen_custom_trial": "Giudizio Personalizzato (BPM {bpm})",
-        "gen_ln": ", con Note Lunghe",
-        "gen_sv": ", con Variazioni BPM",
         
         "key_label": "Tasto",
         "joy_label": "Joy",
@@ -2104,23 +1935,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "Potenziamento Rigenerazione HP (PERFECT recupera di più)",
-        "buff_hp_regen":    "Recupero Doppio (GREAT/PERFECT x2 rigenerazione)",
-        "buff_window_wide": "Giudizio Ampio (+30% finestra di battuta)",
-        "buff_speed_slow":  "Rallentatore (Velocità x0.8 in questo stage)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "HP Fragili (MISS sottrae x2)",
-        "debuff_window_tight":  "Giudizio Severo (-30% finestra di battuta)",
-        "debuff_speed_fast":    "Corsa Rapida (Velocità x1.3 in questo stage)",
-        "debuff_hp_drain":      "Drenaggio HP (Sottrazione x1.5 / Rigenerazione x0.5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "FALLITO",
 
         # UI Labels
-        "status_gen_bms": "Musica Procedurale...",
-        "debuff_perfectionist": "Perfezionista (Giudizi sotto PERFECT riducono HP)",
         "ch_you_are_already_dead_title": "Sei già morto",
         "ch_you_are_already_dead_desc": "Seleziona il Bot IA Difficile nel Multigiocatore IA.",
         "ch_vibe_coding_title": "Vibe Coding",
@@ -2205,13 +2025,6 @@ STRINGS = {
         "ch_course_advanced_desc": "Beende einen Advanced-Kurs.",
 
         
-        "gen_beg_desc": "Einstiegstakt Übung (BPM {bpm})",
-        "gen_int_desc": "Mittelstück Variationen (BPM {bpm})",
-        "gen_adv_desc": "Extremes Notenmuster (BPM {bpm})",
-        "gen_ord_desc": "Die Letzte Prüfung (BPM {bpm})",
-        "gen_custom_trial": "Eigene Prüfung (BPM {bpm})",
-        "gen_ln": ", mit langen Noten",
-        "gen_sv": ", Tempowechsel",
         
         "key_label": "Taste",
         "joy_label": "Joy",
@@ -2304,23 +2117,12 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # Course Mode – Buffs
-        "buff_hp_boost":    "HP-Regen-Boost (PERFECT stellt mehr wieder her)",
-        "buff_hp_regen":    "Doppelte Erholung (GREAT/PERFECT x2 Regen)",
-        "buff_window_wide": "Großzügiges Timing (+30% Trefferfenster)",
-        "buff_speed_slow":  "Zeitlupe (Geschwindigkeit x0,8 in dieser Stufe)",
 
         # Course Mode – Debuffs
-        "debuff_hp_fragile":    "Zerbrechliche HP (MISS zieht x2 ab)",
-        "debuff_window_tight":  "Strenge Bewertung (-30% Trefferfenster)",
-        "debuff_speed_fast":    "Geschwindigkeitsrausch (Geschwindigkeit x1,3 in dieser Stufe)",
-        "debuff_hp_drain":      "HP-Drain (Entzug x1,5 / Regen x0,5)",
 
         # Course Mode – Fail screen
-        "failed_stamp":     "FEHLGESCHLAGEN",
 
         # UI Labels
-        "status_gen_bms": "Musikprozedur...",
-        "debuff_perfectionist": "Perfektionist (Bewertungen unter PERFECT ziehen HP ab)",
         "ch_you_are_already_dead_title": "Du bist bereits tot",
         "ch_you_are_already_dead_desc": "Wähle den schweren KI-Bot im KI-Mehrspieler.",
         "ch_vibe_coding_title": "Vibe Coding",

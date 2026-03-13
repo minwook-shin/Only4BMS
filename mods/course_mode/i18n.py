@@ -5,6 +5,28 @@ All strings used by course_menu.py, course_session.py, extension.py.
 
 _STRINGS = {
     "en": {
+        # Generator descriptions
+        "gen_beg_desc": "Absolute Novice (BPM {bpm})",
+        "gen_int_desc": "Mixed Beginner/Int Patterns (BPM {bpm})",
+        "gen_adv_desc": "Advanced Streams (BPM {bpm})",
+        "gen_ord_desc": "The Final Trial (BPM {bpm})",
+        "gen_custom_trial": "Custom Trial (BPM {bpm})",
+        "gen_ln": ", w/ LNs",
+        "gen_sv": ", w/ SV Gimmicks",
+        # Modifier names
+        "buff_hp_boost":        "HP Regen Boost  (PERFECT recovers more)",
+        "buff_hp_regen":        "Double Recovery  (GREAT/PERFECT x2 regen)",
+        "buff_window_wide":     "Wide Judgment  (+30% hit window)",
+        "buff_speed_slow":      "Slow Motion  (Speed x0.8 this stage)",
+        "debuff_hp_fragile":    "Fragile HP  (MISS drains x2)",
+        "debuff_window_tight":  "Tight Judgment  (-30% hit window)",
+        "debuff_speed_fast":    "Speed Rush  (Speed x1.3 this stage)",
+        "debuff_hp_drain":      "HP Drain  (Drain x1.5 / Regen x0.5)",
+        "debuff_perfectionist": "Perfectionist (Judgments below PERFECT drain HP)",
+        # UI
+        "failed_stamp":   "FAILED",
+        "status_gen_bms": "Procedural Music...",
+        # Difficulty titles
         "course_beg_title": "Novice (30s)",
         "course_beg_desc": "Absolute beginner 4ths",
         "course_int_title": "Intermediate (30s)",
@@ -39,6 +61,28 @@ _STRINGS = {
         "course_back_hint": "[ESC] Go Back to Menu",
     },
     "ko": {
+        # Generator descriptions
+        "gen_beg_desc": "입문자용 정박 연습 (BPM {bpm})",
+        "gen_int_desc": "초중급 혼합 패턴 (BPM {bpm})",
+        "gen_adv_desc": "고급 폭타 패턴 (BPM {bpm})",
+        "gen_ord_desc": "최후의 시련 (BPM {bpm})",
+        "gen_custom_trial": "개별 시련 (BPM {bpm})",
+        "gen_ln": ", 롱노트 포함",
+        "gen_sv": ", 변속(Gimmick) 포함",
+        # Modifier names
+        "buff_hp_boost":        "HP 재생 강화  (PERFECT 시 회복 증가)",
+        "buff_hp_regen":        "이중 회복  (GREAT/PERFECT 재생 x2)",
+        "buff_window_wide":     "판정 완화  (판정 범위 +30%)",
+        "buff_speed_slow":      "슬로우 모션  (이번 판 속도 x0.8)",
+        "debuff_hp_fragile":    "취약 HP  (MISS 시 HP 감소 x2)",
+        "debuff_window_tight":  "판정 강화  (판정 범위 -30%)",
+        "debuff_speed_fast":    "스피드 러시  (이번 판 속도 x1.3)",
+        "debuff_hp_drain":      "HP 소모  (감소 x1.5 / 회복 x0.5)",
+        "debuff_perfectionist": "완벽주의자 (PERFECT 미만 판정 시 HP 감소)",
+        # UI
+        "failed_stamp":   "실패",
+        "status_gen_bms": "곡 생성 중...",
+        # Difficulty titles
         "course_beg_title": "입문자 (30초)",
         "course_beg_desc": "리듬게임 완전 초보를 위한 기본기",
         "course_int_title": "중급 (30초)",
@@ -73,6 +117,28 @@ _STRINGS = {
         "course_back_hint": "[ESC] 메뉴로 돌아가기",
     },
     "ja": {
+        # Generator descriptions
+        "gen_beg_desc": "初心者向けの練習 (BPM {bpm})",
+        "gen_int_desc": "初・中級混合パターン (BPM {bpm})",
+        "gen_adv_desc": "上級乱打パターン (BPM {bpm})",
+        "gen_ord_desc": "最終試練 (BPM {bpm})",
+        "gen_custom_trial": "カスタム試練 (BPM {bpm})",
+        "gen_ln": "、LNあり",
+        "gen_sv": "、ソフランあり",
+        # Modifier names
+        "buff_hp_boost":        "HP回復強化 (PERFECT時の回復量アップ)",
+        "buff_hp_regen":        "ダブル回復 (GREAT/PERFECTの回復量2倍)",
+        "buff_window_wide":     "判定緩和 (判定範囲+30%)",
+        "buff_speed_slow":      "スローモーション (このステージの速度x0.8)",
+        "debuff_hp_fragile":    "脆弱HP (MISSのHP減少x2)",
+        "debuff_window_tight":  "判定強化 (判定範囲-30%)",
+        "debuff_speed_fast":    "スピードラッシュ (このステージの速度x1.3)",
+        "debuff_hp_drain":      "HPドレイン (減少x1.5 / 回復x0.5)",
+        "debuff_perfectionist": "完璧主義者 (PERFECT未満の判定でHP減少)",
+        # UI
+        "failed_stamp":   "失敗",
+        "status_gen_bms": "プロシージャル生成中...",
+        # Difficulty titles
         "course_beg_title": "入門者 (30秒)",
         "course_beg_desc": "完全な初心者のための基礎",
         "course_int_title": "中級 (30秒)",

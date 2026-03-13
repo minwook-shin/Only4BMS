@@ -154,6 +154,19 @@ class CourseGameExtension(GameExtension):
     # ------------------------------------------------------------------
 
     def draw_overlay(self, renderer, window, game_state: dict, phase: str) -> None:
+        if phase == "result" and self.failed:
+            w, h = window.size
+            sy = h / 600.0
+            stamp_surf = self._font.render(_t("failed_stamp"), True, (255, 50, 50))
+            stamp_tex = Texture.from_surface(renderer, stamp_surf)
+            stamp_tex.alpha = 180
+            sx = int(w / 800.0 * 100)
+            renderer.blit(stamp_tex, pygame.Rect(
+                w // 2 - stamp_tex.width // 2 + sx,
+                h // 2 - stamp_tex.height // 2,
+                stamp_tex.width, stamp_tex.height))
+            return
+
         if phase != "playing":
             return
 
@@ -201,11 +214,10 @@ class CourseGameExtension(GameExtension):
 
         # Modifier badges
         if self.modifier:
-            import only4bms.i18n as _host_i18n
             y_m = _s(6)
             for mod in self.modifier:
                 mod_key, is_buff, *_rest, desc_key = mod
-                mod_text = _host_i18n.get(desc_key)
+                mod_text = _t(desc_key)
                 prefix = ">> " if is_buff else "<< "
                 mod_color = (130, 255, 180) if is_buff else (255, 120, 100)
                 m_surf = self._small_font.render(prefix + mod_text, True, mod_color)
