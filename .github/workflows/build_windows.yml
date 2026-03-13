@@ -47,6 +47,10 @@ jobs:
                       --clean \
                       src/only4bms/main.py
 
+      - name: Bundle mods alongside executable
+        shell: bash
+        run: cp -r mods dist/Only4BMS/mods
+
       - name: Create Installer with Inno Setup
         shell: powershell
         run: |

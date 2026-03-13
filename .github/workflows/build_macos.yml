@@ -83,8 +83,9 @@ jobs:
 
       - name: Create distributable archive
         run: |
+          cp -r mods dist/mods
           cd dist
-          zip -r -y ${{ matrix.artifact_name }}.zip Only4BMS.app
+          zip -r -y ${{ matrix.artifact_name }}.zip Only4BMS.app mods
           cd ..
 
       - name: Upload Artifact
