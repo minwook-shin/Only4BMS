@@ -111,6 +111,7 @@ jobs:
         with:
           files: ./artifacts/*
           generate_release_notes: true
+          prerelease: ${{ contains(github.event.inputs.tag_name || github.ref_name, 'rc') || contains(github.event.inputs.tag_name || github.ref_name, 'beta') }}
           name: Only4BMS ${{ github.event.inputs.tag_name || github.ref_name }}
           tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
         env:
