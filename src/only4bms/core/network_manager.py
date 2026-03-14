@@ -27,6 +27,10 @@ class NetworkManager:
         self.match_settings = None
         self.opponent_state = None
 
+        # Set to True when opponent emits an in_game_ready sync_score signal,
+        # meaning they have finished loading and are about to start the game loop.
+        self.opponent_in_game = False
+
         # True only after this client has sent 'ready' for the current round.
         # start_game signals received before we're ready are ignored — they
         # were triggered by the other player finishing first, not by both.
@@ -50,6 +54,7 @@ class NetworkManager:
             self.game_start_time = None
             self.match_settings = None
             self.opponent_state = None
+            self.opponent_in_game = False
             self._ready_sent = False
 
         @self.sio.on('error')
@@ -89,6 +94,8 @@ class NetworkManager:
 
         @self.sio.on('opponent_score')
         def on_opponent_score(data):
+            if data.get('in_game_ready'):
+                self.opponent_in_game = True
             self.opponent_state = data
 
     def connect(self, url, player_name="Player"):
@@ -131,6 +138,12 @@ class NetworkManager:
         if self.is_connected:
             self._ready_sent = True
             self.sio.emit('ready')
+
+    def send_in_game_ready(self):
+        """Signal to opponent that this client has finished loading and is ready
+        to start the game loop. Must be called after all assets are loaded."""
+        if self.is_connected:
+            self.sio.emit('sync_score', {'in_game_ready': True, 'judgments': {}, 'combo': 0})
 
     def send_score(self, judgments, combo):
         if self.is_connected:

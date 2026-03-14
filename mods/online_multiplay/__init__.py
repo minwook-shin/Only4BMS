@@ -26,6 +26,66 @@ MOD_NAME = "Online Multiplay"
 MOD_DESCRIPTION = "1 vs 1 real-time multiplayer. Connect to a server and battle."
 MOD_VERSION = "1.0.0"
 
+_SYNC_TIMEOUT = 10.0   # seconds to wait for opponent to finish loading
+
+
+def _sync_before_game(net, renderer, window, settings):
+    """Exchange 'in-game ready' signals with the opponent.
+
+    Both players call this after all assets are loaded (BMS parsed, keysounds
+    decoded, RhythmGame constructed).  Notes don't scroll until both sides have
+    confirmed readiness, eliminating the loading-time desync.
+
+    The handshake uses the existing sync_score → opponent_score socket path so
+    no server changes are required.
+
+    Waits at most _SYNC_TIMEOUT seconds; if the opponent never responds the
+    game starts anyway to avoid an indefinite hang.
+    """
+    import time
+    import pygame
+    from pygame._sdl2.video import Texture
+    import only4bms.i18n as _i18n
+    from .i18n import t as _t
+
+    # Reset and signal
+    net.opponent_in_game = False
+    net.send_in_game_ready()
+
+    w, h = window.size
+    sy = h / 600.0
+    font = _i18n.font("menu_option", sy)
+    small_font = _i18n.font("menu_small", sy)
+
+    screen = pygame.Surface((w, h))
+    tex = None
+    clock = pygame.time.Clock()
+    deadline = time.time() + _SYNC_TIMEOUT
+
+    while not net.opponent_in_game and time.time() < deadline:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                return  # bail out; game loop will handle it
+
+        rem = max(0.0, deadline - time.time())
+        screen.fill((10, 10, 20))
+
+        msg = font.render(_t("mp_loading_sync"), True, (0, 255, 200))
+        screen.blit(msg, msg.get_rect(center=(w // 2, h // 2)))
+
+        dots = "." * (int(time.time() * 2) % 4)
+        sub = small_font.render(f"{rem:.0f}s{dots}", True, (100, 100, 120))
+        screen.blit(sub, sub.get_rect(center=(w // 2, h // 2 + int(44 * sy))))
+
+        if tex is None:
+            tex = Texture.from_surface(renderer, screen)
+        else:
+            tex.update(screen)
+        renderer.clear()
+        renderer.blit(tex, pygame.Rect(0, 0, w, h))
+        renderer.present()
+        clock.tick(30)
+
 
 def get_display_name() -> str:
     from .i18n import t as _t
@@ -100,6 +160,8 @@ def run(settings, renderer, window, **ctx):
 
             p1_modifiers = set(match_settings.get("modifiers", []))
 
+            net = NetworkManager()
+
             game = RhythmGame(
                 notes, bgms, bgas, parser.wav_map, bmp_map,
                 parser.title, match_settings_obj,
@@ -115,5 +177,12 @@ def run(settings, renderer, window, **ctx):
                 p1_modifiers=p1_modifiers,
                 extension=OnlineGameExtension(),
             )
+
+            # ── Pre-game sync barrier ────────────────────────────────────
+            # All assets (BMS, keysounds, textures) are loaded at this point.
+            # Exchange a ready signal so both players enter game.run() at the
+            # same moment, regardless of how long each took to load.
+            _sync_before_game(net, renderer, window, settings)
+
             game.run()
             # Loop back to multiplayer menu (lobby re-entry)
