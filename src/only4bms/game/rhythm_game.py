@@ -4,7 +4,6 @@ import time
 import pygame
 import copy
 import math
-import numpy as np
 from only4bms.i18n import get as _t
 
 from .constants import *
@@ -68,16 +67,10 @@ class RhythmGame:
         self.ai_note_type = self.settings.get('ai_note_type', 0)
         self.note_skin = self.settings.get('note_skin', 'default')  # 'default' or 'gold'
         
-        # Lane grouping
-        if self.mode == 'single':
-            start_x = (self.width - self.lane_total_w) // 2
-            self.lane_x = [start_x + i * self.lane_w for i in range(NUM_LANES)]
-        else: # ai_multi or online_multi
-            p1_start_x = self.width // 4 - self.lane_total_w // 2
-            self.p1_lane_x = [p1_start_x + i * self.lane_w for i in range(NUM_LANES)]
-            p2_start_x = (self.width * 3) // 4 - self.lane_total_w // 2
-            self.p2_lane_x = [p2_start_x + i * self.lane_w for i in range(NUM_LANES)]
-            self.lane_x = self.p1_lane_x # Default to p1 for rendering logic if shared
+        # Lane grouping — default single-player (centred).
+        # Dual-player extensions override lane_x / p1_lane_x / p2_lane_x in on_attach_init.
+        start_x = (self.width - self.lane_total_w) // 2
+        self.lane_x = [start_x + i * self.lane_w for i in range(NUM_LANES)]
 
         # Engines
         last_note_time = max((n.get('end_time_ms', n['time_ms']) for n in notes), default=0)
@@ -109,19 +102,6 @@ class RhythmGame:
 
         self.engine = GameEngine(notes, bgms, bgas, self.hw_mult, self._play_sound, self.set_judgment, max_time, visual_timing_map, last_note_time, self.on_ln_tick)
         self.has_ln = any(n.get('is_ln', False) for n in notes)
-        
-        if self.mode == 'ai_multi':
-            from ..ai.inference import RhythmInference
-            self.ai_model = RhythmInference(self.ai_difficulty)
-            self.ai_notes = [n.copy() for n in notes] # Lighter than deepcopy, enough for note modification
-            self.ai_engine = GameEngine(self.ai_notes, [], [], self.hw_mult, lambda s: None, self.set_ai_judgment, max_time, visual_timing_map, last_note_time, self.on_ai_ln_tick)
-            self.ai_lane_pressed = [False] * NUM_LANES
-        elif self.mode == 'online_multi':
-            from ..core.network_manager import NetworkManager
-            self.net = NetworkManager()
-            self.ai_notes = [n.copy() for n in notes]
-            self.ai_engine = GameEngine(self.ai_notes, [], [], self.hw_mult, lambda s: None, lambda *args: None, max_time, visual_timing_map, last_note_time, lambda *args: None)
-            self.ai_lane_pressed = [False] * NUM_LANES
         
         # Calculate total judgments (LN counts twice: hit + release)
         self.total_judgments = sum(2 if n.get('is_ln') else 1 for n in notes)
@@ -158,24 +138,12 @@ class RhythmGame:
         self.effects = []
         self.needs_restart = False
 
-        if self.mode in ('ai_multi', 'online_multi'):
-            self.ai_judgments = {k: 0 for k in JUDGMENT_ORDER}
-            self.ai_combo = 0
-            self.ai_max_combo = 0
-            self.ai_judgment_text = ""
-            self.ai_judgment_key = ""
-            self.ai_judgment_timer = 0
-            self.ai_combo_timer = 0
-            self.ai_judgment_color = (255, 255, 255)
-            self.ai_hit_history = [] # List of (time_ms, err_ms, key)
-            self.ai_update_timer = 0.0
-            self.ai_dt = 1.0 / 120.0 # 120Hz AI update frequency
-            
         self._draw_state_cache = {'p1': {}, 'ai': {}}
         self._last_draw_state = {}
 
         if self.extension:
             self.extension.attach(self)
+            self.extension.on_attach_init(self)
 
     def _play_sound(self, sid):
         if sid in self.assets.sounds and self.assets.sounds[sid]:
@@ -222,37 +190,6 @@ class RhythmGame:
                 'note_type': self.note_type, 'skin': eff_skin
             })
 
-    def set_ai_judgment(self, key, lane, t=None, timing_diff=0):
-        if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
-        j = JUDGMENT_DEFS[key]
-        _JUDGMENT_I18N = {"PERFECT": "judgment_perfect", "GREAT": "judgment_great", "GOOD": "judgment_good", "MISS": "judgment_miss"}
-        self.ai_judgment_text = _t(_JUDGMENT_I18N.get(key, key))
-        self.ai_judgment_key = key
-        self.ai_judgment_color = j["color"]
-        self.ai_judgment_timer = t
-        self.ai_judgment_err = timing_diff
-        self.ai_judgment_err_timer = t
-        if not hasattr(self, 'ai_hit_history'): self.ai_hit_history = []
-        if key != "MISS":
-            self.ai_hit_history.append((t, timing_diff, key))
-            # AI Hit Effect
-            self.effects.append({
-                'lane': lane + NUM_LANES,  # AI lanes are offset by NUM_LANES
-                'radius': 22,
-                'color': j["color"],
-                'alpha': 160,
-                'note_type': self.ai_note_type
-            })
-        else:
-            self.ai_hit_history.append((t, 0, "MISS"))
-
-        self.ai_judgments[key] += 1
-        if key == "MISS": self.ai_combo = 0
-        else:
-            self.ai_combo += 1
-            self.ai_max_combo = max(self.ai_max_combo, self.ai_combo)
-            self.ai_combo_timer = t
-    
     def on_ln_tick(self, t=None):
         if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
         self.combo += 1
@@ -270,27 +207,16 @@ class RhythmGame:
         self.judgment_color = JUDGMENT_DEFS[best]["color"]
         self.judgment_timer = t
 
-    def on_ai_ln_tick(self, t=None):
-        if t is None: t = (time.perf_counter() - self.start_time) * 1000.0
-        self.ai_combo += 1
-        self.ai_max_combo = max(self.ai_max_combo, self.ai_combo)
-        self.ai_combo_timer = t
-        self.ai_judgment_timer = t
-
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE or event.key == pygame.K_TAB:
-                if self.mode == 'ai_multi':
-                    self.ai_paused = True
+                if self.extension:
+                    self.extension.on_pause()
                 self._pause()
                 return
             if event.key == pygame.K_r: # Quick Retry
-                if self.mode == 'ai_multi':
-                    self.ai_restarted = True
-                    # Check challenges immediately if restarted during ai_multi
-                    if self.challenge_manager and not self._challenge_checked:
-                        self.challenge_manager.check_challenges(self.get_stats())
-                        self._challenge_checked = True
+                if self.extension:
+                    self.extension.on_restart()
                 self.needs_restart = True
                 return
             if event.key == pygame.K_F1: # Increase Speed
@@ -455,12 +381,7 @@ class RhythmGame:
                     accumulator = 0 # Drop frames if we can't keep up
                     break 
             
-            # 1c. Separate AI/Extension Update
-            if self.mode == 'ai_multi' and self.state == "PLAYING":
-                if t_now - self.ai_update_timer >= self.ai_dt:
-                    sim_time_ms = (t_now - self.start_time) * 1000.0
-                    self._update_ai(sim_time_ms)
-                    self.ai_update_timer = t_now
+            # 1c. Extension Update (AI inference, network sync, etc.)
             if self.extension and self.state == "PLAYING":
                 sim_time_ms = (t_now - self.start_time) * 1000.0
                 self.extension.on_tick(sim_time_ms)
@@ -482,14 +403,10 @@ class RhythmGame:
                                     'lane': lane, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
                                     'note_type': self.note_type, 'skin': eff_skin
                                 })
-                        # AI/Opponent LN effects at half frequency (every 8 frames)
-                        if self.mode in ('ai_multi', 'online_multi') and self.frame_count % 8 == 0:
-                            for lane, note in enumerate(self.ai_engine.held_lns):
-                                if note:
-                                    self.effects.append({
-                                        'lane': lane + NUM_LANES, 'radius': 22, 'color': (0, 255, 255), 'alpha': 160,
-                                        'note_type': self.ai_note_type
-                                    })
+                        # Opponent LN effects (delegated to extension)
+                        if self.extension:
+                            for eff in self.extension.get_opponent_ln_effects(self, self.frame_count):
+                                self.effects.append(eff)
                     # Pass offset time to draw for visual adjustment
                     self._draw(now_ms + vis_offset)
                     if self.extension:
@@ -528,9 +445,6 @@ class RhythmGame:
         max_ex = max(1, self.total_judgments * 2)
         p1_ex = self.judgments["PERFECT"] * 2 + self.judgments["GREAT"] * 1
         accuracy = (p1_ex / max_ex) * 100.0
-        
-        ai_p1_ex = getattr(self, 'ai_judgments', {}).get("PERFECT", 0) * 2 + getattr(self, 'ai_judgments', {}).get("GREAT", 0)
-        ai_acc = (ai_p1_ex / max_ex) * 100.0 if self.mode == 'ai_multi' else 0.0
 
         stats = {
             'mode': self.mode,
@@ -539,12 +453,9 @@ class RhythmGame:
             'judgments': self.judgments,
             'max_combo': self.max_combo,
             'accuracy': accuracy,
-            'ai_accuracy': ai_acc,
             'total_score': p1_ex,
             'total_notes': len(self.engine.notes),
             'failed': False,
-            'ai_paused': getattr(self, 'ai_paused', False),
-            'ai_restarted': getattr(self, 'ai_restarted', False),
             'speed_changed': getattr(self, 'speed_changed', False),
             'first_note_miss': getattr(self, 'first_note_miss', False),
             'lanes_compressed': self.lanes_compressed,
@@ -553,7 +464,6 @@ class RhythmGame:
             'note_mod': getattr(self, 'note_mod', 'None'),
             'has_ln': getattr(self, 'has_ln', False),
             'ai_diff': getattr(self, 'ai_difficulty', 'normal'),
-            'must_win': (self.mode == 'ai_multi' and p1_ex > ai_p1_ex),
             'ai_judgments': getattr(self, 'ai_judgments', None),
             'ai_max_combo': getattr(self, 'ai_max_combo', 0),
             'newly_completed': self.newly_completed
@@ -561,26 +471,6 @@ class RhythmGame:
         if self.extension:
             stats.update(self.extension.get_extra_stats())
         return stats
-
-    def _update_ai(self, current_time):
-        miss_window = JUDGMENT_DEFS["MISS"]["threshold_ms"] * self.hw_mult
-        self.ai_engine.update(current_time)
-        
-        # AI Perception
-        ai_jitter = 30.0 if self.ai_difficulty == 'normal' else 2.0
-        ai_actions = [0] * NUM_LANES
-        
-        for lane in range(NUM_LANES):
-            obs = self.ai_engine.get_observation(current_time, lane, jitter=ai_jitter, is_pressed=self.ai_lane_pressed[lane])
-            act = self.ai_model.predict(obs, deterministic=True)
-            ai_actions[lane] = int(act) if np.isscalar(act) else int(act.item())
-        
-        for lane in range(NUM_LANES):
-            pressed = bool(ai_actions[lane])
-            if pressed: self.ai_engine.process_hit(lane, current_time)
-            self.ai_lane_pressed[lane] = pressed
-        
-        self.ai_engine.update(current_time, self.ai_lane_pressed)
 
     def _draw(self, t):
         self.renderer.draw_color = (0, 0, 0, 255)
@@ -594,10 +484,8 @@ class RhythmGame:
         self._last_draw_state = p1_state
         self.game_renderer.draw_playing(t, p1_state)
         
-        # Effects Rendering (Handles both P1 and AI effects)
-        all_lanes = self.lane_x
-        if self.mode in ('ai_multi', 'online_multi'):
-            all_lanes = self.p1_lane_x + self.p2_lane_x
+        # Effects Rendering (extension provides full lane list for dual-player)
+        all_lanes = self.extension.get_all_lanes(self) if self.extension else self.lane_x
         self.game_renderer.draw_effects(self.effects, all_lanes, self.lane_w)
 
         # Performance Gauges (EX Ratio)
@@ -614,29 +502,17 @@ class RhythmGame:
         gy = self.game_renderer.hit_y - gh
         ga = int(255 * fade_mult)
 
-        if self.mode == 'single':
+        if self.extension:
+            self.extension.draw_mid_hud(self.renderer, self.window, t, self,
+                                        p1_ratio, max_ex, gy, gw, gh, ga)
+        else:
             gx = self.lane_x[0] - gw - self.game_renderer._sx(10)
             self.game_renderer.draw_vertical_gauge(gx, gy, gw, gh, p1_ratio, (0, 255, 255), ga)
-        else: # ai_multi or online_multi
-            # Player Gauge (Right of Player lanes, Center)
-            gx_p1 = self.p1_lane_x[-1] + self.lane_w + self.game_renderer._sx(5)
-            self.game_renderer.draw_vertical_gauge(gx_p1, gy, gw, gh, p1_ratio, (0, 255, 255), ga)
-            
-            # Opponent View
-            ai_state = self._get_draw_state('ai', t)
-            self.game_renderer.draw_playing(t, ai_state)
-            self.game_renderer.draw_score_bar(self.judgments, self.ai_judgments)
-
-            # Opponent Gauge (Left of Opponent lanes, Center)
-            ai_ex = self.ai_judgments["PERFECT"] * 2 + self.ai_judgments["GREAT"] * 1
-            ai_ratio = min(1.0, ai_ex / max_ex)
-            gx_ai = self.p2_lane_x[0] - gw - self.game_renderer._sx(5)
-            self.game_renderer.draw_vertical_gauge(gx_ai, gy, gw, gh, ai_ratio, (255, 80, 80), ga)
 
     def _get_draw_state(self, side, t):
         d = self._draw_state_cache[side]
         if side == 'p1':
-            d['lane_x'] = self.p1_lane_x if self.mode in ('ai_multi', 'online_multi') else self.lane_x
+            d['lane_x'] = self.extension.get_p1_lane_x(self) if self.extension else self.lane_x
             d['notes'] = self.engine.notes
             d['note_idx'] = self.engine.note_idx
             d['lane_pressed'] = self.lane_pressed
@@ -661,9 +537,8 @@ class RhythmGame:
             d['note_skin'] = self.note_skin
             d['is_ai'] = False
             d['measures'] = self.measures
-            if self.mode in ('ai_multi', 'online_multi'):
-                d['ai_judgments'] = self.ai_judgments
-                d['ai_hit_history'] = self.ai_hit_history
+            if self.extension:
+                d.update(self.extension.get_p1_draw_extras(self))
         else:  # side == 'ai'
             d['lane_x'] = self.p2_lane_x
             d['notes'] = self.ai_notes

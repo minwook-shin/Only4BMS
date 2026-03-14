@@ -84,7 +84,13 @@ def _sync_before_game(net, renderer, window, settings):
         renderer.clear()
         renderer.blit(tex, pygame.Rect(0, 0, w, h))
         renderer.present()
-        clock.tick(30)
+        clock.tick(500)  # ~2ms polling so the waiting player exits quickly
+
+    # Grace period: the player who was waiting exits this loop up to ~2ms after
+    # the player who just finished loading.  Sleeping a fixed window ensures both
+    # arrive at game.run() within ~2ms of each other rather than up to 33ms apart.
+    import time as _time
+    _time.sleep(0.15)
 
 
 def get_display_name() -> str:

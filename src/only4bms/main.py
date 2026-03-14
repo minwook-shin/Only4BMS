@@ -418,12 +418,18 @@ def main():
                         "lanes_compressed": parser.lanes_compressed,
                     }
                     while True:
+                        if mode == 'ai_multi':
+                            from only4bms.game.ai_multi_extension import AiMultiExtension
+                            _extension = AiMultiExtension(ai_difficulty)
+                        else:
+                            _extension = None
                         game = RhythmGame(
                             notes, bgms, bgas, parser.wav_map, bmp_map,
                             parser.title, settings, visual_timing_map=visual_timing_map, measures=measures, mode=mode, metadata=metadata,
                             renderer=renderer, window=window,
                             ai_difficulty=ai_difficulty, note_mod=note_mod,
-                            challenge_manager=challenge_manager
+                            challenge_manager=challenge_manager,
+                            extension=_extension,
                         )
                         result = game.run()
                         action = result.get('action', 'QUIT')
