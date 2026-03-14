@@ -151,69 +151,198 @@ game = RhythmGame(
     parser.title, settings,
     visual_timing_map=visual_timing_map,
     measures=measures,
-    mode='single',            # 'single' | 'ai_multi' | 'online_multi'
+    mode='single',            # 'single' | 'ai_multi' | 'online_multi' (label only)
     renderer=renderer,
     window=window,
     ai_difficulty='normal',   # 'normal' | 'hard'
-    note_mod='None',          # 'None' | 'MIRROR' | 'RANDOM'
+    note_mod='None',          # 'None' | 'Mirror' | 'Random'
     challenge_manager=challenge_manager,
     extension=my_extension,   # GameExtension subclass, or None
 )
-result = game.run()           # returns dict with 'action', 'score', etc.
+result = game.run()           # returns dict with 'action', plus get_stats() keys
 ```
+
+> **Note:** `mode` is a label passed through to `get_stats()` for challenge
+> conditions. All mode-specific behaviour (dual-player layout, AI engine,
+> network sync) is now owned by the `extension`. `RhythmGame` itself has no
+> mode-specific branches.
+
+#### `get_stats()` return value
+
+| Key | Type | Description |
+|---|---|---|
+| `action` | str | `'CLEAR'` \| `'RESTART'` \| `'QUIT'` |
+| `mode` | str | Game mode label |
+| `title` | str | Song title |
+| `level` | str | Chart level |
+| `judgments` | dict | `{PERFECT, GREAT, GOOD, MISS}` counts |
+| `max_combo` | int | Maximum combo achieved |
+| `accuracy` | float | EX accuracy % |
+| `total_score` | int | EX score |
+| `total_notes` | int | Total note count |
+| `failed` | bool | True if extension aborted (e.g. HP zero) |
+| `speed_changed` | bool | Player changed scroll speed mid-song |
+| `first_note_miss` | bool | First note was missed |
+| `has_ln` | bool | Chart contains long notes |
+| `used_mod` | bool | Mirror or Random note mod was applied |
+| `note_mod` | str | `'None'` \| `'Mirror'` \| `'Random'` |
+| `newly_completed` | list | Challenge dicts completed this run |
+| *extension keys* | any | Extra keys from `extension.get_extra_stats()` |
+
+Common extension-provided keys: `'must_win'`, `'ai_accuracy'`, `'ai_paused'`, `'ai_restarted'`, `'failed'`, `'hp'`.
 
 ### GameExtension — in-game hooks
 
 Subclass `GameExtension` to inject mod logic into the game loop without modifying `RhythmGame`.
 Pass an instance as `extension=` when constructing `RhythmGame`.
 
+All methods have default no-op implementations — only override what you need.
+
 ```python
 from only4bms.game.game_extension import GameExtension
 
 class MyExtension(GameExtension):
+
+    # ── Lifecycle ────────────────────────────────────────────────────────────
+
     def attach(self, game) -> None:
         """Called at the end of RhythmGame.__init__.
-        Store game reference and pre-load resources here."""
+        Store game reference and pre-load resources (fonts, textures, etc.)."""
         super().attach(game)   # sets self._game = game
         w, h = game.window.size
-        # load fonts, textures, etc.
+
+    def on_attach_init(self, game) -> None:
+        """Called immediately after attach().
+        Use this to set up mode-specific state directly on the game object:
+        dual lane layouts, opponent engines, judgment dicts, network connections.
+        Anything that needs to live on `game` and depends on the extension."""
+
+    # ── Input event hooks ────────────────────────────────────────────────────
+
+    def on_pause(self) -> None:
+        """Called when the player pauses (ESC / TAB).
+        Use this to record pause events for challenge tracking, etc."""
+
+    def on_restart(self) -> None:
+        """Called when the player hits R (quick restart), before needs_restart
+        is set. Use this to run challenge checks or record restart state."""
+
+    # ── Per-note / per-frame hooks ───────────────────────────────────────────
 
     def on_judgment(self, key: str, lane: int, t_ms: float) -> None:
         """Called after every note judgment.
         key: 'PERFECT' | 'GREAT' | 'GOOD' | 'MISS'"""
 
     def on_tick(self, sim_time_ms: float) -> None:
-        """Called once per render frame while the song is playing."""
+        """Called once per render frame while the song is playing.
+        Use for network polling, AI inference loops, time-based effects."""
 
     def should_abort(self) -> bool:
-        """Return True to immediately end the song (transitions to RESULT).
-        pygame.mixer.stop() is called automatically."""
+        """Return True to immediately end the song (transitions to RESULT)."""
         return False
 
+    # ── Rendering hooks ──────────────────────────────────────────────────────
+
     def draw_background(self, renderer, window) -> None:
-        """Draw behind BGA / note field (called before draw_bga)."""
+        """Draw behind BGA / note field (called after renderer.clear())."""
+
+    def get_opponent_ln_effects(self, game, frame_count: int) -> list:
+        """Return extra effect dicts for opponent held-LN rendering.
+        Each dict: {'lane': int, 'radius': int, 'color': tuple, 'alpha': int,
+                    'note_type': int}
+        Opponent lane indices should be offset by NUM_LANES.
+        Default: [] (no opponent LN effects)."""
+        return []
+
+    def get_all_lanes(self, game) -> list:
+        """Return the full lane-position list used for hit-effect rendering.
+        Single-player: return game.lane_x  (default).
+        Dual-player:   return game.p1_lane_x + game.p2_lane_x."""
+        return game.lane_x
+
+    def get_p1_lane_x(self, game) -> list:
+        """Return the lane_x list to use for the P1 draw state.
+        Single-player: game.lane_x  (default).
+        Dual-player:   game.p1_lane_x."""
+        return game.lane_x
+
+    def get_p1_draw_extras(self, game) -> dict:
+        """Extra keys merged into the P1 draw-state dict passed to the renderer.
+        Dual-player extensions inject ai_judgments and ai_hit_history here.
+        Default: {} (no extras)."""
+        return {}
+
+    def draw_mid_hud(self, renderer, window, t: float, game,
+                     p1_ratio: float, max_ex: int,
+                     gy: int, gw: int, gh: int, ga: int) -> None:
+        """Draw the performance gauge(s) and any opponent panel.
+        Called inside _draw() after P1 effects are rendered.
+
+        Default: single-player EX gauge to the left of the lane column.
+        Dual-player extensions override this to draw both gauges + opponent
+        note field + score bar.
+
+        Parameters:
+          p1_ratio  player EX ratio in [0, 1]
+          max_ex    maximum possible EX score
+          gy/gw/gh  gauge top-y, width, height in screen pixels
+          ga        gauge alpha (fades to 0 after last note passes)"""
+        gx = game.lane_x[0] - gw - game.game_renderer._sx(10)
+        game.game_renderer.draw_vertical_gauge(gx, gy, gw, gh, p1_ratio, (0, 255, 255), ga)
 
     def draw_overlay(self, renderer, window, game_state: dict, phase: str) -> None:
-        """Draw on top of the entire game frame.
+        """Draw on top of the entire game frame (before renderer.present()).
         phase: 'playing' | 'paused' | 'result'"""
 
+    # ── Stats contribution ───────────────────────────────────────────────────
+
     def get_extra_stats(self) -> dict:
-        """Extra fields merged into RhythmGame.get_stats() and passed to
-        challenge_manager.check_challenges()."""
+        """Extra fields merged into RhythmGame.get_stats().
+        Also passed to challenge_manager.check_challenges().
+        Common keys: 'failed', 'must_win', 'ai_accuracy', 'ai_paused',
+                     'ai_restarted', 'hp'."""
         return {}
 ```
 
-`game_state` dict passed to `draw_overlay`:
+#### Dual-player layout via `on_attach_init`
+
+Extensions that render two players (e.g. `AiMultiExtension`, `OnlineGameExtension`)
+set up the dual-column layout by writing directly onto `game` in `on_attach_init`:
+
+```python
+def on_attach_init(self, game) -> None:
+    w, h = game.width, game.height
+    p1_start = w // 4 - game.lane_total_w // 2
+    game.p1_lane_x = [p1_start + i * game.lane_w for i in range(NUM_LANES)]
+    p2_start = (w * 3) // 4 - game.lane_total_w // 2
+    game.p2_lane_x = [p2_start + i * game.lane_w for i in range(NUM_LANES)]
+    game.lane_x = game.p1_lane_x   # redirect default to P1 column
+
+    # Create opponent engine, judgment state, network connection, etc.
+    game.ai_judgments = {k: 0 for k in JUDGMENT_ORDER}
+    game.ai_combo = 0
+    game.ai_hit_history = []
+    ...
+```
+
+Then override `get_all_lanes`, `get_p1_lane_x`, `get_p1_draw_extras`, and
+`draw_mid_hud` to render the full dual-player HUD.
+
+#### `game_state` dict passed to `draw_overlay` (phase `'playing'`)
 
 | Key | Type | Description |
 |---|---|---|
-| `lane_x` | list[int] | Left pixel edge of each lane |
+| `lane_x` | list[int] | Left pixel edge of each P1 lane |
 | `lane_total_w` | int | Total width of the lane area |
 | `judgments` | dict | `{PERFECT, GREAT, GOOD, MISS}` counts |
 | `combo` | int | Current combo |
-| `score` | int | Current score |
-| `total_notes` | int | Total notes in chart |
-| `mode` | str | Game mode string |
+| `judgment_text` | str | Localised judgment label |
+| `judgment_key` | str | Raw judgment key |
+| `hit_history` | list | `[(t_ms, err_ms, key), ...]` |
+| `speed` | float | Current scroll speed |
+| `is_ai` | bool | Always False for P1 state |
+
+During phase `'result'`, `game_state` is the full `get_stats()` dict (see below).
 
 ### ChallengeManager — achievements
 
@@ -419,9 +548,28 @@ Users extract it into the `mods/` directory next to the Only4BMS executable (or 
 
 ## Built-in Mods (Reference Implementations)
 
-| Folder | Description |
+| Folder / File | Description |
 |---|---|
 | `course_mode/` | Roguelike HP training mode — `CourseSession` + `CourseGameExtension` + `setup()` for challenge registration |
 | `online_multiplay/` | Socket.IO 1v1 multiplayer — `MultiplayerMenu` + `OnlineGameExtension` |
+| `src/only4bms/game/ai_multi_extension.py` | Local AI opponent — `AiMultiExtension` (dual layout, 120 Hz inference, opponent HUD) |
 
-Reading their `__init__.py` and `extension.py` is the best way to see how to wire the full interface together.
+Reading `extension.py` in each mod is the best way to see how to wire the full interface together.
+
+### AiMultiExtension — dual-player vs AI
+
+`AiMultiExtension` lives in the host package (`only4bms.game`) rather than `mods/` because it depends on the built-in AI inference module. It demonstrates the full dual-player extension pattern:
+
+```python
+from only4bms.game.ai_multi_extension import AiMultiExtension
+
+game = RhythmGame(
+    ...,
+    mode='ai_multi',
+    extension=AiMultiExtension(ai_difficulty='normal'),  # 'normal' | 'hard'
+)
+```
+
+It sets up `game.p1_lane_x`, `game.p2_lane_x`, `game.ai_engine`, `game.ai_judgments`, and
+all related state in `on_attach_init`, then drives the AI in `on_tick` and renders the
+dual-player HUD in `draw_mid_hud`. No `mode`-specific code lives in `RhythmGame` itself.
