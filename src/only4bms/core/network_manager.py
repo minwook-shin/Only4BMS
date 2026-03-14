@@ -96,6 +96,7 @@ class NetworkManager:
         def on_opponent_score(data):
             if data.get('in_game_ready'):
                 self.opponent_in_game = True
+                return  # handshake-only packet; don't overwrite score state
             self.opponent_state = data
 
     def connect(self, url, player_name="Player"):
