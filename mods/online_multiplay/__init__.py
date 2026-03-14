@@ -66,6 +66,9 @@ def run(settings, renderer, window, **ctx):
             break
 
         if action == "START_MULTI" and selected_song:
+            # Reset ready flag so next round starts cleanly
+            NetworkManager()._ready_sent = False
+
             if init_mixer_fn:
                 init_mixer_fn(settings)
 

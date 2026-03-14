@@ -117,10 +117,23 @@ class MultiplayerMenu:
             if self.net.game_start_time and time.time() >= self.net.game_start_time:
                 self.action = "START_MULTI"
                 self.running = False
+            elif (self.net.game_start_time is None
+                  and hasattr(self, '_waiting_since')
+                  and time.time() - self._waiting_since > 30):
+                # Server never sent a fresh start_game after we sent ready.
+                # (Likely the server does not resend when a new ready arrives.)
+                # Fall back: start in 3 seconds locally so the player isn't stuck.
+                print("[Net] start_game timeout — forcing local countdown")
+                self.net.game_start_time = time.time() + 3.0
 
     def _download_task(self, song_id, target_bms=None):
         self.download_progress = 0
         self.download_total = 1
+
+        # Reset ready flag so any start_game that arrives while we're still
+        # downloading (triggered by the other player finishing first) is ignored.
+        self.net._ready_sent = False
+        self.net.game_start_time = None
 
         cache_dir = os.path.join(paths.SONG_DIR, ".multiplayer_cache")
 
@@ -141,10 +154,12 @@ class MultiplayerMenu:
                         self.selected_song_path = os.path.join(song_dir, f)
                         break
 
+            self._waiting_since = time.time()
             self.state = "WAITING_START"
             self.net.send_ready()
         else:
             print("Download failed")
+            self.net._ready_sent = False
             self.state = "LOBBY"
 
     def _handle_events(self):

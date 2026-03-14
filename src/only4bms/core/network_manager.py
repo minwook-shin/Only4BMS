@@ -16,17 +16,22 @@ class NetworkManager:
     def _init(self):
         self.sio = socketio.Client()
         self.server_url = None
-        
+
         self.lobby_state = {}
         self.player_id = None
         self.host_id = None
         self.is_connected = False
         self.join_error = None
-        
+
         self.game_start_time = None
         self.match_settings = None
         self.opponent_state = None
-        
+
+        # True only after this client has sent 'ready' for the current round.
+        # start_game signals received before we're ready are ignored — they
+        # were triggered by the other player finishing first, not by both.
+        self._ready_sent = False
+
         self._register_events()
 
     def _register_events(self):
@@ -45,6 +50,7 @@ class NetworkManager:
             self.game_start_time = None
             self.match_settings = None
             self.opponent_state = None
+            self._ready_sent = False
 
         @self.sio.on('error')
         def on_error(data):
@@ -69,6 +75,13 @@ class NetworkManager:
 
         @self.sio.on('start_game')
         def on_start_game(data):
+            if not self._ready_sent:
+                # We haven't finished downloading yet — this start_game was
+                # triggered by the other player, not by both being ready.
+                # Ignore it; we'll get (or re-trigger) a fresh one after we
+                # send our own 'ready'.
+                print("[Net] Ignoring premature start_game (not yet ready)")
+                return
             offset = data.get('start_time_offset', 3000)
             self.match_settings = data.get('match_settings', {})
             # Record the absolute time when we should actually unpause/start
@@ -116,6 +129,7 @@ class NetworkManager:
 
     def send_ready(self):
         if self.is_connected:
+            self._ready_sent = True
             self.sio.emit('ready')
 
     def send_score(self, judgments, combo):
