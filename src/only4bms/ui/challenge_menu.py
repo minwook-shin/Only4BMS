@@ -210,11 +210,6 @@ class ChallengeMenu:
                 pygame.draw.rect(self.screen, (50, 50, 70), (px + panel_w - self._s(8), py + self._s(20), self._s(4), bar_h), border_radius=2)
                 pygame.draw.rect(self.screen, (255, 200, 0), (px + panel_w - self._s(8), scroll_y, self._s(4), scroll_bar_h), border_radius=2)
 
-            # Back button hint
-            back_hint_txt = _t("course_back_hint")
-            back_hint = self.small_font.render(back_hint_txt, True, (100, 110, 140))
-            self.screen.blit(back_hint, (px + panel_w - back_hint.get_width() - self._s(20), py + panel_h - self._s(30)))
-                
             # Draw Progress Bar & Completion Text (regular challenges only)
             total_challenges = len(self.regular_challenges)
             completed_challenges = len([c for c in self.regular_challenges if c['id'] in self.manager.completed_ids])

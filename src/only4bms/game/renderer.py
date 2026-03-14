@@ -12,52 +12,6 @@ from .constants import (
     EFFECT_EXPAND_SPEED, EFFECT_FADE_SPEED
 )
 
-# ── Waveform visualizer (for Course Mode / intermission screens) ─────────────
-class WaveVisualizer:
-    """Draws a calm sine-wave animation on a pygame.Surface or via a renderer."""
-    def __init__(self, w: int, h: int):
-        self.w = w
-        self.h = h
-        self._layers = [
-            dict(amp=h * 0.08, freq=2.0, speed=0.6,  phase=0.0, color=(0, 180, 255, 60)),
-            dict(amp=h * 0.05, freq=3.5, speed=1.1,  phase=1.0, color=(0, 255, 180, 45)),
-            dict(amp=h * 0.12, freq=1.2, speed=0.35, phase=2.5, color=(60, 120, 255, 30)),
-        ]
-        self._t = 0.0
-
-    def update(self, dt: float):
-        self._t += dt
-        for L in self._layers:
-            L["phase"] += L["speed"] * dt
-
-    def draw_to_surface(self, surf: pygame.Surface, cx: int, cy: int, half_w: int):
-        for L in self._layers:
-            pts = []
-            steps = max(4, half_w // 2)
-            for i in range(steps + 1):
-                x = cx - half_w + i * (half_w * 2 // steps)
-                angle = (i / steps) * L["freq"] * math.pi * 2 + L["phase"]
-                y = int(cy + math.sin(angle) * L["amp"])
-                pts.append((x, y))
-            if len(pts) >= 2:
-                pygame.draw.lines(surf, L["color"], False, pts, 2)
-
-    def draw_to_renderer(self, renderer, cx: int, cy: int, half_w: int):
-        """Directly draw using SDL2 renderer points for performance."""
-        for L in self._layers:
-            pts = []
-            steps = max(4, half_w // 2)
-            for i in range(steps + 1):
-                x = cx - half_w + i * (half_w * 2 // steps)
-                angle = (i / steps) * L["freq"] * math.pi * 2 + L["phase"]
-                y = int(cy + math.sin(angle) * L["amp"])
-                pts.append((x, y))
-            if len(pts) >= 2:
-                renderer.draw_color = L["color"]
-                # We can't use draw_lines with SDL2 renderer easily without a loop or array
-                # But we can draw a series of lines via multiple calls
-                for j in range(len(pts) - 1):
-                    renderer.draw_line(pts[j], pts[j+1])
 
 class GameRenderer:
     def __init__(self, renderer, window_size, settings):
@@ -105,9 +59,6 @@ class GameRenderer:
         self.note_head_bw = 0
         self.note_head_bh = 0
         
-        # --- Wave Visualizer ---
-        self.wave_viz = WaveVisualizer(self.width, self.height)
-        self.last_wave_time = time.perf_counter()
         
     def _s(self, v): return int(v * self.sy)
     def _sx(self, v): return int(v * self.sx)

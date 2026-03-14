@@ -295,12 +295,6 @@ STRINGS = {
         "judgment_miss": "MISS",
         "open_folder": "Open BMS Folder (O)",
 
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
-
         # UI Labels
         "ch_you_are_already_dead_title": "You Are Already Dead",
         "ch_you_are_already_dead_desc": "Select Hard AI Bot in AI Multiplayer.",
@@ -466,12 +460,6 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
-
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
 
         # UI Labels
         "ch_you_are_already_dead_title": "너는 이미 죽어있다",
@@ -640,12 +628,6 @@ STRINGS = {
         "judgment_miss": "MISS",
         "open_folder": "Open BMS Folder (O)",
 
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
-
         # UI Labels
         "ch_you_are_already_dead_title": "お前はもう死んでいる",
         "ch_you_are_already_dead_desc": "AIマルチプレイでHard AI Botを選択する。",
@@ -810,12 +792,6 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
-
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
 
         # UI Labels
         "ch_you_are_already_dead_title": "你已经死了",
@@ -984,12 +960,6 @@ STRINGS = {
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
 
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
-
         # UI Labels
         "ch_you_are_already_dead_title": "เจ้าตายแล้ว",
         "ch_you_are_already_dead_desc": "เลือก AI Bot ระดับ Hard ในการเล่นกับ AI",
@@ -1157,12 +1127,6 @@ STRINGS = {
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
 
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
-
         # UI Labels
         "ch_you_are_already_dead_title": "Você já está morto",
         "ch_you_are_already_dead_desc": "Selecione o Robô IA Difícil no Multijogador IA.",
@@ -1328,12 +1292,6 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
-
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
 
         # UI Labels
         "ch_you_are_already_dead_title": "Kamu Sudah Mati",
@@ -1501,12 +1459,6 @@ STRINGS = {
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
 
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
-
         # UI Labels
         "ch_you_are_already_dead_title": "Ya estás muerto",
         "ch_you_are_already_dead_desc": "Selecciona el Bot IA Difícil en el Multijugador IA.",
@@ -1672,12 +1624,6 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
-
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
 
         # UI Labels
         "ch_you_are_already_dead_title": "Tu es déjà mort",
@@ -1845,12 +1791,6 @@ STRINGS = {
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
 
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
-
         # UI Labels
         "ch_you_are_already_dead_title": "Sei già morto",
         "ch_you_are_already_dead_desc": "Seleziona il Bot IA Difficile nel Multigiocatore IA.",
@@ -2017,12 +1957,6 @@ STRINGS = {
         "judgment_great": "GREAT!",
         "judgment_good": "GOOD",
         "judgment_miss": "MISS",
-
-        # Course Mode – Buffs
-
-        # Course Mode – Debuffs
-
-        # Course Mode – Fail screen
 
         # UI Labels
         "ch_you_are_already_dead_title": "Du bist bereits tot",
