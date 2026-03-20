@@ -6,6 +6,7 @@ All strings used by the AI Battle mode menu and challenge descriptions.
 _STRINGS = {
     "en": {
         "menu_ai_multi": "AI MULTI PLAYER",
+        "ai_diff_label": "AI",
         "you_win": "YOU WIN!",
         "ai_wins": "AI BOT WINS",
         "draw": "DRAW!",
@@ -23,6 +24,7 @@ _STRINGS = {
     },
     "ko": {
         "menu_ai_multi": "AI 멀티 플레이",
+        "ai_diff_label": "AI",
         "you_win": "승리!",
         "ai_wins": "AI 봇 승리",
         "draw": "무승부!",
@@ -40,6 +42,7 @@ _STRINGS = {
     },
     "ja": {
         "menu_ai_multi": "AIマルチプレイ",
+        "ai_diff_label": "AI",
         "you_win": "勝利！",
         "ai_wins": "AIボット勝利",
         "draw": "引き分け！",
@@ -57,6 +60,7 @@ _STRINGS = {
     },
     "zh": {
         "menu_ai_multi": "AI对战模式",
+        "ai_diff_label": "AI",
         "you_win": "你赢了！",
         "ai_wins": "AI机器人获胜",
         "draw": "平局！",
@@ -74,6 +78,7 @@ _STRINGS = {
     },
     "th": {
         "menu_ai_multi": "เล่นกับ AI",
+        "ai_diff_label": "AI",
         "you_win": "คุณชนะ!",
         "ai_wins": "AI ชนะ",
         "draw": "เสมอ!",
@@ -91,6 +96,7 @@ _STRINGS = {
     },
     "pt": {
         "menu_ai_multi": "MULTIJOGADOR IA",
+        "ai_diff_label": "IA",
         "you_win": "VOCÊ VENCEU!",
         "ai_wins": "IA VENCEU",
         "draw": "EMPATE!",
@@ -108,6 +114,7 @@ _STRINGS = {
     },
     "id": {
         "menu_ai_multi": "MULTI PEMAIN AI",
+        "ai_diff_label": "AI",
         "you_win": "ANDA MENANG!",
         "ai_wins": "AI MENANG",
         "draw": "SERI!",
@@ -125,6 +132,7 @@ _STRINGS = {
     },
     "es": {
         "menu_ai_multi": "MULTIJUGADOR IA",
+        "ai_diff_label": "IA",
         "you_win": "¡GANASTE!",
         "ai_wins": "IA GANA",
         "draw": "¡EMPATE!",
@@ -142,6 +150,7 @@ _STRINGS = {
     },
     "fr": {
         "menu_ai_multi": "MULTI IA",
+        "ai_diff_label": "IA",
         "you_win": "VICTOIRE !",
         "ai_wins": "L'IA GAGNE",
         "draw": "ÉGALITÉ!",
@@ -159,6 +168,7 @@ _STRINGS = {
     },
     "it": {
         "menu_ai_multi": "MULTI IA",
+        "ai_diff_label": "IA",
         "you_win": "HAI VINTO!",
         "ai_wins": "L'IA VINCE",
         "draw": "PAREGGIO!",
@@ -176,6 +186,7 @@ _STRINGS = {
     },
     "de": {
         "menu_ai_multi": "KI-MEHRSPIELER",
+        "ai_diff_label": "KI",
         "you_win": "DU GEWINNST!",
         "ai_wins": "KI GEWINNT",
         "draw": "UNENTSCHIEDEN!",

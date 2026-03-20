@@ -8,7 +8,7 @@ AI models live in this directory so users can inspect and swap them freely:
   model_hard.zip    — near-perfect timing (2 ms jitter), very high accuracy
 
 To replace a model, overwrite the corresponding .zip with a new
-stable_baselines3 PPO model trained on RhythmEnv (see src/only4bms/ai/).
+stable_baselines3 PPO model trained on RhythmEnv (see mods/ai_multi/train.py).
 
 All song selection, BMS parsing, and game loop logic is self-contained here.
 """
@@ -76,11 +76,13 @@ def run(settings, renderer, window, **ctx):
     challenge_manager = ctx.get("challenge_manager")
 
     cached_songs = None  # First entry scans; re-entries reuse cache
+    _ai_difficulties = ['normal', 'hard']
+    ai_diff_idx = settings.get('ai_diff_idx', 0)
 
     while True:
         ssm = SongSelectMenu(
             settings, renderer=renderer, window=window,
-            mode='ai_multi', song_groups=cached_songs,
+            song_groups=cached_songs,
         )
         res = ssm.run()
         cached_songs = ssm.song_groups
@@ -89,7 +91,8 @@ def run(settings, renderer, window, **ctx):
             total_songs = sum(len(g.get('charts', [])) for g in cached_songs)
             challenge_manager.check_challenges({'mode': 'scan_complete', 'total_songs': total_songs})
 
-        action, selected_song, ai_difficulty, note_mod = res
+        action, selected_song, note_mod = res
+        ai_difficulty = _ai_difficulties[ai_diff_idx % len(_ai_difficulties)]
 
         if action in ("QUIT", "MENU") or not action:
             break
@@ -134,7 +137,6 @@ def run(settings, renderer, window, **ctx):
                     metadata=metadata,
                     renderer=renderer,
                     window=window,
-                    ai_difficulty=ai_difficulty,
                     note_mod=note_mod,
                     challenge_manager=challenge_manager,
                     extension=AiMultiExtension(ai_difficulty),

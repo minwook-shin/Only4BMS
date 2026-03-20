@@ -383,7 +383,7 @@ def main():
                     total_songs = sum(len(g.get('charts', [])) for g in cached_songs)
                     challenge_manager.check_challenges({'mode': 'scan_complete', 'total_songs': total_songs})
 
-                action, selected_song, ai_difficulty, note_mod = res
+                action, selected_song, note_mod = res
 
                 if action in ("QUIT", "MENU") or not action:
                     break
@@ -422,7 +422,7 @@ def main():
                             visual_timing_map=visual_timing_map, measures=measures,
                             mode='single', metadata=metadata,
                             renderer=renderer, window=window,
-                            ai_difficulty=ai_difficulty, note_mod=note_mod,
+                            note_mod=note_mod,
                             challenge_manager=challenge_manager,
                             extension=None,
                         )

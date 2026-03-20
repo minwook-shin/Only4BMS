@@ -13,10 +13,9 @@ from .renderer import GameRenderer
 from .game_extension import GameExtension
 
 class RhythmGame:
-    def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, measures=None, mode='single', metadata=None, renderer=None, window=None, ai_difficulty='normal', note_mod='None',
+    def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, measures=None, mode='single', metadata=None, renderer=None, window=None, note_mod='None',
                  challenge_manager=None, p1_modifiers=None, extension: GameExtension = None):
         self.mode = mode
-        self.ai_difficulty = ai_difficulty
         self.renderer = renderer
         self.window = window
         self.width, self.height = window.size
@@ -530,7 +529,7 @@ class RhythmGame:
             d['all_notes_passed_time'] = self.engine.all_notes_passed_time
             d['note_type'] = self.note_type
             d['note_skin'] = self.note_skin
-            d['is_ai'] = False
+            d['is_opponent'] = False
             d['measures'] = self.measures
             if self.extension:
                 d.update(self.extension.get_p1_draw_extras(self))
@@ -557,7 +556,7 @@ class RhythmGame:
             d['all_notes_passed_time'] = self.ai_engine.all_notes_passed_time
             d['note_type'] = self.ai_note_type
             d['note_skin'] = 'default'  # AI always uses default skin
-            d['is_ai'] = True
+            d['is_opponent'] = True
             d['measures'] = self.measures
         return d
 

@@ -35,8 +35,6 @@ class SongSelectMenu:
         self.renderer = renderer
         self.window = window
         self.mode = mode
-        self.ai_difficulties = ['normal', 'hard']
-        self.ai_diff_idx = settings.get('ai_diff_idx', 0)
         self.note_mods = ['None', 'Mirror', 'Random']
         self.note_mod_idx = settings.get('note_mod_idx', 0)
         
@@ -367,10 +365,9 @@ class SongSelectMenu:
             if self.selected_chart_idx < len(charts):
                 self.settings['last_hovered_path'] = charts[self.selected_chart_idx]['filepath']
                 
-        self.settings['ai_diff_idx'] = self.ai_diff_idx
         self.settings['note_mod_idx'] = self.note_mod_idx
-        
-        return self.action, self.selected_song_path, self.ai_difficulties[self.ai_diff_idx], self.note_mods[self.note_mod_idx]
+
+        return self.action, self.selected_song_path, self.note_mods[self.note_mod_idx]
 
     def _open_bms_folder(self):
         """Open the system file explorer to the BMS song directory."""
@@ -504,8 +501,6 @@ class SongSelectMenu:
             self.action = "SETTINGS"
             self.running = False
             pygame.mixer.music.stop()
-        elif key == pygame.K_a: # Toggle AI Difficulty
-            self.ai_diff_idx = (self.ai_diff_idx + 1) % len(self.ai_difficulties)
         elif key == pygame.K_g: # Toggle Note Skin
             from ..game.challenge import ChallengeManager
             _cm = ChallengeManager()
@@ -564,9 +559,7 @@ class SongSelectMenu:
                     self._start_scan()
                 elif btn_action == "OPEN_FOLDER":
                     self._open_bms_folder()
-                elif btn_action == "DIFF":
-                    self.ai_diff_idx = (self.ai_diff_idx + 1) % len(self.ai_difficulties)
-                elif btn_action == "MOD":
+                    elif btn_action == "MOD":
                     self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
                 return
 
@@ -654,9 +647,6 @@ class SongSelectMenu:
             (_t("open_folder"), "OPEN_FOLDER"),
             (_t("settings_btn"), "SETTINGS")
         ] # Reversed for right-to-left draw
-        if self.mode == 'ai_multi':
-            btn_labels.insert(0, (f"{_t('ai_diff_label')}: {self.ai_difficulties[self.ai_diff_idx].upper()} (A)", "DIFF"))
-            
         bx = self.w - self._sx_v(40) # Start from right margin
         for label, action in btn_labels:
             surf = self.small_font.render(label, True, (255, 255, 255))

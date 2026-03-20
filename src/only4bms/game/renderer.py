@@ -36,7 +36,6 @@ class GameRenderer:
         self.circle_effect_cache = {} # (color, alpha, r) -> Texture
         self.text_cache = {} # (text, font_id, color, alpha) -> Texture
         self.font_obj_cache = {} # (size, bold) -> Font
-        self.ai_vision_texture = None # Pre-rendered scanner static part
         self.jitter_texture = None # Pre-rendered jitter bar
         self.jitter_gen = -1 # Track jitter history generation for cache invalidation
         # Gold skin caches
@@ -453,44 +452,6 @@ class GameRenderer:
             self.text_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.text_cache[key]
 
-    def _draw_ai_vision(self, x, y, w, h, alpha):
-        if not self.ai_vision_texture or self.ai_vision_texture.width != w or self.ai_vision_texture.height != h:
-            surf = pygame.Surface((w, h), pygame.SRCALPHA)
-            v_color = (0, 255, 255, 255)
-            # Scanner Frame (Dashed)
-            dash = self._s(10); gap = self._s(6)
-            for dx in range(0, w, dash + gap):
-                dw = min(dash, w - dx)
-                pygame.draw.line(surf, v_color, (dx, 0), (dx + dw, 0), 2)
-                pygame.draw.line(surf, v_color, (dx, h - 2), (dx + dw, h - 2), 2)
-            for dy in range(0, h, dash + gap):
-                dh = min(dash, h - dy)
-                pygame.draw.line(surf, v_color, (0, dy), (0, dy + dh), 2)
-                pygame.draw.line(surf, v_color, (w - 2, dy), (w - 2, dy + dh), 2)
-            
-            # Robot Eyes
-            er = self._s(8); ex = self._s(25); ey = h // 2
-            pygame.draw.circle(surf, (255, 255, 255, 255), (w // 2 - ex, ey), er // 2)
-            pygame.draw.circle(surf, (0, 255, 255, 180), (w // 2 - ex, ey), er, 2)
-            pygame.draw.circle(surf, (255, 255, 255, 255), (w // 2 + ex, ey), er // 2)
-            pygame.draw.circle(surf, (0, 255, 255, 180), (w // 2 + ex, ey), er, 2)
-            
-            # Text
-            ai_font = _i18n.font("hud_ai_label", self.sy, bold=True)
-            ai_surf = ai_font.render(_t("ai_vision"), True, (0, 255, 255, 200))
-            surf.blit(ai_surf, (self._s(8), self._s(5)))
-            
-            if self.ai_vision_texture: self.ai_vision_texture.update(surf)
-            else: self.ai_vision_texture = Texture.from_surface(self.renderer, surf)
-
-        # Glow
-        self.renderer.draw_color = (0, 100, 150, alpha // 6)
-        self.renderer.fill_rect((x, y, w, h))
-        
-        # Frame & Eyes (Blit the pre-rendered texture)
-        self.ai_vision_texture.alpha = alpha
-        self.renderer.blit(self.ai_vision_texture, pygame.Rect(x, y, w, h))
-
     def _ensure_lane_bg_texture(self, lane_w):
         if self.lane_bg_texture and self.lane_bg_texture.width == lane_w * NUM_LANES:
             return
@@ -582,12 +543,6 @@ class GameRenderer:
             self.renderer.draw_color = (255, 80, 80, int(min(255, hit_alpha + 150) * fade_mult))
             self.renderer.draw_rect((lx[0], hit_y - perf_h, ltw, perf_h))
 
-            # AI Vision Area
-            if game_state.get('is_ai'):
-                vh = self._s(120)
-                vy = hit_y - vh
-                self._draw_ai_vision(lx[0], vy, ltw, vh, int(hit_alpha * 0.8 * fade_mult))
-
             # ── Measure / Bar Lines with Speed Change Indicators ──
             measures = game_state.get('measures', [])
             if measures:
@@ -620,7 +575,7 @@ class GameRenderer:
                     self.renderer.fill_rect((lx[0], int(my), ltw, line_h))
 
             # Judgment / Combo Text
-            is_ai = game_state.get('is_ai', False)
+            is_opponent = game_state.get('is_opponent', False)
             def get_bounce(timer, duration=200):
                 elapsed = current_time - timer
                 if elapsed < 0 or elapsed > duration: return 1.0
@@ -639,7 +594,7 @@ class GameRenderer:
 
 
                     # FAST / SLOW Indicator (Only for Player 1)
-                    if not is_ai:
+                    if not is_opponent:
                         j_err = game_state.get('judgment_err', 0)
                         j_key = game_state.get('judgment_key', '')
                         if j_key in ("GREAT", "GOOD") and alpha > 50:
@@ -650,13 +605,13 @@ class GameRenderer:
                             self.renderer.blit(err_tex, pygame.Rect(lx[0] + ltw // 2 - err_tex.width // 2, self.height // 2 - self._s(30), err_tex.width, err_tex.height))
 
             # Jitter Bar (Distribution) - Only for Player 1, rendered independently of judgment text
-            if not is_ai:
+            if not is_opponent:
                 jitter = game_state.get('jitter_history', [])
                 if jitter:
                     self._draw_jitter_bar(lx[0], self.height // 2 - self._s(10), ltw, jitter, current_time)
 
             # Combo - Only for Player 1
-            if not is_ai:
+            if not is_opponent:
                 c_timer = game_state.get('combo_timer', 0)
                 if comb > 0 and current_time - c_timer < 500:
                     dt = current_time - c_timer
@@ -668,7 +623,7 @@ class GameRenderer:
                         tw, th = int(c_tex.width * scale), int(c_tex.height * scale)
                         self.renderer.blit(c_tex, pygame.Rect(lx[0] + ltw // 2 - tw // 2, self.height // 2 + self._s(20) - th // 2, tw, th))
             # Speed Indicator (Player side only)
-            if not is_ai:
+            if not is_opponent:
                 speed_val = game_state.get('speed', 1.0) / self.h_base_h_ratio
                 spd_tex = self._get_text_texture(_t("speed_display").format(val=f"{speed_val:.1f}"), False, (200, 200, 200), size_override=self._s(18))
                 spd_tex.alpha = int(200 * fade_mult)
@@ -760,7 +715,7 @@ class GameRenderer:
                         self.renderer.blit(tex, pygame.Rect(nx, int(ey) + note_h // 2, lane_w, body_h))
                 
                 # Handling Hit Connector (Jack) - Skip for AI side (performance)
-                if not is_ai and 'jack_prev_v_time' in note and not is_auto:
+                if not is_opponent and 'jack_prev_v_time' in note and not is_auto:
                     prev_td = note['jack_prev_v_time'] - current_visual_time
                     prev_y = int(self.hit_y_minus_note_h - prev_td * spd)
                     connector_h = int(prev_y - y)
