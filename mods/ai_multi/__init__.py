@@ -77,7 +77,18 @@ def run(settings, renderer, window, **ctx):
 
     cached_songs = None  # First entry scans; re-entries reuse cache
     _ai_difficulties = ['normal', 'hard']
-    ai_diff_idx = settings.get('ai_diff_idx', 0)
+    _diff_idx = [settings.get('ai_diff_idx', 0)]  # list so closures can mutate
+
+    def _ai_diff_label():
+        from .i18n import t as _t
+        val = _ai_difficulties[_diff_idx[0] % len(_ai_difficulties)]
+        return f"{_t('ai_diff_label')}: {val.upper()}"
+
+    def _ai_diff_toggle():
+        _diff_idx[0] = (_diff_idx[0] + 1) % len(_ai_difficulties)
+        settings['ai_diff_idx'] = _diff_idx[0]
+        if save_settings_fn:
+            save_settings_fn(settings)
 
     def _ai_note_label():
         from .i18n import t as _t
@@ -89,13 +100,19 @@ def run(settings, renderer, window, **ctx):
         if save_settings_fn:
             save_settings_fn(settings)
 
-    _extra_opts = [{'label_fn': _ai_note_label, 'action': 'AI_NOTE_TYPE', 'on_click': _ai_note_toggle}]
+    _extra_opts = [
+        {'label_fn': _ai_note_label, 'action': 'AI_NOTE_TYPE', 'on_click': _ai_note_toggle},
+    ]
+    _extra_nav = [
+        {'label_fn': _ai_diff_label, 'action': 'AI_DIFF', 'on_click': _ai_diff_toggle},
+    ]
 
     while True:
         ssm = SongSelectMenu(
             settings, renderer=renderer, window=window,
             song_groups=cached_songs,
             extra_opts=_extra_opts,
+            extra_nav_buttons=_extra_nav,
         )
         res = ssm.run()
         cached_songs = ssm.song_groups
@@ -105,7 +122,7 @@ def run(settings, renderer, window, **ctx):
             challenge_manager.check_challenges({'mode': 'scan_complete', 'total_songs': total_songs})
 
         action, selected_song, note_mod = res
-        ai_difficulty = _ai_difficulties[ai_diff_idx % len(_ai_difficulties)]
+        ai_difficulty = _ai_difficulties[_diff_idx[0] % len(_ai_difficulties)]
 
         if action in ("QUIT", "MENU") or not action:
             break

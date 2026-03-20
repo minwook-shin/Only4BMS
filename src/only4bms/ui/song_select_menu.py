@@ -30,12 +30,13 @@ COLOR_PANEL_BG = (15, 15, 25, 130)
 
 
 class SongSelectMenu:
-    def __init__(self, settings, renderer, window, mode='single', song_groups=None, extra_opts=None):
+    def __init__(self, settings, renderer, window, mode='single', song_groups=None, extra_opts=None, extra_nav_buttons=None):
         from pygame._sdl2.video import Texture
         self.renderer = renderer
         self.window = window
         self.mode = mode
         self.extra_opts = extra_opts or []
+        self.extra_nav_buttons = extra_nav_buttons or []
         self.note_mods = ['None', 'Mirror', 'Random']
         self.note_mod_idx = settings.get('note_mod_idx', 0)
         
@@ -562,6 +563,11 @@ class SongSelectMenu:
                     self._open_bms_folder()
                 elif btn_action == "MOD":
                     self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
+                else:
+                    for nav_opt in self.extra_nav_buttons:
+                        if btn_action == nav_opt['action']:
+                            nav_opt['on_click']()
+                            break
                 return
 
         margin_l, margin_r = self._sx_v(360), self._sx_v(760)
@@ -652,19 +658,32 @@ class SongSelectMenu:
         for label, action in btn_labels:
             surf = self.small_font.render(label, True, (255, 255, 255))
             tw, th = surf.get_size()
-            
+
             # Align center with title_y + offset
             # (Note: title_font is 44px, small_font is 22px)
             rect = pygame.Rect(bx - tw - 10, title_y + self._s(8), tw + 10, th + 5)
             hovered = rect.collidepoint(mx, my)
-            
+
             pygame.draw.rect(self.screen, (60, 80, 60) if hovered else (40, 50, 40), rect, border_radius=4)
             color = (255, 255, 255) if hovered else (200, 220, 200)
             btn_surf = self.small_font.render(label, True, color)
             self.screen.blit(btn_surf, (rect.x + 5, rect.y + 2))
-            
+
             self._nav_buttons.append((rect, action))
             bx = rect.x - self._sx_v(15) # Move left for next button
+
+        # Extra nav buttons injected by caller (e.g. mods) — drawn left of standard buttons
+        for nav_opt in self.extra_nav_buttons:
+            label = nav_opt['label_fn']()
+            surf = self.small_font.render(label, True, (255, 255, 255))
+            tw, th = surf.get_size()
+            rect = pygame.Rect(bx - tw - 10, title_y + self._s(8), tw + 10, th + 5)
+            hovered = rect.collidepoint(mx, my)
+            pygame.draw.rect(self.screen, (80, 60, 60) if hovered else (60, 40, 40), rect, border_radius=4)
+            color = (255, 255, 255) if hovered else (220, 200, 200)
+            self.screen.blit(self.small_font.render(label, True, color), (rect.x + 5, rect.y + 2))
+            self._nav_buttons.append((rect, nav_opt['action']))
+            bx = rect.x - self._sx_v(15)
 
         if self._scanning:
             self._draw_scan_spinner()
