@@ -259,4 +259,6 @@ class OnlineGameExtension(GameExtension):
             'failed': False,
             'ai_paused': False,
             'ai_restarted': False,
+            'ai_judgments': dict(game.ai_judgments),
+            'ai_max_combo': game.ai_max_combo,
         }
