@@ -167,7 +167,6 @@ STRINGS = {
     "en": {
         # Main Menu
         "menu_single": "SINGLE PLAYER",
-        "menu_ai_multi": "AI MULTI PLAYER",
         "menu_mods": "MODS",
         "menu_challenge": "CHALLENGE MODE",
         "menu_settings": "SETTINGS",
@@ -190,8 +189,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Clear a level 7+ song.",
         "ch_clear_lv10_title": "Advanced",
         "ch_clear_lv10_desc": "Clear a level 10+ song.",
-        "ch_multi_win_title": "Multiplayer Victory",
-        "ch_multi_win_desc": "Win a match against the AI.",
         "ch_combo_100_lv5_title": "Combo Master",
         "ch_combo_100_lv5_desc": "Achieve 100+ combo on a level 5+ song.",
         
@@ -296,14 +293,6 @@ STRINGS = {
         "open_folder": "Open BMS Folder (O)",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "You Are Already Dead",
-        "ch_you_are_already_dead_desc": "Select Hard AI Bot in AI Multiplayer.",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "Finish with <50% accuracy while AI plays perfectly.",
-        "ch_ai_needs_time_title": "AI Needs Time Too",
-        "ch_ai_needs_time_desc": "Pause the game during AI Multiplayer.",
-        "ch_ai_wants_retry_title": "AI Wants a Retry Too",
-        "ch_ai_wants_retry_desc": "Quick restart during AI Multiplayer.",
         "ch_compression_master_title": "Compression Master",
         "ch_compression_master_desc": "Clear a >4 keys song converted to 4 keys for the first time.",
         "ch_unprecedented_system_title": "Unprecedented System",
@@ -323,7 +312,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "First Time Playing a Rhythm Game?",
         "ch_first_time_rhythm_game_desc": "Complete a song with less than 50% accuracy.",
         "ch_perfect_player_title": "The Perfect One",
-        "ch_perfect_player_desc": "Get a PERFECT score in single play or beat the AI hard bot.",
+        "ch_perfect_player_desc": "Get a PERFECT score in single play.",
         "challenge_hidden_label": "HIDDEN",
         "note_skin_label": "NOTE SKIN",
         "note_skin_default": "DEFAULT",
@@ -341,7 +330,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "ko": {
         "menu_single": "싱글 플레이",
-        "menu_ai_multi": "AI 멀티 플레이",
         "menu_mods": "모드",
         "menu_challenge": "도전과제",
         "menu_settings": "설정",
@@ -364,8 +352,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "7레벨 이상의 곡을 클리어하세요.",
         "ch_clear_lv10_title": "고수",
         "ch_clear_lv10_desc": "10레벨 이상의 곡을 클리어하세요.",
-        "ch_multi_win_title": "대전 승리",
-        "ch_multi_win_desc": "AI를 상대로 승리하세요.",
         "ch_combo_100_lv5_title": "콤보 유지",
         "ch_combo_100_lv5_desc": "5레벨 이상의 곡에서 100 콤보 이상을 달성하세요.",
         
@@ -462,14 +448,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "너는 이미 죽어있다",
-        "ch_you_are_already_dead_desc": "AI 멀티 플레이에서 하드 봇을 선택하세요.",
-        "ch_vibe_coding_title": "바이브 코딩",
-        "ch_vibe_coding_desc": "AI 플레이와 다르게 정확도 50% 미만으로 곡을 완주하세요.",
-        "ch_ai_needs_time_title": "AI도 생각할 시간이 필요해",
-        "ch_ai_needs_time_desc": "AI 멀티 플레이 중 일시정지하세요.",
-        "ch_ai_wants_retry_title": "AI도 다시 하고 싶어",
-        "ch_ai_wants_retry_desc": "AI 멀티 플레이 중 빠른 재시작하세요.",
         "ch_compression_master_title": "압축의 달인",
         "ch_compression_master_desc": "4키 이상 BMS 곡을 4키로 변환하여 처음 클리어하세요.",
         "ch_unprecedented_system_title": "지금까지 이런 시스템은 없었다",
@@ -489,7 +467,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "이번 리겜은 처음이라",
         "ch_first_time_rhythm_game_desc": "판정 정확도 50% 미만으로 곡을 완주하세요.",
         "ch_perfect_player_title": "완벽한 사람",
-        "ch_perfect_player_desc": "싱글 플레이에서 퍼펙트하거나 AI 하드 봇에게 이기세요.",
+        "ch_perfect_player_desc": "싱글 플레이에서 퍼펙트하세요.",
         "challenge_hidden_label": "히든",
         "note_skin_label": "노트 스킨",
         "note_skin_default": "기본",
@@ -507,7 +485,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "ja": {
         "menu_single": "シングルプレイ",
-        "menu_ai_multi": "AIマルチプレイ",
         "menu_mods": "MOD",
         "menu_challenge": "チャレンジモード",
         "menu_settings": "設定",
@@ -530,8 +507,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Lv.7以上の曲をクリア。",
         "ch_clear_lv10_title": "上級者",
         "ch_clear_lv10_desc": "Lv.10以上の曲をクリア。",
-        "ch_multi_win_title": "対戦勝利",
-        "ch_multi_win_desc": "AIに勝利する。",
         "ch_combo_100_lv5_title": "コンボマスター",
         "ch_combo_100_lv5_desc": "Lv.5以上の曲で100コンボ以上達成。",
         
@@ -629,14 +604,6 @@ STRINGS = {
         "open_folder": "Open BMS Folder (O)",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "お前はもう死んでいる",
-        "ch_you_are_already_dead_desc": "AIマルチプレイでHard AI Botを選択する。",
-        "ch_vibe_coding_title": "バイブコーディング",
-        "ch_vibe_coding_desc": "AIが完璧にプレイする中、精度50%未満で完走する。",
-        "ch_ai_needs_time_title": "AIにも休息が必要",
-        "ch_ai_needs_time_desc": "AIマルチプレイ中にゲームを一時停止する。",
-        "ch_ai_wants_retry_title": "AIもやり直したい",
-        "ch_ai_wants_retry_desc": "AIマルチプレイ中にクイックリスタートを行う。",
         "ch_compression_master_title": "圧縮の達人",
         "ch_compression_master_desc": "5鍵以上のBMSを4鍵に変換して初めてクリアする。",
         "ch_unprecedented_system_title": "前代未聞のシステム",
@@ -656,7 +623,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "音ゲーは初めてですか？",
         "ch_first_time_rhythm_game_desc": "精度50%未満で曲を完走する。",
         "ch_perfect_player_title": "完璧なプレイヤー",
-        "ch_perfect_player_desc": "シングルプレイでパーフェクトを取るか、AIハードボットに勝利してください。",
+        "ch_perfect_player_desc": "シングルプレイでパーフェクトを取ってください。",
         "challenge_hidden_label": "HIDDEN",
         "note_skin_label": "ノートスキン",
         "note_skin_default": "デフォルト",
@@ -674,7 +641,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "zh": {
         "menu_single": "单人模式",
-        "menu_ai_multi": "AI对战模式",
         "menu_mods": "模组",
         "menu_challenge": "挑战模式",
         "menu_settings": "设置",
@@ -697,8 +663,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "通过 Lv.7 或以上的歌曲。",
         "ch_clear_lv10_title": "精英",
         "ch_clear_lv10_desc": "通关 Lv.10 或以上的歌曲。",
-        "ch_multi_win_title": "对战胜利",
-        "ch_multi_win_desc": "在对战中击败 AI。",
         "ch_combo_100_lv5_title": "连击大师",
         "ch_combo_100_lv5_desc": "在 Lv.5 或以上的歌曲中达成 100 连击。",
         
@@ -794,14 +758,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "你已经死了",
-        "ch_you_are_already_dead_desc": "在AI对战中选择困难AI机器人。",
-        "ch_vibe_coding_title": "氛围编程",
-        "ch_vibe_coding_desc": "在AI完美发挥的情况下，以低于50%的准确度完成。",
-        "ch_ai_needs_time_title": "AI也需要时间",
-        "ch_ai_needs_time_desc": "在AI对战中暂停游戏。",
-        "ch_ai_wants_retry_title": "AI也想重来",
-        "ch_ai_wants_retry_desc": "在AI对战中快速重试。",
         "ch_compression_master_title": "压缩大师",
         "ch_compression_master_desc": "首次通关由4键以上转换而来的4键歌曲。",
         "ch_unprecedented_system_title": "史无前例的系统",
@@ -821,7 +777,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "第一次玩音游？",
         "ch_first_time_rhythm_game_desc": "以低于 50% 的准确度完成歌曲。",
         "ch_perfect_player_title": "完胜玩家",
-        "ch_perfect_player_desc": "在单人游戏中获得 PERFECT 分数或击败 AI 高级机器人。",
+        "ch_perfect_player_desc": "在单人游戏中获得 PERFECT 分数。",
         "challenge_hidden_label": "隐藏",
         "note_skin_label": "音符皮肤",
         "note_skin_default": "默认",
@@ -840,7 +796,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "th": {
         "menu_single": "เล่นคนเดียว",
-        "menu_ai_multi": "เล่นกับ AI",
         "menu_mods": "มอด",
         "menu_challenge": "โหมดท้าทาย",
         "menu_settings": "ตั้งค่า",
@@ -863,8 +818,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "ผ่านเพลงเลเวล 7 ขึ้นไป",
         "ch_clear_lv10_title": "ระดับสูง",
         "ch_clear_lv10_desc": "ผ่านเพลงเลเวล 10 ขึ้นไป",
-        "ch_multi_win_title": "ชัยชนะในการดวล",
-        "ch_multi_win_desc": "เอาชนะ AI ในการดวล",
         "ch_combo_100_lv5_title": "เจ้าแห่งคอมโบ",
         "ch_combo_100_lv5_desc": "ทำได้ 100 คอมโบขึ้นไปในเพลงเลเวล 5",
 
@@ -961,14 +914,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "เจ้าตายแล้ว",
-        "ch_you_are_already_dead_desc": "เลือก AI Bot ระดับ Hard ในการเล่นกับ AI",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "จบเพลงด้วยความแม่นยำ <50% ในขณะที่ AI เล่นได้อย่างสมบูรณ์แบบ",
-        "ch_ai_needs_time_title": "AI ก็ต้องการเวลา",
-        "ch_ai_needs_time_desc": "หยุดเกมชั่วคราวระหว่างการเล่นกับ AI",
-        "ch_ai_wants_retry_title": "AI ก็อยากเริ่มใหม่",
-        "ch_ai_wants_retry_desc": "ใช้การเริ่มใหม่แบบด่วนระหว่างการเล่นกับ AI",
         "ch_compression_master_title": "เจ้าแห่งการบีบอัด",
         "ch_compression_master_desc": "เคลียร์เพลงที่มีมากกว่า 4 คีย์ที่ถูกแปลงเป็น 4 คีย์เป็นครั้งแรก",
         "ch_unprecedented_system_title": "ระบบที่ไม่เคยมีมาก่อน",
@@ -988,7 +933,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "เล่นเกมนับจังหวะครั้งแรกเหรอ?",
         "ch_first_time_rhythm_game_desc": "เล่นจบหนึ่งเพลงด้วยความแม่นยำต่ำกว่า 50%",
         "ch_perfect_player_title": "ผู้เล่นที่สมบูรณ์แบบ",
-        "ch_perfect_player_desc": "ได้รับคะแนน PERFECT ในการเล่นคนเดียวหรือเอาชนะ AI บอทระดับยาก",
+        "ch_perfect_player_desc": "ได้รับคะแนน PERFECT ในการเล่นคนเดียว",
         "challenge_hidden_label": "ลับ",
         "note_skin_label": "สกินโน้ต",
         "note_skin_default": "พื้นฐาน",
@@ -1007,7 +952,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "pt": {
         "menu_single": "UM JOGADOR",
-        "menu_ai_multi": "MULTIJOGADOR IA",
         "menu_mods": "MODS",
         "menu_challenge": "MODO DESAFIO",
         "menu_settings": "CONFIGURAÇÕES",
@@ -1030,8 +974,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Conclua uma música nível 7+.",
         "ch_clear_lv10_title": "Avançado",
         "ch_clear_lv10_desc": "Conclua uma música nível 10+.",
-        "ch_multi_win_title": "Vitória VS IA",
-        "ch_multi_win_desc": "Vença uma partida contra a IA.",
         "ch_combo_100_lv5_title": "Mestre do Combo",
         "ch_combo_100_lv5_desc": "Consiga 100+ combos no nível 5+.",
 
@@ -1128,14 +1070,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "Você já está morto",
-        "ch_you_are_already_dead_desc": "Selecione o Robô IA Difícil no Multijogador IA.",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "Termine com <50% de precisão enquanto a IA joga perfeitamente.",
-        "ch_ai_needs_time_title": "A IA também precisa de tempo",
-        "ch_ai_needs_time_desc": "Pause o jogo durante o Multijogador IA.",
-        "ch_ai_wants_retry_title": "A IA também quer tentar de novo",
-        "ch_ai_wants_retry_desc": "Reinicie rapidamente durante o Multijogador IA.",
         "ch_compression_master_title": "Mestre da Compressão",
         "ch_compression_master_desc": "Conclua uma música de >4 teclas convertida para 4 teclas pela primeira vez.",
         "ch_unprecedented_system_title": "Sistema Sem Precedentes",
@@ -1155,7 +1089,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "Primeira vez em um jogo de ritmo?",
         "ch_first_time_rhythm_game_desc": "Complete uma música com menos de 50% de precisão.",
         "ch_perfect_player_title": "O Perfeito",
-        "ch_perfect_player_desc": "Obtenha uma pontuação PERFECT no jogo individual ou vença o bot de IA difícil.",
+        "ch_perfect_player_desc": "Obtenha uma pontuação PERFECT no jogo individual.",
         "challenge_hidden_label": "OCULTO",
         "note_skin_label": "SKIN DE NOTA",
         "note_skin_default": "PADRÃO",
@@ -1173,7 +1107,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "id": {
         "menu_single": "PEMAIN TUNGGAL",
-        "menu_ai_multi": "MULTI PEMAIN AI",
         "menu_mods": "MOD",
         "menu_challenge": "MODE TANTANGAN",
         "menu_settings": "PENGATURAN",
@@ -1196,8 +1129,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Selesaikan lagu level 7+.",
         "ch_clear_lv10_title": "Lanjutan",
         "ch_clear_lv10_desc": "Selesaikan lagu level 10+.",
-        "ch_multi_win_title": "Kemenangan VS AI",
-        "ch_multi_win_desc": "Menangkan pertandingan melawan AI.",
         "ch_combo_100_lv5_title": "Ahli Combo",
         "ch_combo_100_lv5_desc": "Dapatkan 100+ combo di level 5+. ",
 
@@ -1294,14 +1225,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "Kamu Sudah Mati",
-        "ch_you_are_already_dead_desc": "Pilih Bot AI Sulit di Multi Pemain AI.",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "Selesaikan dengan akurasi <50% saat AI bermain sempurna.",
-        "ch_ai_needs_time_title": "AI Juga Butuh Waktu",
-        "ch_ai_needs_time_desc": "Jeda permainan selama Multi Pemain AI.",
-        "ch_ai_wants_retry_title": "AI Juga Ingin Mengulang",
-        "ch_ai_wants_retry_desc": "Restart cepat selama Multi Pemain AI.",
         "ch_compression_master_title": "Ahli Kompresi",
         "ch_compression_master_desc": "Selesaikan lagu >4 tombol yang dikonversi ke 4 tombol untuk pertama kalinya.",
         "ch_unprecedented_system_title": "Sistem Tanpa Tanding",
@@ -1321,7 +1244,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "Pertama kali bermain permainan ritme?",
         "ch_first_time_rhythm_game_desc": "Lengkapkan lagu dengan ketepatan kurang daripada 50%.",
         "ch_perfect_player_title": "Pemain Sempurna",
-        "ch_perfect_player_desc": "Dapatkan skor PERFECT dalam permainan tunggal atau kalahkan bot AI sukar.",
+        "ch_perfect_player_desc": "Dapatkan skor PERFECT dalam permainan tunggal.",
         "challenge_hidden_label": "TERSEMBUNYI",
         "note_skin_label": "KULIT NOTA",
         "note_skin_default": "ASAL",
@@ -1339,7 +1262,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "es": {
         "menu_single": "UN JUGADOR",
-        "menu_ai_multi": "MULTIJUGADOR IA",
         "menu_mods": "MODS",
         "menu_challenge": "MODO DESAFÍO",
         "menu_settings": "AJUSTES",
@@ -1362,8 +1284,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Completa una canción nivel 7+.",
         "ch_clear_lv10_title": "Avanzado",
         "ch_clear_lv10_desc": "Completa una canción nivel 10+.",
-        "ch_multi_win_title": "Victoria VS IA",
-        "ch_multi_win_desc": "Gana un combate contra la IA.",
         "ch_combo_100_lv5_title": "Maestro del Combo",
         "ch_combo_100_lv5_desc": "Consigue 100+ combos en nivel 5+.",
 
@@ -1460,14 +1380,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "Ya estás muerto",
-        "ch_you_are_already_dead_desc": "Selecciona el Bot IA Difícil en el Multijugador IA.",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "Termina con <50% de precisión mientras la IA juega perfectamente.",
-        "ch_ai_needs_time_title": "La IA también necesita tiempo",
-        "ch_ai_needs_time_desc": "Pausa el juego durante el Multijugador IA.",
-        "ch_ai_wants_retry_title": "La IA también quiere reintentarlo",
-        "ch_ai_wants_retry_desc": "Reinicio rápido durante el Multijugador IA.",
         "ch_compression_master_title": "Maestro de la Compresión",
         "ch_compression_master_desc": "Completa una canción de >4 teclas convertida a 4 teclas por primera vez.",
         "ch_unprecedented_system_title": "Sistema sin Precedentes",
@@ -1487,7 +1399,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "¿Primera vez jugando un juego de ritmo?",
         "ch_first_time_rhythm_game_desc": "Completa una canción con menos del 50% de precisión.",
         "ch_perfect_player_title": "El Perfecto",
-        "ch_perfect_player_desc": "Consigue una puntuación PERFECT en solitario o vence al bot de IA difícil.",
+        "ch_perfect_player_desc": "Consigue una puntuación PERFECT en solitario.",
         "challenge_hidden_label": "OCULTO",
         "note_skin_label": "SKIN DE NOTA",
         "note_skin_default": "ESTÁNDAR",
@@ -1505,7 +1417,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "fr": {
         "menu_single": "SOLO",
-        "menu_ai_multi": "MULTI IA",
         "menu_mods": "MODS",
         "menu_challenge": "MODE DÉFI",
         "menu_settings": "PARAMÈTRES",
@@ -1528,8 +1439,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Réussis une chanson niveau 7+.",
         "ch_clear_lv10_title": "Avancé",
         "ch_clear_lv10_desc": "Réussis une chanson niveau 10+.",
-        "ch_multi_win_title": "Victoire Multi",
-        "ch_multi_win_desc": "Gagne un match contre l'IA.",
         "ch_combo_100_lv5_title": "Maître du Combo",
         "ch_combo_100_lv5_desc": "Fais 100+ combos sur niveau 5+.",
 
@@ -1626,14 +1535,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "Tu es déjà mort",
-        "ch_you_are_already_dead_desc": "Sélectionnez l'IA difficile en multijoueur IA.",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "Finissez avec <50% de précision alors que l'IA joue parfaitement.",
-        "ch_ai_needs_time_title": "L'IA aussi a besoin de temps",
-        "ch_ai_needs_time_desc": "Mettez le jeu en pause pendant le multijoueur IA.",
-        "ch_ai_wants_retry_title": "L'IA aussi veut recommencer",
-        "ch_ai_wants_retry_desc": "Redémarrage rapide pendant le multijoueur IA.",
         "ch_compression_master_title": "Maître de la Compression",
         "ch_compression_master_desc": "Réussissez une musique >4 touches convertie en 4 touches pour la première fois.",
         "ch_unprecedented_system_title": "Système Sans Précédent",
@@ -1653,7 +1554,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "Première fois dans un jeu de rythme ?",
         "ch_first_time_rhythm_game_desc": "Terminez une chanson avec moins de 50 % de précision.",
         "ch_perfect_player_title": "Le Parfait",
-        "ch_perfect_player_desc": "Obtenez un score PERFECT en mode solo ou battez le bot IA difficile.",
+        "ch_perfect_player_desc": "Obtenez un score PERFECT en mode solo.",
         "challenge_hidden_label": "CACHÉ",
         "note_skin_label": "SKIN DE NOTE",
         "note_skin_default": "PAR DÉFAUT",
@@ -1671,7 +1572,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "it": {
         "menu_single": "GIOCATORE SINGOLO",
-        "menu_ai_multi": "MULTI IA",
         "menu_mods": "MOD",
         "menu_challenge": "MODALITÀ SFIDA",
         "menu_settings": "IMPOSTAZIONI",
@@ -1694,8 +1594,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Completa un brano livello 7+.",
         "ch_clear_lv10_title": "Avanzato",
         "ch_clear_lv10_desc": "Completa un brano livello 10+.",
-        "ch_multi_win_title": "Vittoria VS IA",
-        "ch_multi_win_desc": "Vinci un match contro l'IA.",
         "ch_combo_100_lv5_title": "Maestro Combo",
         "ch_combo_100_lv5_desc": "Ottieni 100+ combo in livello 5+.",
 
@@ -1792,14 +1690,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "Sei già morto",
-        "ch_you_are_already_dead_desc": "Seleziona il Bot IA Difficile nel Multigiocatore IA.",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "Finisci con precisione <50% mentre l'IA gioca perfettamente.",
-        "ch_ai_needs_time_title": "Anche l'IA ha bisogno di tempo",
-        "ch_ai_needs_time_desc": "Metti in pausa il gioco durante il Multigiocatore IA.",
-        "ch_ai_wants_retry_title": "Anche l'IA vuole riprovare",
-        "ch_ai_wants_retry_desc": "Riavvio rapido durante il Multigiocatore IA.",
         "ch_compression_master_title": "Maestro della Compressione",
         "ch_compression_master_desc": "Completa un brano >4 tasti convertito in 4 tasti per la prima volta.",
         "ch_unprecedented_system_title": "Sistema Senza Precedenti",
@@ -1819,7 +1709,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "Prima volta con un rhythm game?",
         "ch_first_time_rhythm_game_desc": "Completa un brano con meno del 50% di precisione.",
         "ch_perfect_player_title": "Il Perfetto",
-        "ch_perfect_player_desc": "Ottieni un punteggio PERFECT nel gioco singolo o sconfiggi il bot IA difficile.",
+        "ch_perfect_player_desc": "Ottieni un punteggio PERFECT nel gioco singolo.",
         "challenge_hidden_label": "NASCOSTO",
         "note_skin_label": "SKIN NOTA",
         "note_skin_default": "DEFAULT",
@@ -1838,7 +1728,6 @@ STRINGS = {
     # ╚══════════════════════════════════════════════════════════════════════╝
     "de": {
         "menu_single": "EINZELSPIELER",
-        "menu_ai_multi": "KI-MEHRSPIELER",
         "menu_mods": "MODS",
         "menu_challenge": "HERAUSFORDERUNG",
         "menu_settings": "EINSTELLUNGEN",
@@ -1861,8 +1750,6 @@ STRINGS = {
         "ch_clear_lv7_desc": "Schaffe einen Song ab Level 7.",
         "ch_clear_lv10_title": "Profi",
         "ch_clear_lv10_desc": "Schaffe einen Song ab Level 10.",
-        "ch_multi_win_title": "KI-Sieg",
-        "ch_multi_win_desc": "Gewinne gegen die KI.",
         "ch_combo_100_lv5_title": "Combo-Meister",
         "ch_combo_100_lv5_desc": "Schaffe 100+ Combos in Level 5+.",
 
@@ -1959,14 +1846,6 @@ STRINGS = {
         "judgment_miss": "MISS",
 
         # UI Labels
-        "ch_you_are_already_dead_title": "Du bist bereits tot",
-        "ch_you_are_already_dead_desc": "Wähle den schweren KI-Bot im KI-Mehrspieler.",
-        "ch_vibe_coding_title": "Vibe Coding",
-        "ch_vibe_coding_desc": "Beende mit <50% Genauigkeit, während die KI perfekt spielt.",
-        "ch_ai_needs_time_title": "KI braucht auch Zeit",
-        "ch_ai_needs_time_desc": "Pausiere das Spiel während des KI-Mehrspielers.",
-        "ch_ai_wants_retry_title": "KI will auch einen Revert",
-        "ch_ai_wants_retry_desc": "Schneller Neustart während des KI-Mehrspielers.",
         "ch_compression_master_title": "Kompressions-Meister",
         "ch_compression_master_desc": "Schließe zum ersten Mal einen >4-Tasten-Song ab, der in 4 Tasten konvertiert wurde.",
         "ch_unprecedented_system_title": "Beispielloses System",
@@ -1986,7 +1865,7 @@ STRINGS = {
         "ch_first_time_rhythm_game_title": "Erste Mal in einem Rhythmusspiel?",
         "ch_first_time_rhythm_game_desc": "Schließe einen Song mit weniger als 50% Genauigkeit ab.",
         "ch_perfect_player_title": "Der Perfekte",
-        "ch_perfect_player_desc": "Erzielen Sie ein PERFECT im Einzelspiel oder besiegen Sie den harten KI-Bot.",
+        "ch_perfect_player_desc": "Erzielen Sie ein PERFECT im Einzelspiel.",
         "challenge_hidden_label": "VERSTECKT",
         "note_skin_label": "NOTEN-SKIN",
         "note_skin_default": "STANDARD",

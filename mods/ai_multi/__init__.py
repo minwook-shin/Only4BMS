@@ -18,10 +18,33 @@ MOD_NAME        = "AI Battle"
 MOD_DESCRIPTION = "1 vs 1 battle against a local AI opponent."
 MOD_VERSION     = "1.0.0"
 
+_AI_MULTI_CHALLENGES = [
+    {"id": "multi_win", "condition": {"must_win": True, "mode": "ai_multi"}},
+    {"id": "you_are_already_dead", "condition": {"mode": "ai_multi", "ai_difficulty": "hard"}},
+    {"id": "vibe_coding", "condition": {"mode": "ai_multi", "max_accuracy": 49.9, "ai_min_accuracy": 99.0, "must_clear": False}},
+    {"id": "ai_needs_time", "condition": {"mode": "ai_multi", "ai_paused": True, "must_clear": False}},
+    {"id": "ai_wants_retry", "condition": {"mode": "ai_multi", "ai_restarted": True, "must_clear": False}},
+]
+
 
 def get_display_name() -> str:
-    from only4bms.i18n import get as _t
+    from .i18n import t as _t
     return _t("menu_ai_multi")
+
+
+def setup(ctx: dict) -> None:
+    """Register ai_multi challenges and i18n strings into the host."""
+    from .i18n import _STRINGS
+    import only4bms.i18n as _host_i18n
+
+    # Register all strings for every language defined in this mod
+    for lang, strings in _STRINGS.items():
+        _host_i18n.register_strings(lang, strings)
+
+    # Register challenge definitions
+    cm = ctx.get("challenge_manager")
+    if cm:
+        cm.register_challenges(_AI_MULTI_CHALLENGES)
 
 
 def run(settings, renderer, window, **ctx):

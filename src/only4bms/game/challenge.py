@@ -50,26 +50,6 @@ def get_default_challenges():
             "condition": {"min_level": 5, "min_combo": 100}
         },
         {
-            "id": "multi_win",
-            "condition": {"must_win": True, "mode": "ai_multi"}
-        },
-        {
-            "id": "you_are_already_dead",
-            "condition": {"mode": "ai_multi", "ai_difficulty": "hard"}
-        },
-        {
-            "id": "vibe_coding",
-            "condition": {"mode": "ai_multi", "max_accuracy": 49.9, "ai_min_accuracy": 99.0, "must_clear": False}
-        },
-        {
-            "id": "ai_needs_time",
-            "condition": {"mode": "ai_multi", "ai_paused": True, "must_clear": False}
-        },
-        {
-            "id": "ai_wants_retry",
-            "condition": {"mode": "ai_multi", "ai_restarted": True, "must_clear": False}
-        },
-        {
             "id": "compression_master",
             "condition": {"lanes_compressed": True, "must_clear": True}
         },
@@ -109,12 +89,7 @@ def get_default_challenges():
         {
             "id": "perfect_player",
             "hidden": True,
-            "or_conditions": [
-                # Path 1: All Perfect in single play
-                {"mode": "single", "require_all_perfect": True, "must_clear": True, "min_notes": 1},
-                # Path 2: Win against hard AI bot  
-                {"mode": "ai_multi", "must_win": True, "ai_difficulty": "hard"}
-            ]
+            "condition": {"mode": "single", "require_all_perfect": True, "must_clear": True, "min_notes": 1},
         },
     ]
 
@@ -183,7 +158,7 @@ class ChallengeManager:
             else:
                 self.consecutive_courses = 0
             result_stats['consecutive_courses'] = self.consecutive_courses
-        elif current_mode in ('single', 'ai_multi'):
+        elif current_mode not in ('course_end', 'course_stage'):
             self.consecutive_courses = 0
             result_stats['consecutive_courses'] = 0
             
