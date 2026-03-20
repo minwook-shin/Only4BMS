@@ -231,4 +231,86 @@ class AiMultiExtension(GameExtension):
             'failed': False,
             'ai_paused': self._paused,
             'ai_restarted': self._restarted,
+            'ai_diff': self._difficulty,
+            'ai_judgments': dict(game.ai_judgments),
+            'ai_hit_history': list(game.ai_hit_history),
+            'ai_max_combo': game.ai_max_combo,
         }
+
+    def draw_overlay(self, renderer, window, game_state: dict, phase: str) -> None:
+        if phase != 'result':
+            return
+
+        import pygame
+        from only4bms.i18n import get as _t_host
+        from .i18n import t as _t
+
+        gr = self._game.game_renderer
+        w, h = window.size
+
+        # ── Win/Lose/Draw banner — drawn over the generic "RESULT" title ──
+        ai_judgs = game_state.get('ai_judgments', {})
+        p1_judgs = game_state.get('judgments', {})
+
+        def _score(j):
+            if not j: return 0
+            return j.get("PERFECT", 0) * 1000 + j.get("GREAT", 0) * 500 + j.get("GOOD", 0) * 200
+
+        s_p1 = _score(p1_judgs)
+        s_ai = _score(ai_judgs)
+
+        if s_p1 > s_ai:
+            banner_txt, banner_color = _t("you_win"), (0, 255, 255)
+        elif s_p1 < s_ai:
+            banner_txt, banner_color = _t("ai_wins"), (255, 50, 50)
+        else:
+            banner_txt, banner_color = _t("draw"), (255, 255, 0)
+
+        banner_tex = gr._get_text_texture(banner_txt, True, banner_color, size_override=gr._s(60))
+        banner_tex.alpha = 255
+        renderer.blit(banner_tex, pygame.Rect(w // 2 - banner_tex.width // 2, gr._s(20),
+                                               banner_tex.width, banner_tex.height))
+
+        # ── AI Performance section — below P1 score on the left ──
+        p1_x = gr._sx(50)
+        y = gr._s(370)  # approx below the P1 ex-score line
+
+        def _ex(j):
+            if not j: return 0
+            return j.get("PERFECT", 0) * 2 + j.get("GREAT", 0)
+
+        ai_ex = _ex(ai_judgs)
+        max_ex = max(1, game_state.get('total_notes', 1) * 2)
+        ai_score_val = _score(ai_judgs)
+
+        title_tex = gr._get_text_texture(_t("ai_performance"), True, (255, 100, 100), size_override=gr._s(24))
+        title_tex.alpha = 255
+        renderer.blit(title_tex, pygame.Rect(p1_x, y, title_tex.width, title_tex.height))
+        y += gr._s(30)
+
+        score_tex = gr._get_text_texture(_t_host("score_label").format(val=f"{ai_score_val:,}"),
+                                         False, (255, 150, 150), size_override=gr._s(22))
+        score_tex.alpha = 255
+        renderer.blit(score_tex, pygame.Rect(p1_x, y, score_tex.width, score_tex.height))
+
+        # ── AI hit history on the scatter plot ──
+        ai_hits = game_state.get('ai_hit_history', [])
+        if not ai_hits:
+            return
+
+        max_time = game_state.get('max_time', 1)
+        max_err = 200
+        graph_x = gr._sx(400)
+        graph_y = gr._s(100)
+        graph_w = w - graph_x - gr._sx(50)
+        graph_h = h - graph_y - gr._s(100)
+
+        for t_hit, err, key in ai_hits:
+            if key == "MISS":
+                continue
+            gx = graph_x + int((t_hit / max_time) * graph_w)
+            gy = graph_y + graph_h // 2 + int((err / max_err) * (graph_h // 2))
+            if graph_x <= gx < graph_x + graph_w and graph_y <= gy < graph_y + graph_h:
+                c = JUDGMENT_DEFS[key]["color"]
+                renderer.draw_color = (c[0], c[1], c[2], 80)
+                renderer.fill_rect((gx - 1, gy - 1, 2, 2))

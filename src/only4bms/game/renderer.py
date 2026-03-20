@@ -1004,34 +1004,15 @@ class GameRenderer:
         ex_h = calc_ex_score(stats['judgments'])
         max_ex = stats.get('total_notes', 1) * 2
         ratio_h = min(1.0, ex_h / max_ex)
-        
-        score_ai = calc_score(stats['ai_judgments']) if stats['mode'] == 'ai_multi' else 0
-        ex_ai = calc_ex_score(stats.get('ai_judgments', {}))
-        ratio_ai = min(1.0, ex_ai / max_ex)
 
         # Background tint
         self.renderer.draw_color = (10, 10, 20, 240)
         self.renderer.fill_rect((0, 0, self.width, self.height))
 
-        # Title/Banner
-        if stats['mode'] == 'ai_multi':
-            if score_h > score_ai:
-                win_txt = _t("you_win")
-                win_color = (0, 255, 255)
-            elif score_h < score_ai:
-                win_txt = _t("ai_wins")
-                win_color = (255, 50, 50)
-            else:
-                win_txt = _t("draw")
-                win_color = (255, 255, 0)
-
-            bs_tex = self._get_text_texture(win_txt, True, win_color, size_override=self._s(60))
-            bs_tex.alpha = 255
-            self.renderer.blit(bs_tex, pygame.Rect(self.width // 2 - bs_tex.width // 2, self._s(20), bs_tex.width, bs_tex.height))
-        else:
-            t_tex = self._get_text_texture(_t("result_title"), True, (255, 255, 255), size_override=self._s(50))
-            t_tex.alpha = 255
-            self.renderer.blit(t_tex, pygame.Rect(self.width // 2 - t_tex.width // 2, self._s(20), t_tex.width, t_tex.height))
+        # Title
+        t_tex = self._get_text_texture(_t("result_title"), True, (255, 255, 255), size_override=self._s(50))
+        t_tex.alpha = 255
+        self.renderer.blit(t_tex, pygame.Rect(self.width // 2 - t_tex.width // 2, self._s(20), t_tex.width, t_tex.height))
 
         # ── Statistics Panel (Left) ──
         p1_x = self._sx(50)
@@ -1060,16 +1041,6 @@ class GameRenderer:
         ex_text = self._get_text_texture(_t("ex_label").format(ex=ex_h, max=max_ex, pct=f"{ratio_h*100:.1f}"), False, (200, 200, 255), size_override=self._s(20))
         ex_text.alpha = 255
         self.renderer.blit(ex_text, pygame.Rect(p1_x, y, ex_text.width, ex_text.height))
-    
-        if stats['mode'] == 'ai_multi':
-            y += self._s(60)
-            ai_title = self._get_text_texture(_t("ai_performance"), True, (255, 100, 100), size_override=self._s(24))
-            ai_title.alpha = 255
-            self.renderer.blit(ai_title, pygame.Rect(p1_x, y, ai_title.width, ai_title.height))
-            y += self._s(30)
-            ai_score_txt = self._get_text_texture(_t("score_label").format(val=f"{score_ai:,}"), False, (255, 150, 150), size_override=self._s(22))
-            ai_score_txt.alpha = 255
-            self.renderer.blit(ai_score_txt, pygame.Rect(p1_x, y, ai_score_txt.width, ai_score_txt.height))
 
         # ── Analytics Graphs (Timing Scatter Plot) ──
         if True:
@@ -1108,8 +1079,6 @@ class GameRenderer:
                         self.renderer.draw_color = (c[0], c[1], c[2], int(200 * color_scale))
                         self.renderer.fill_rect((gx - size//2, gy - size//2, size, size))
 
-            if stats.get('ai_hit_history'):
-                draw_hits(stats['ai_hit_history'], color_scale=0.4, size=1)
             draw_hits(stats.get('hit_history', []))
 
         f_info = self._get_text_texture(_t("return_hint"), False, (150, 150, 150), size_override=self._s(18))

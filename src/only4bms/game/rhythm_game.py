@@ -34,8 +34,6 @@ class RhythmGame:
         self._challenge_checked = False
         self.extension = extension
         # Challenge Tracking Flags
-        self.ai_paused       = False
-        self.ai_restarted    = False
         self.speed_changed   = False
         self.first_note_miss = False
         self.has_hit_first_note = False
@@ -463,9 +461,6 @@ class RhythmGame:
             'used_mod': getattr(self, 'used_mod', False),
             'note_mod': getattr(self, 'note_mod', 'None'),
             'has_ln': getattr(self, 'has_ln', False),
-            'ai_diff': getattr(self, 'ai_difficulty', 'normal'),
-            'ai_judgments': getattr(self, 'ai_judgments', None),
-            'ai_max_combo': getattr(self, 'ai_max_combo', 0),
             'newly_completed': self.newly_completed
         }
         if self.extension:
@@ -615,8 +610,7 @@ class RhythmGame:
         stats = {
             'mode': self.mode, 'title': self.title, 'metadata': self.metadata,
             'judgments': self.judgments, 'max_combo': self.max_combo,
-            'hit_history': self.hit_history, 'ai_hit_history': getattr(self, 'ai_hit_history', []),
-            'ai_judgments': getattr(self, 'ai_judgments', None), 'ai_max_combo': getattr(self, 'ai_max_combo', 0),
+            'hit_history': self.hit_history,
             'max_time': self.engine.max_time,
             'total_notes': len(self.engine.notes),
             'cover_texture': self.assets.cover_texture,

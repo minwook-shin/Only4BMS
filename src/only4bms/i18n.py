@@ -268,11 +268,8 @@ STRINGS = {
 
         # Result Screen
         "result_title": "RESULT",
-        "you_win": "YOU WIN!",
-        "ai_wins": "AI BOT WINS",
         "score_label": "SCORE: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "AI PERFORMANCE",
         "opponent_performance": "OPPONENT PERFORMANCE",
         "hit_timing": "HIT TIMING (FAST/SLOW)",
         "return_hint": "Press ENTER or ESC to Return",
@@ -321,7 +318,6 @@ STRINGS = {
         "skin_unlocked_toast": "Golden Skin Unlocked!",
         "skin_unlocked_blue_toast": "Blue Skin Unlocked!",
 
-        'draw': 'DRAW!',
         'opponent_wins': 'OPPONENT WINS',
     },
 
@@ -426,11 +422,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: 종료",
 
         "result_title": "결과",
-        "you_win": "승리!",
-        "ai_wins": "AI 봇 승리",
         "score_label": "점수: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "AI 성적",
         "opponent_performance": "상대방 성적",
         "hit_timing": "타이밍 분포 (빠름/느림)",
         "return_hint": "ENTER 또는 ESC를 눌러 돌아가기",
@@ -476,7 +469,6 @@ STRINGS = {
         "skin_unlocked_toast": "황금 스킨 해금!",
         "skin_unlocked_blue_toast": "푸른 스킨 해금!",
 
-        'draw': '무승부!',
         'opponent_wins': '상대방 승리',
     },
 
@@ -581,11 +573,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: 終了",
 
         "result_title": "リザルト",
-        "you_win": "勝利！",
-        "ai_wins": "AIボット勝利",
         "score_label": "スコア: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "AIパフォーマンス",
         "opponent_performance": "相手のパフォーマンス",
         "hit_timing": "タイミング分布 (速/遅)",
         "return_hint": "ENTERまたはESCで戻る",
@@ -632,7 +621,6 @@ STRINGS = {
         "skin_unlocked_toast": "ゴールドスキン解禁！",
         "skin_unlocked_blue_toast": "ブルースキン解禁！",
 
-        'draw': '引き分け！',
         'opponent_wins': '相手の勝利',
     },
 
@@ -737,11 +725,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: 退出",
 
         "result_title": "结算",
-        "you_win": "你赢了！",
-        "ai_wins": "AI机器人获胜",
         "score_label": "分数: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "AI表现",
         "hit_timing": "时序分布 (快/慢)",
         "return_hint": "按ENTER或ESC返回",
 
@@ -786,7 +771,6 @@ STRINGS = {
         "skin_unlocked_toast": "黄金皮肤已解锁！",
         "skin_unlocked_blue_toast": "蓝色皮肤已解锁！",
 
-        'draw': '平局！',
         'opponent_wins': '对手胜利',
 
     },
@@ -893,11 +877,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: ออก",
 
         "result_title": "ผลลัพธ์",
-        "you_win": "คุณชนะ!",
-        "ai_wins": "AI ชนะ",
         "score_label": "คะแนน: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "ผลงาน AI",
         "hit_timing": "การกระจายจังหวะ (เร็ว/ช้า)",
         "return_hint": "กด ENTER หรือ ESC เพื่อกลับ",
 
@@ -942,7 +923,6 @@ STRINGS = {
         "skin_unlocked_toast": "ปลดล็อกสกินทองแล้ว!",
         "skin_unlocked_blue_toast": "ปลดล็อกสกินสีน้ำเงินแล้ว!",
 
-        'draw': 'เสมอ!',
         'opponent_wins': 'คู่ต่อสู้ชนะ',
 
     },
@@ -1049,11 +1029,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: Sair",
 
         "result_title": "RESULTADO",
-        "you_win": "VOCÊ VENCEU!",
-        "ai_wins": "IA VENCEU",
         "score_label": "PONTOS: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "DESEMPENHO DA IA",
         "hit_timing": "TEMPORIZAÇÃO (RÁPIDO/LENTO)",
         "return_hint": "Pressione ENTER ou ESC para voltar",
 
@@ -1098,7 +1075,6 @@ STRINGS = {
         "skin_unlocked_toast": "Skin de Ouro Desbloqueada!",
         "skin_unlocked_blue_toast": "Skin Azul Desbloqueada!",
 
-        'draw': 'EMPATE!',
         'opponent_wins': 'OPONENTE VENCEU',
     },
 
@@ -1204,11 +1180,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: Keluar",
 
         "result_title": "HASIL",
-        "you_win": "ANDA MENANG!",
-        "ai_wins": "AI MENANG",
         "score_label": "SKOR: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "PERFORMA AI",
         "hit_timing": "DISTRIBUSI TIMING (CEPAT/LAMBAT)",
         "return_hint": "Tekan ENTER atau ESC untuk kembali",
 
@@ -1253,7 +1226,6 @@ STRINGS = {
         "skin_unlocked_toast": "Kulit Emas Dibuka!",
         "skin_unlocked_blue_toast": "Kulit Biru Dibuka!",
 
-        'draw': 'SERI!',
         'opponent_wins': 'LAWAN MENANG',
     },
 
@@ -1359,11 +1331,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: Salir",
 
         "result_title": "RESULTADO",
-        "you_win": "¡GANASTE!",
-        "ai_wins": "IA GANA",
         "score_label": "PUNTOS: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "RENDIMIENTO IA",
         "hit_timing": "TEMPORIZACIÓN (RÁPIDO/LENTO)",
         "return_hint": "Presiona ENTER o ESC para volver",
 
@@ -1408,7 +1377,6 @@ STRINGS = {
         "skin_unlocked_toast": "¡Aspecto Dorado Desbloqueado!",
         "skin_unlocked_blue_toast": "¡Aspecto Azul Desbloqueado!",
 
-        'draw': '¡EMPATE!',
         'opponent_wins': 'EL OPONENTE GANA',
     },
 
@@ -1514,11 +1482,8 @@ STRINGS = {
         "quit_hint": "Q / ENTRÉE : Quitter",
 
         "result_title": "RÉSULTAT",
-        "you_win": "VICTOIRE !",
-        "ai_wins": "L'IA GAGNE",
         "score_label": "SCORE : {val}",
         "ex_label": "EX : {ex}/{max} ({pct}%)",
-        "ai_performance": "PERFORMANCE IA",
         "hit_timing": "TIMING (RAPIDE/LENT)",
         "return_hint": "Appuyez sur ENTRÉE ou ÉCHAP pour revenir",
 
@@ -1563,7 +1528,6 @@ STRINGS = {
         "skin_unlocked_toast": "Skin Dorée Débloquée !",
         "skin_unlocked_blue_toast": "Skin Bleue Débloquée !",
 
-        'draw': 'ÉGALITÉ!',
         'opponent_wins': 'LADVERSAIRE GAGNE',
     },
 
@@ -1669,11 +1633,8 @@ STRINGS = {
         "quit_hint": "Q / INVIO: Esci",
 
         "result_title": "RISULTATO",
-        "you_win": "HAI VINTO!",
-        "ai_wins": "L'IA VINCE",
         "score_label": "PUNTEGGIO: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "PRESTAZIONI IA",
         "hit_timing": "TEMPISMO (VELOCE/LENTO)",
         "return_hint": "Premi INVIO o ESC per tornare",
 
@@ -1718,7 +1679,6 @@ STRINGS = {
         "skin_unlocked_toast": "Skin Dorata Sbloccata!",
         "skin_unlocked_blue_toast": "Skin Blu Sbloccata!",
 
-        'draw': 'PAREGGIO!',
         'opponent_wins': 'L\'AVVERSARIO VINCE',
 
     },
@@ -1825,11 +1785,8 @@ STRINGS = {
         "quit_hint": "Q / ENTER: Beenden",
 
         "result_title": "ERGEBNIS",
-        "you_win": "DU GEWINNST!",
-        "ai_wins": "KI GEWINNT",
         "score_label": "PUNKTE: {val}",
         "ex_label": "EX: {ex}/{max} ({pct}%)",
-        "ai_performance": "KI-LEISTUNG",
         "hit_timing": "TIMING (SCHNELL/LANGSAM)",
         "return_hint": "ENTER oder ESC zum Zurückkehren",
 
@@ -1874,7 +1831,6 @@ STRINGS = {
         "skin_unlocked_toast": "Goldener Skin freigeschaltet!",
         "skin_unlocked_blue_toast": "Blauer Skin freigeschaltet!",
 
-        'draw': 'UNENTSCHIEDEN!',
         'opponent_wins': 'GEGNER GEWINNT',
     },
 }
