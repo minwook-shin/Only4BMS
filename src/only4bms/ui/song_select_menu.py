@@ -485,11 +485,7 @@ class SongSelectMenu:
             self.settings['speed'] = min(2.0, self.settings.get('speed', 1.0) + 0.1)
             self._save()
         elif key == pygame.K_t: # Toggle Note Type
-            mods = pygame.key.get_mods()
-            if mods & pygame.KMOD_SHIFT:
-                self.settings['ai_note_type'] = 1 if self.settings.get('ai_note_type', 0) == 0 else 0
-            else:
-                self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
+            self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
             self._save()
         elif key == pygame.K_F3 or key == pygame.K_b: # Search BMS
             self.search_mode = True
@@ -530,7 +526,6 @@ class SongSelectMenu:
                     delta = -0.1 if button == 1 else 0.1
                     self.settings['speed'] = max(0.1, min(2.0, self.settings.get('speed', 1.0) + delta))
                 elif action == "TYPE": self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
-                elif action == "AI_TYPE": self.settings['ai_note_type'] = 1 if self.settings.get('ai_note_type', 0) == 0 else 0
                 elif action == "SKIN":
                     from ..game.challenge import ChallengeManager
                     _cm = ChallengeManager()
@@ -922,15 +917,6 @@ class SongSelectMenu:
             pygame.draw.rect(self.screen, COLOR_HOVERED_BG, t_rect, border_radius=5)
         self.screen.blit(self.small_font.render(f"{_t('player_note')}: {n_type} (T)", True, COLOR_TEXT_SECONDARY), (cx, y))
         opt_rects.append((t_rect, "TYPE"))
-        y += iy
-        
-        # AI Note Type
-        ai_n_type = "CIRCLE" if self.settings.get('ai_note_type', 0) == 1 else "BAR"
-        a_rect = pygame.Rect(cx, y, panel_w - 40, iy)
-        if a_rect.collidepoint(mx, my):
-            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, a_rect, border_radius=5)
-        self.screen.blit(self.small_font.render(f"{_t('ai_note')}: {ai_n_type} (Shift+T)", True, COLOR_TEXT_SECONDARY), (cx, y))
-        opt_rects.append((a_rect, "AI_TYPE"))
         y += iy
 
         # Note Skin

@@ -57,7 +57,6 @@ DEFAULT_SETTINGS = {
     "audio_channels": 2,
     "judge_delay": 0.0,
     "note_type": 0,
-    "ai_note_type": 0,
     "input_polling_rate": 1000,
     "visual_offset": 0,
     "language": "auto",
@@ -223,8 +222,6 @@ def load_settings():
                 # Migration: if note_type is string "Bar" or "Circle", convert to 0 or 1
                 if "note_type" in saved and isinstance(saved["note_type"], str):
                     saved["note_type"] = 1 if saved["note_type"] == "Circle" else 0
-                if "ai_note_type" in saved and isinstance(saved["ai_note_type"], str):
-                    saved["ai_note_type"] = 1 if saved["ai_note_type"] == "Circle" else 0
                 
                 settings.update(saved)
         except Exception as e:

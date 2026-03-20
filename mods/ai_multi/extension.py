@@ -63,6 +63,7 @@ class AiMultiExtension(GameExtension):
             self._on_ai_ln_tick,
         )
         game.ai_lane_pressed = [False] * NUM_LANES
+        game.ai_note_type = game.settings.get('ai_note_type', 0)
 
         # Opponent judgment / display state
         game.ai_judgments = {k: 0 for k in JUDGMENT_ORDER}

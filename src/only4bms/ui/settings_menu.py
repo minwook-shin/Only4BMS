@@ -81,7 +81,6 @@ class SettingsMenu:
         self.settings.setdefault("fullscreen", 0)
         self.settings.setdefault("vsync", 0) # Default vsync to off for latency
         self.settings.setdefault("note_type", 0)
-        self.settings.setdefault("ai_note_type", 0)
         self.selected_index = 1 # Start at first setting, skip SYSTEM header
         self.view_offset = 0
         self.max_visible = 6 # Reduced to 6 to prevent footer overlap

@@ -61,7 +61,6 @@ class RhythmGame:
         
         # Cache frequently accessed settings
         self.note_type = self.settings.get('note_type', 0)
-        self.ai_note_type = self.settings.get('ai_note_type', 0)
         self.note_skin = self.settings.get('note_skin', 'default')  # 'default' or 'gold'
         
         # Lane grouping — default single-player (centred).
@@ -554,7 +553,7 @@ class RhythmGame:
             d['current_visual_time'] = self.ai_engine.get_visual_time(t)
             d['all_notes_passed'] = self.ai_engine.all_notes_passed
             d['all_notes_passed_time'] = self.ai_engine.all_notes_passed_time
-            d['note_type'] = self.ai_note_type
+            d['note_type'] = getattr(self, 'ai_note_type', 0)
             d['note_skin'] = 'default'  # AI always uses default skin
             d['is_opponent'] = True
             d['measures'] = self.measures
