@@ -130,10 +130,11 @@ class MultiplayerMenu:
         self.download_progress = 0
         self.download_total = 1
 
-        # Reset ready flag so any start_game that arrives while we're still
-        # downloading (triggered by the other player finishing first) is ignored.
+        # Reset flags so any start_game / in_game_ready that arrives while we're
+        # still downloading (triggered by the other player finishing first) is ignored.
         self.net._ready_sent = False
         self.net.game_start_time = None
+        self.net.opponent_in_game = False
 
         cache_dir = os.path.join(paths.SONG_DIR, ".multiplayer_cache")
 

@@ -48,8 +48,8 @@ def _sync_before_game(net, renderer, window, settings):
     import only4bms.i18n as _i18n
     from .i18n import t as _t
 
-    # Reset and signal
-    net.opponent_in_game = False
+    # Signal readiness. opponent_in_game may already be True if the opponent
+    # finished loading while we were still parsing assets — preserve that.
     net.send_in_game_ready()
 
     w, h = window.size
