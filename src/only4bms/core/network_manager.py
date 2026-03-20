@@ -189,27 +189,28 @@ class NetworkManager:
             return False
 
         try:
-            r = requests.get(f"{self.server_url}/api/songs/{song_id}", timeout=3)
-            if r.status_code != 200:
-                return False
+            with requests.Session() as session:
+                r = session.get(f"{self.server_url}/api/songs/{song_id}", timeout=3)
+                if r.status_code != 200:
+                    return False
 
-            manifest = r.json()
-            song_dir = os.path.join(cache_dir, song_id)
-            os.makedirs(song_dir, exist_ok=True)
+                manifest = r.json()
+                song_dir = os.path.join(cache_dir, song_id)
+                os.makedirs(song_dir, exist_ok=True)
 
-            files = manifest.get("files", [])
-            total_files = len(files)
+                files = manifest.get("files", [])
+                total_files = len(files)
 
-            for index, filename in enumerate(files):
-                file_url = f"{self.server_url}/api/songs/{song_id}/download/{filename}"
-                fr = requests.get(file_url, stream=True)
-                if fr.status_code == 200:
-                    with open(os.path.join(song_dir, filename), "wb") as f:
-                        for chunk in fr.iter_content(chunk_size=8192):
-                            f.write(chunk)
+                for index, filename in enumerate(files):
+                    file_url = f"{self.server_url}/api/songs/{song_id}/download/{filename}"
+                    fr = session.get(file_url, stream=True)
+                    if fr.status_code == 200:
+                        with open(os.path.join(song_dir, filename), "wb") as f:
+                            for chunk in fr.iter_content(chunk_size=8192):
+                                f.write(chunk)
 
-                if progress_callback:
-                    progress_callback(index + 1, total_files)
+                    if progress_callback:
+                        progress_callback(index + 1, total_files)
 
             return True
         except Exception as e:
