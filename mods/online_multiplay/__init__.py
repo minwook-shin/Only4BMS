@@ -177,7 +177,6 @@ def run(settings, renderer, window, **ctx):
                 metadata=metadata,
                 renderer=renderer,
                 window=window,
-                ai_difficulty="normal",
                 note_mod="None",
                 challenge_manager=challenge_manager,
                 p1_modifiers=p1_modifiers,
