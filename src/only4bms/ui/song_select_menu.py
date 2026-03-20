@@ -554,7 +554,7 @@ class SongSelectMenu:
                     self._start_scan()
                 elif btn_action == "OPEN_FOLDER":
                     self._open_bms_folder()
-                    elif btn_action == "MOD":
+                elif btn_action == "MOD":
                     self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
                 return
 
