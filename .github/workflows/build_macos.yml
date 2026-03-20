@@ -62,13 +62,12 @@ jobs:
 
       - name: Train AI Models
         run: |
-          python src/only4bms/ai/train.py
+          python mods/ai_multi/train.py
 
       - name: Build .app bundle with PyInstaller
         run: |
           pyinstaller --windowed \
                       --name Only4BMS \
-                      --add-data "src/only4bms/ai/*.zip:only4bms/ai" \
                       --collect-all stable_baselines3 \
                       --collect-all torch \
                       --collect-all numpy \

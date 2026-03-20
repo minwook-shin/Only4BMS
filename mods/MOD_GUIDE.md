@@ -115,12 +115,14 @@ You can call `window.set_fullscreen(True/False)` if your mod needs to switch mod
 | Key | Type | Description |
 |---|---|---|
 | `init_mixer_fn` | `callable(settings)` | Re-initialise the audio mixer with current settings |
+| `save_settings_fn` | `callable(settings)` | Persist settings to disk — call after opening `SettingsMenu` inside your mod |
 | `challenge_manager` | `ChallengeManager` | Shared challenge manager — register challenges in `setup()`, pass to `RhythmGame` for in-game tracking |
 
 Always use `.get()` so your mod works even if a key is absent:
 
 ```python
 init_mixer_fn     = ctx.get("init_mixer_fn")
+save_settings_fn  = ctx.get("save_settings_fn")
 challenge_manager = ctx.get("challenge_manager")
 ```
 
@@ -548,28 +550,41 @@ Users extract it into the `mods/` directory next to the Only4BMS executable (or 
 
 ## Built-in Mods (Reference Implementations)
 
-| Folder / File | Description |
+| Folder | Description |
 |---|---|
+| `ai_multi/` | Local AI opponent — `AiMultiExtension` (dual layout, 120 Hz inference, opponent HUD). Model files live here for easy user replacement. |
 | `course_mode/` | Roguelike HP training mode — `CourseSession` + `CourseGameExtension` + `setup()` for challenge registration |
 | `online_multiplay/` | Socket.IO 1v1 multiplayer — `MultiplayerMenu` + `OnlineGameExtension` |
-| `src/only4bms/game/ai_multi_extension.py` | Local AI opponent — `AiMultiExtension` (dual layout, 120 Hz inference, opponent HUD) |
 
 Reading `extension.py` in each mod is the best way to see how to wire the full interface together.
 
-### AiMultiExtension — dual-player vs AI
+### ai_multi — dual-player vs AI
 
-`AiMultiExtension` lives in the host package (`only4bms.game`) rather than `mods/` because it depends on the built-in AI inference module. It demonstrates the full dual-player extension pattern:
+`mods/ai_multi/` is the reference implementation for a fully self-contained mod that:
+- Owns its own song selection loop (via `SongSelectMenu`)
+- Bundles replaceable AI models (`model_normal.zip`, `model_hard.zip`)
+- Drives an AI opponent at 120 Hz via a local `GameExtension`
 
 ```python
-from only4bms.game.ai_multi_extension import AiMultiExtension
+# mods/ai_multi/extension.py
+from only4bms.game.game_extension import GameExtension
 
-game = RhythmGame(
-    ...,
-    mode='ai_multi',
-    extension=AiMultiExtension(ai_difficulty='normal'),  # 'normal' | 'hard'
-)
+class AiMultiExtension(GameExtension):
+    ...
 ```
 
-It sets up `game.p1_lane_x`, `game.p2_lane_x`, `game.ai_engine`, `game.ai_judgments`, and
-all related state in `on_attach_init`, then drives the AI in `on_tick` and renders the
-dual-player HUD in `draw_mid_hud`. No `mode`-specific code lives in `RhythmGame` itself.
+Users who want to swap the AI model simply replace `model_normal.zip` or `model_hard.zip`
+in `mods/ai_multi/` with a new `stable_baselines3` PPO model trained on `RhythmEnv`
+(see `src/only4bms/ai/train.py`).
+
+The `save_settings_fn` context key is now available to mods that open a settings menu:
+
+```python
+def run(settings, renderer, window, **ctx):
+    save_settings_fn = ctx.get("save_settings_fn")   # callable(settings) -> None
+    ...
+    if action == "SETTINGS":
+        SettingsMenu(settings, ...).run()
+        if save_settings_fn:
+            save_settings_fn(settings)
+```

@@ -341,6 +341,7 @@ def main():
     # Shared context passed into every mod's run() call
     _mod_ctx = {
         "init_mixer_fn": _init_mixer,
+        "save_settings_fn": save_settings,
         "challenge_manager": challenge_manager,
     }
 
@@ -369,20 +370,19 @@ def main():
             mod_map[menu_action].run_fn(settings, renderer, window, **_mod_ctx)
             continue
 
-        if menu_action in ("SINGLE", "AI_MULTI"):
-            mode = 'ai_multi' if menu_action == "AI_MULTI" else 'single'
+        if menu_action == "SINGLE":
             cached_songs = None  # First entry scans; re-entries reuse cache
-            
+
             while True:
-                ssm = SongSelectMenu(settings, renderer=renderer, window=window, mode=mode, song_groups=cached_songs)
+                ssm = SongSelectMenu(settings, renderer=renderer, window=window, mode='single', song_groups=cached_songs)
                 res = ssm.run()
                 cached_songs = ssm.song_groups  # Cache for next iteration
-                
+
                 # Check for "scan_complete" challenge (e.g., BMS folder discovery)
                 if challenge_manager and cached_songs:
                     total_songs = sum(len(g.get('charts', [])) for g in cached_songs)
                     challenge_manager.check_challenges({'mode': 'scan_complete', 'total_songs': total_songs})
-                
+
                 action, selected_song, ai_difficulty, note_mod = res
 
                 if action in ("QUIT", "MENU") or not action:
@@ -395,16 +395,14 @@ def main():
 
                 if action == "PLAY" and selected_song:
                     _init_mixer(settings)
-                    # _play_song(selected_song, settings, mode=mode, renderer=renderer, window=window) # Original call
-                    
-                    # Inlined _play_song logic with new RhythmGame instantiation
+
                     print(f"Loading {selected_song}...")
                     parser = BMSParser(selected_song)
                     notes, bgms, bgas, bmp_map, visual_timing_map, measures = parser.parse()
 
                     if not notes and not bgms:
                         print("No notes or bgm parsed from file.")
-                        continue # Go back to song select
+                        continue  # Go back to song select
 
                     metadata = {
                         "artist": parser.artist,
@@ -418,27 +416,22 @@ def main():
                         "lanes_compressed": parser.lanes_compressed,
                     }
                     while True:
-                        if mode == 'ai_multi':
-                            from only4bms.game.ai_multi_extension import AiMultiExtension
-                            _extension = AiMultiExtension(ai_difficulty)
-                        else:
-                            _extension = None
                         game = RhythmGame(
                             notes, bgms, bgas, parser.wav_map, bmp_map,
-                            parser.title, settings, visual_timing_map=visual_timing_map, measures=measures, mode=mode, metadata=metadata,
+                            parser.title, settings,
+                            visual_timing_map=visual_timing_map, measures=measures,
+                            mode='single', metadata=metadata,
                             renderer=renderer, window=window,
                             ai_difficulty=ai_difficulty, note_mod=note_mod,
                             challenge_manager=challenge_manager,
-                            extension=_extension,
+                            extension=None,
                         )
                         result = game.run()
                         action = result.get('action', 'QUIT')
                         if action != "RESTART":
-                            # Challenges were handled internally in RhythmGame, but we can print here too
                             if isinstance(result, dict) and result.get('newly_completed'):
                                 print(f"Newly completed challenges: {[c['id'] for c in result['newly_completed']]}")
                             break
-                        # Restarting involves re-initializing mixer if needed or just re-running
                         _init_mixer(settings)
 
 

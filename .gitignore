@@ -209,7 +209,7 @@ __marimo__/
 *.exe
 .claude/
 bms
-src/only4bms/ai/*.zip
+mods/ai_multi/*.zip
 settings.json
 .temp_course
 user_progress.json

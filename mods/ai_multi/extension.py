@@ -4,14 +4,14 @@ AiMultiExtension
 Handles all ai_multi-specific logic: dual lane layout, AI engine,
 AI judgment tracking, AI inference update loop, and dual-player HUD.
 
-Moves every ``if self.mode == 'ai_multi'`` branch out of RhythmGame core.
+Lives in mods/ai_multi/ so users can see and swap model files alongside it.
 """
 
 import time
 import numpy as np
 
-from .game_extension import GameExtension
-from .constants import NUM_LANES, JUDGMENT_ORDER, JUDGMENT_DEFS
+from only4bms.game.game_extension import GameExtension
+from only4bms.game.constants import NUM_LANES, JUDGMENT_ORDER, JUDGMENT_DEFS
 from only4bms.i18n import get as _t
 
 
@@ -36,8 +36,8 @@ class AiMultiExtension(GameExtension):
 
     def on_attach_init(self, game) -> None:
         """Set up dual lane layout, AI model, AI engine, and judgment state."""
-        from only4bms.ai.inference import RhythmInference
-        from .engine import GameEngine
+        from .inference import RhythmInference
+        from only4bms.game.engine import GameEngine
 
         w, h = game.width, game.height
 

@@ -57,9 +57,8 @@ class MainMenu:
         # ── Build options list ──────────────────────────────────────────
         self.options = [
             (lambda: _t("menu_single"), "SINGLE"),
-            (lambda: _t("menu_ai_multi"), "AI_MULTI"),
         ]
-        self.is_mod = [False, False]
+        self.is_mod = [False]
 
         if self.mods:
             self.options.append((lambda: _t("menu_mods"), "MODS"))
