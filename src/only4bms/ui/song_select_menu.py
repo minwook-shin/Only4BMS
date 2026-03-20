@@ -30,11 +30,12 @@ COLOR_PANEL_BG = (15, 15, 25, 130)
 
 
 class SongSelectMenu:
-    def __init__(self, settings, renderer, window, mode='single', song_groups=None):
+    def __init__(self, settings, renderer, window, mode='single', song_groups=None, extra_opts=None):
         from pygame._sdl2.video import Texture
         self.renderer = renderer
         self.window = window
         self.mode = mode
+        self.extra_opts = extra_opts or []
         self.note_mods = ['None', 'Mirror', 'Random']
         self.note_mod_idx = settings.get('note_mod_idx', 0)
         
@@ -522,7 +523,7 @@ class SongSelectMenu:
         # Check Gameplay Options Rects
         for r, action in getattr(self, '_opt_rects', []):
             if r.collidepoint(mx, my):
-                if action == "SPEED": 
+                if action == "SPEED":
                     delta = -0.1 if button == 1 else 0.1
                     self.settings['speed'] = max(0.1, min(2.0, self.settings.get('speed', 1.0) + delta))
                 elif action == "TYPE": self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
@@ -538,6 +539,11 @@ class SongSelectMenu:
                         self.settings['note_skin'] = 'blue'
                     elif current in ('gold', 'blue'):
                         self.settings['note_skin'] = 'default'
+                else:
+                    for opt in self.extra_opts:
+                        if action == opt['action']:
+                            opt['on_click']()
+                            break
                 self._save()
                 return
 
@@ -918,6 +924,16 @@ class SongSelectMenu:
         self.screen.blit(self.small_font.render(f"{_t('player_note')}: {n_type} (T)", True, COLOR_TEXT_SECONDARY), (cx, y))
         opt_rects.append((t_rect, "TYPE"))
         y += iy
+
+        # Extra opts injected by caller (e.g. mods)
+        for opt in self.extra_opts:
+            label = opt['label_fn']()
+            e_rect = pygame.Rect(cx, y, panel_w - 40, iy)
+            if e_rect.collidepoint(mx, my):
+                pygame.draw.rect(self.screen, COLOR_HOVERED_BG, e_rect, border_radius=5)
+            self.screen.blit(self.small_font.render(label, True, COLOR_TEXT_SECONDARY), (cx, y))
+            opt_rects.append((e_rect, opt['action']))
+            y += iy
 
         # Note Skin
         from ..game.challenge import ChallengeManager

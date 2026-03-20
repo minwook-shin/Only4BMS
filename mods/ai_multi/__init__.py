@@ -79,10 +79,23 @@ def run(settings, renderer, window, **ctx):
     _ai_difficulties = ['normal', 'hard']
     ai_diff_idx = settings.get('ai_diff_idx', 0)
 
+    def _ai_note_label():
+        from .i18n import t as _t
+        val = "CIRCLE" if settings.get('ai_note_type', 0) == 1 else "BAR"
+        return f"{_t('ai_note')}: {val}"
+
+    def _ai_note_toggle():
+        settings['ai_note_type'] = 1 if settings.get('ai_note_type', 0) == 0 else 0
+        if save_settings_fn:
+            save_settings_fn(settings)
+
+    _extra_opts = [{'label_fn': _ai_note_label, 'action': 'AI_NOTE_TYPE', 'on_click': _ai_note_toggle}]
+
     while True:
         ssm = SongSelectMenu(
             settings, renderer=renderer, window=window,
             song_groups=cached_songs,
+            extra_opts=_extra_opts,
         )
         res = ssm.run()
         cached_songs = ssm.song_groups
