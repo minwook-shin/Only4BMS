@@ -72,6 +72,7 @@ jobs:
                       --collect-all torch \
                       --collect-all numpy \
                       --collect-all cv2 \
+                      --collect-submodules only4bms.core \
                       --osx-bundle-identifier com.only4bms.app \
                       --clean \
                       src/only4bms/main.py

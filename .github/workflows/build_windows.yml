@@ -43,6 +43,7 @@ jobs:
                       --collect-all stable_baselines3 \
                       --collect-all torch \
                       --collect-all numpy \
+                      --collect-submodules only4bms.core \
                       --clean \
                       src/only4bms/main.py
 
