@@ -588,6 +588,13 @@ class GameRenderer:
 
 
     def draw_result(self, stats, current_time):
+        from only4bms.ui.components import (
+            make_bg_cache as _make_bg,
+            draw_glass_panel as _glass,
+            C_GLOW_CYAN, C_GLOW_PURPLE,
+            C_TEXT_PRIMARY, C_TEXT_SECONDARY, C_TEXT_DIM, C_BORDER_DIM,
+        )
+
         def calc_score(judgs):
             if not judgs: return 0
             return judgs["PERFECT"] * 1000 + judgs["GREAT"] * 500 + judgs["GOOD"] * 200
@@ -595,88 +602,146 @@ class GameRenderer:
         def calc_ex_score(judgs):
             if not judgs: return 0
             return judgs["PERFECT"] * 2 + judgs["GREAT"] * 1
-            
+
         score_h = calc_score(stats['judgments'])
-        ex_h = calc_ex_score(stats['judgments'])
-        max_ex = stats.get('total_notes', 1) * 2
+        ex_h    = calc_ex_score(stats['judgments'])
+        max_ex  = stats.get('total_notes', 1) * 2
         ratio_h = min(1.0, ex_h / max_ex)
 
-        # Background tint
-        self.renderer.draw_color = (10, 10, 20, 240)
-        self.renderer.fill_rect((0, 0, self.width, self.height))
+        # ── Create / reuse result Surface ──
+        if not hasattr(self, '_res_surf') or self._res_surf.get_size() != (self.width, self.height):
+            self._res_surf = pygame.Surface((self.width, self.height))
+            self._res_bg   = _make_bg(self.width, self.height)
+            self._res_tex  = None
+            # Lazy fonts for result screen
+            self._res_title_font = _i18n.font("select_title", self.sy, bold=True)
+            self._res_score_font = _i18n.font("hud_bold",     self.sy, bold=True)
+            self._res_body_font  = _i18n.font("ui_body",      self.sy)
+            self._res_small_font = _i18n.font("ui_small",     self.sy)
 
-        # ── Statistics Panel (Left) ──
-        p1_x = self._sx(50)
-        y = self._s(100)
-        
-        # Song Info
-        title_surf = self._get_text_texture(stats['title'], True, (255, 255, 255), size_override=self._s(28))
-        title_surf.alpha = 255
-        self.renderer.blit(title_surf, pygame.Rect(p1_x, y, title_surf.width, title_surf.height))
-        y += self._s(50)
+        surf = self._res_surf
+        surf.blit(self._res_bg, (0, 0))
 
-        # Judgments List
-        y_save = y
+        pad    = self._sx(40)
+        top_y  = self._s(60)
+        left_w = self.width // 2 - pad
+        right_x = self.width // 2 + pad // 2
+        right_w = self.width - right_x - pad // 2
+        panel_h = self.height - top_y - self._s(55)
+
+        # ── Left panel: Stats ──
+        left_rect = pygame.Rect(pad, top_y, left_w, panel_h)
+        _glass(surf, left_rect, border_color=(*C_GLOW_CYAN, 75), radius=14, fill_alpha=12)
+
+        cx = pad + self._sx(18)
+        y  = top_y + self._s(18)
+
+        # Song title
+        title = stats.get('title', '???')
+        max_title_w = left_w - self._sx(36)
+        if self._res_title_font.size(title)[0] > max_title_w:
+            while self._res_title_font.size(title + "...")[0] > max_title_w and len(title) > 1:
+                title = title[:-1]
+            title += "..."
+        title_s = self._res_title_font.render(title, True, C_TEXT_PRIMARY)
+        surf.blit(title_s, (cx, y))
+        y += title_s.get_height() + self._s(6)
+
+        # Divider
+        dw  = left_w - self._sx(36)
+        div = pygame.Surface((dw, 1), pygame.SRCALPHA)
+        for x in range(dw):
+            t = 1.0 - abs(x - dw / 2) / (dw / 2 + 1)
+            div.set_at((x, 0), (*C_GLOW_CYAN, int(50 * t)))
+        surf.blit(div, (cx, y))
+        y += self._s(14)
+
+        # Judgment rows
         for key in JUDGMENT_ORDER:
             color = JUDGMENT_DEFS[key]["color"]
-            text = self._get_text_texture(f"{key:<10} {stats['judgments'][key]:>4}", False, color, size_override=self._s(22))
-            text.alpha = 255
-            self.renderer.blit(text, pygame.Rect(p1_x, y, text.width, text.height))
-            y += self._s(32)
-        
-        y += self._s(20)
-        score_text = self._get_text_texture(_t("score_label").format(val=f"{score_h:,}"), True, (255, 255, 0), size_override=self._s(32))
-        score_text.alpha = 255
-        self.renderer.blit(score_text, pygame.Rect(p1_x, y, score_text.width, score_text.height))
-        y += self._s(40)
-        ex_text = self._get_text_texture(_t("ex_label").format(ex=ex_h, max=max_ex, pct=f"{ratio_h*100:.1f}"), False, (200, 200, 255), size_override=self._s(20))
-        ex_text.alpha = 255
-        self.renderer.blit(ex_text, pygame.Rect(p1_x, y, ex_text.width, ex_text.height))
+            count = stats['judgments'][key]
+            pygame.draw.rect(surf, color, pygame.Rect(cx, y + self._s(5), self._sx(3), self._s(14)), border_radius=1)
+            key_s   = self._res_body_font.render(key, True, color)
+            count_s = self._res_body_font.render(str(count), True, C_TEXT_PRIMARY)
+            surf.blit(key_s,   (cx + self._sx(10), y))
+            surf.blit(count_s, (left_rect.right - count_s.get_width() - self._sx(18), y))
+            y += self._s(28)
 
-        # ── Analytics Graphs (Timing Scatter Plot) ──
-        if True:
-            graph_x = self._sx(400)
-            graph_y = self._s(100)
-            graph_w = self.width - graph_x - self._sx(50)
-            graph_h = self.height - graph_y - self._s(100) # Enlarged to fill space
-            
-            # Timing Scatter Plot Box (Semi-transparent)
-            self.renderer.draw_color = (20, 20, 30, 150) # Darker, semi-transparent
-            self.renderer.fill_rect((graph_x, graph_y, graph_w, graph_h))
-            
-            # Border
-            self.renderer.draw_color = (255, 255, 255, 40)
-            self.renderer.draw_rect((graph_x, graph_y, graph_w, graph_h))
-            
-            # Perfect Line
-            self.renderer.draw_color = (255, 255, 255, 60)
-            self.renderer.draw_line((graph_x, graph_y + graph_h // 2), (graph_x + graph_w, graph_y + graph_h // 2))
-            
-            # Label
-            t_label = self._get_text_texture(_t("hit_timing"), True, (200, 200, 200), size_override=self._s(16))
-            t_label.alpha = 180
-            self.renderer.blit(t_label, pygame.Rect(graph_x + self._sx(10), graph_y + self._s(5), t_label.width, t_label.height))
+        y += self._s(14)
 
-            max_time = stats.get('max_time', 1)
-            max_err = 200 # Fixed scale +/- 200ms
-            
-            def draw_hits(history, color_scale=1.0, size=2):
-                for t_hit, err, key in history:
-                    if key == "MISS": continue
-                    gx = graph_x + int((t_hit / max_time) * graph_w)
-                    gy = graph_y + graph_h // 2 + int((err / max_err) * (graph_h // 2))
-                    if graph_x <= gx < graph_x + graph_w and graph_y <= gy < graph_y + graph_h:
-                        c = JUDGMENT_DEFS[key]["color"]
-                        self.renderer.draw_color = (c[0], c[1], c[2], int(200 * color_scale))
-                        self.renderer.fill_rect((gx - size//2, gy - size//2, size, size))
+        # Score
+        score_txt = _t("score_label").format(val=f"{score_h:,}")
+        score_s   = self._res_score_font.render(score_txt, True, (255, 215, 50))
+        surf.blit(score_s, (cx, y))
+        y += score_s.get_height() + self._s(8)
 
-            draw_hits(stats.get('hit_history', []))
+        # EX Score
+        ex_txt = _t("ex_label").format(ex=ex_h, max=max_ex, pct=f"{ratio_h*100:.1f}")
+        ex_s   = self._res_small_font.render(ex_txt, True, (200, 200, 255))
+        surf.blit(ex_s, (cx, y))
+        y += ex_s.get_height() + self._s(12)
 
-        f_info = self._get_text_texture(_t("return_hint"), False, (150, 150, 150), size_override=self._s(18))
-        f_info.alpha = 255
-        self.renderer.blit(f_info, pygame.Rect(self.width // 2 - f_info.width // 2, self.height - self._s(40), f_info.width, f_info.height))
+        # EX ratio bar
+        bar_w = left_w - self._sx(36)
+        bar_h = self._s(6)
+        trk   = pygame.Surface((bar_w, bar_h), pygame.SRCALPHA)
+        trk.fill((60, 55, 70, 120))
+        surf.blit(trk, (cx, y))
+        pygame.draw.rect(surf, (*C_BORDER_DIM[:3], 40),
+                         pygame.Rect(cx, y, bar_w, bar_h), 1, border_radius=3)
+        if ratio_h > 0:
+            fill_w   = max(bar_h, int(bar_w * ratio_h))
+            fill_col = (100, 255, 150) if ratio_h == 1.0 else C_GLOW_CYAN
+            pygame.draw.rect(surf, fill_col, pygame.Rect(cx, y, fill_w, bar_h), border_radius=3)
 
-        # ── Challenge Toast Rendering ──
+        # ── Right panel: Timing Scatter Plot ──
+        right_rect = pygame.Rect(right_x, top_y, right_w, panel_h)
+        _glass(surf, right_rect, border_color=(*C_GLOW_PURPLE, 75), radius=14, fill_alpha=12)
+
+        graph_pad = self._sx(20)
+        graph_x   = right_x + graph_pad
+        graph_y   = top_y + self._s(44)
+        graph_w   = right_w - graph_pad * 2
+        graph_h   = panel_h - self._s(80)
+
+        lbl_s = self._res_small_font.render(_t("hit_timing"), True, C_TEXT_SECONDARY)
+        surf.blit(lbl_s, (right_x + self._sx(18), top_y + self._s(14)))
+
+        graph_bg = pygame.Surface((graph_w, graph_h), pygame.SRCALPHA)
+        graph_bg.fill((0, 0, 0, 55))
+        surf.blit(graph_bg, (graph_x, graph_y))
+        pygame.draw.rect(surf, (*C_BORDER_DIM[:3], 40),
+                         pygame.Rect(graph_x, graph_y, graph_w, graph_h), 1, border_radius=6)
+
+        mid_y = graph_y + graph_h // 2
+        pygame.draw.line(surf, (*C_GLOW_CYAN, 40), (graph_x, mid_y), (graph_x + graph_w, mid_y), 1)
+
+        max_time = stats.get('max_time', 1)
+        max_err  = 200
+        for t_hit, err, key in stats.get('hit_history', []):
+            if key == "MISS": continue
+            gx = graph_x + int((t_hit / max(max_time, 1)) * graph_w)
+            gy = mid_y   + int((err / max_err) * (graph_h // 2))
+            if graph_x <= gx < graph_x + graph_w and graph_y <= gy < graph_y + graph_h:
+                c   = JUDGMENT_DEFS[key]["color"]
+                dot = pygame.Surface((3, 3), pygame.SRCALPHA)
+                pygame.draw.circle(dot, (*c, 200), (1, 1), 1)
+                surf.blit(dot, (gx - 1, gy - 1))
+
+        # ── Return hint ──
+        hint_s = self._res_small_font.render(_t("return_hint"), True, C_TEXT_DIM)
+        surf.blit(hint_s, hint_s.get_rect(centerx=self.width // 2,
+                                           top=top_y + panel_h + self._s(12)))
+
+        # ── Upload and blit ──
+        if self._res_tex is None:
+            self._res_tex = Texture.from_surface(self.renderer, surf)
+        else:
+            self._res_tex.update(surf)
+        self._res_tex.alpha = 255
+        self.renderer.blit(self._res_tex, pygame.Rect(0, 0, self.width, self.height))
+
+        # ── Challenge Toast (drawn on top via renderer) ──
         if stats.get('newly_completed'):
             self.draw_challenge_toast(stats['newly_completed'], current_time)
 

@@ -10,23 +10,29 @@ from only4bms import i18n as _i18n
 from only4bms import paths
 
 from ..core.bms_parser import BMSParser
+from .components import (
+    make_bg_cache, draw_glass_panel, draw_outer_glow,
+    draw_glow_text, draw_hint_bar, draw_scrollbar, draw_pill_button,
+    draw_modal,
+    C_TEXT_PRIMARY, C_TEXT_SECONDARY, C_TEXT_DIM,
+    C_GLOW_CYAN, C_GLOW_PURPLE, C_BORDER_DIM,
+    C_GLASS_FILL, C_GLASS_HOVER, C_GLASS_SELECT,
+    BASE_W, BASE_H,
+)
 
 # ── Base (windowed) resolution ────────────────────────────────────────────
-BASE_W, BASE_H = 800, 600
-
-BG_COLOR = (30, 30, 50)
 VISIBLE_ITEMS = 6
 BMS_EXTS = ('*.bms', '*.bme', '*.bml', '*.pms')
 SEARCH_URL = "https://bmssearch.net/search?q={}"
 
-# ── Colors & Aesthetics ──────────────────────────────────────────────────
-COLOR_ACCENT = (0, 255, 200)       # Cyan/Neon
-COLOR_ACCENT_DIM = (0, 150, 120)
-COLOR_SELECTED_BG = (40, 50, 80, 225)
-COLOR_HOVERED_BG = (35, 35, 60, 160)
-COLOR_TEXT_PRIMARY = (255, 255, 255)
-COLOR_TEXT_SECONDARY = (180, 180, 200)
-COLOR_PANEL_BG = (15, 15, 25, 130)
+# Legacy aliases (used by click handler logic)
+COLOR_ACCENT        = C_GLOW_CYAN
+COLOR_ACCENT_DIM    = (0, 150, 120)
+COLOR_SELECTED_BG   = ( 40,  50,  80, 225)
+COLOR_HOVERED_BG    = ( 35,  35,  60, 160)
+COLOR_TEXT_PRIMARY  = C_TEXT_PRIMARY
+COLOR_TEXT_SECONDARY= C_TEXT_SECONDARY
+COLOR_PANEL_BG      = ( 15,  15,  25, 130)
 
 
 class SongSelectMenu:
@@ -46,8 +52,10 @@ class SongSelectMenu:
         
         # We use an offscreen surface named 'self.screen' so all existing 
         # draw calls in this class keep working without modification.
-        self.screen = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
-        self.texture = None # Will hold the uploaded frame
+        self.screen  = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+        self.texture = None  # Will hold the uploaded frame
+        self._bg     = make_bg_cache(self.w, self.h)
+        self.view_offset = 0  # scroll position restored from settings
         
         pygame.display.set_caption(_t("song_selection_caption"))
         self.clock = pygame.time.Clock()
@@ -588,389 +596,354 @@ class SongSelectMenu:
     # ── Drawing ──────────────────────────────────────────────────────────
 
     def _draw(self):
-        # 1. Clear Screen (Fully transparent)
-        self.screen.fill((0, 0, 0, 0)) 
-
-        # 2. Draw Background
-        has_bg = False
+        # ── Background ──
+        self.screen.blit(self._bg, (0, 0))
         if self.bg_surf:
             try:
-                bx = (self.w - self.bg_surf.get_width()) // 2
+                bx = (self.w - self.bg_surf.get_width())  // 2
                 by = (self.h - self.bg_surf.get_height()) // 2
                 self.screen.blit(self.bg_surf, (bx, by))
-                has_bg = True
-            except:
+                dim = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+                dim.fill((0, 0, 0, 140))
+                self.screen.blit(dim, (0, 0))
+            except Exception:
                 pass
-        
-        if has_bg:
-            # Dim overlay (Balanced for better legibility)
-            overlay = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 120)) 
-            self.screen.blit(overlay, (0, 0))
-        else:
-            # Full Fallback Gradient (Only if NO image)
-            for y in range(self.h):
-                grad = 1.0 - (y / self.h)
-                c = [int(20 * grad), int(20 * grad), int(40 * grad + 20)]
-                pygame.draw.line(self.screen, c, (0, y), (self.w, y))
 
-        # Main Panels
-        self._draw_song_list()
+        # ── Main Panels ──
         self._draw_info_panel()
+        self._draw_song_list()
 
-        # Header Title
-        title_y = self._s(45)
-        self.screen.blit(
-            self.title_font.render(_t("music_selection"), True, COLOR_ACCENT),
-            (self._sx_v(40), title_y))
+        # ── Title ──
+        draw_glow_text(self.screen, _t("music_selection"), self.title_font,
+                       C_GLOW_CYAN, C_GLOW_CYAN,
+                       (self._sx_v(40), self._s(18)), glow_radius=3)
 
-        # Clickable nav buttons (Right-aligned, matching title height)
+        # ── Nav pill buttons (right-aligned) ──
         mx, my = pygame.mouse.get_pos()
         self._nav_buttons = []
         btn_labels = [
-            (_t("reload"), "RELOAD"), 
-            (_t("search_bms"), "SEARCH"), 
-            (_t("open_folder"), "OPEN_FOLDER"),
-            (_t("settings_btn"), "SETTINGS")
-        ] # Reversed for right-to-left draw
-        bx = self.w - self._sx_v(40) # Start from right margin
+            (_t("settings_btn"),  "SETTINGS"),
+            (_t("open_folder"),   "OPEN_FOLDER"),
+            (_t("search_bms"),    "SEARCH"),
+            (_t("reload"),        "RELOAD"),
+        ]
+        bx = self.w - self._sx_v(30)
+        btn_h = self._s(28)
+        btn_y = self._s(22)
         for label, action in btn_labels:
-            surf = self.small_font.render(label, True, (255, 255, 255))
-            tw, th = surf.get_size()
-
-            # Align center with title_y + offset
-            # (Note: title_font is 44px, small_font is 22px)
-            rect = pygame.Rect(bx - tw - 10, title_y + self._s(8), tw + 10, th + 5)
+            tw = self.small_font.size(label)[0] + self._sx_v(18)
+            bx -= tw
+            rect    = pygame.Rect(bx, btn_y, tw, btn_h)
             hovered = rect.collidepoint(mx, my)
-
-            pygame.draw.rect(self.screen, (60, 80, 60) if hovered else (40, 50, 40), rect, border_radius=4)
-            color = (255, 255, 255) if hovered else (200, 220, 200)
-            btn_surf = self.small_font.render(label, True, color)
-            self.screen.blit(btn_surf, (rect.x + 5, rect.y + 2))
-
+            draw_pill_button(self.screen, rect, label, self.small_font, hovered=hovered)
             self._nav_buttons.append((rect, action))
-            bx = rect.x - self._sx_v(15) # Move left for next button
+            bx -= self._sx_v(10)
 
-        # Extra nav buttons injected by caller (e.g. mods) — drawn left of standard buttons
         for nav_opt in self.extra_nav_buttons:
             label = nav_opt['label_fn']()
-            surf = self.small_font.render(label, True, (255, 255, 255))
-            tw, th = surf.get_size()
-            rect = pygame.Rect(bx - tw - 10, title_y + self._s(8), tw + 10, th + 5)
+            tw = self.small_font.size(label)[0] + self._sx_v(18)
+            bx -= tw
+            rect    = pygame.Rect(bx, btn_y, tw, btn_h)
             hovered = rect.collidepoint(mx, my)
-            pygame.draw.rect(self.screen, (80, 60, 60) if hovered else (60, 40, 40), rect, border_radius=4)
-            color = (255, 255, 255) if hovered else (220, 200, 200)
-            self.screen.blit(self.small_font.render(label, True, color), (rect.x + 5, rect.y + 2))
+            draw_pill_button(self.screen, rect, label, self.small_font,
+                             hovered=hovered, accent=C_GLOW_PURPLE)
             self._nav_buttons.append((rect, nav_opt['action']))
-            bx = rect.x - self._sx_v(15)
+            bx -= self._sx_v(10)
 
+        # ── States ──
         if self._scanning:
             self._draw_scan_spinner()
         elif not self.song_groups:
-            self.screen.blit(
-                self.font.render(_t("no_bms_files"), True, COLOR_TEXT_SECONDARY),
-                (self._sx_v(50), self._s(150)))
+            msg = self.font.render(_t("no_bms_files"), True, C_TEXT_SECONDARY)
+            self.screen.blit(msg, (self._sx_v(370), self._s(160)))
+
+        # ── Hint bar ──
+        draw_hint_bar(self.screen,
+                      "↑ ↓  Song    ← →  Difficulty    ENTER  Play    TAB  Settings    ESC  Back",
+                      self.small_font, self.h, self.w)
 
         if self.search_mode:
             self._draw_search_overlay()
 
     def _draw_scan_spinner(self):
         """Draw a circular loading spinner during background scan."""
-        cx, cy = self.w // 2, self.h // 2
-        r = self._s(30)
-        t = pygame.time.get_ticks() / 1000.0
+        # Draw inside the right-side song list area
+        list_cx = self._sx_v(360) + self._sx_v(200)
+        cy = self.h // 2
+        r  = self._s(28)
+        t  = pygame.time.get_ticks() / 1000.0
 
-        # Rotating arc (4 segments)
         for i in range(8):
             angle = t * 4.0 + i * (math.pi / 4)
             alpha = int(255 * (1.0 - i / 8.0))
-            ex = int(cx + r * math.cos(angle))
-            ey = int(cy + r * math.sin(angle))
+            ex = int(list_cx + r * math.cos(angle))
+            ey = int(cy      + r * math.sin(angle))
             sz = max(2, self._s(4) - i // 2)
-            c = (COLOR_ACCENT[0], COLOR_ACCENT[1], COLOR_ACCENT[2])
-            s = pygame.Surface((sz * 2, sz * 2), pygame.SRCALPHA)
-            pygame.draw.circle(s, (*c, alpha), (sz, sz), sz)
-            self.screen.blit(s, (ex - sz, ey - sz))
+            dot = pygame.Surface((sz * 2, sz * 2), pygame.SRCALPHA)
+            pygame.draw.circle(dot, (*C_GLOW_CYAN, alpha), (sz, sz), sz)
+            self.screen.blit(dot, (ex - sz, ey - sz))
 
-        # "Scanning..." text with progress
-        done = self._scan_total - len(getattr(self, '_scan_queue', []))
+        done  = self._scan_total - len(getattr(self, '_scan_queue', []))
         label = f"{_t('scanning')} {done}/{self._scan_total}"
-        txt = self.small_font.render(label, True, COLOR_TEXT_SECONDARY)
-        self.screen.blit(txt, txt.get_rect(center=(cx, cy + r + self._s(20))))
+        txt   = self.small_font.render(label, True, C_TEXT_SECONDARY)
+        self.screen.blit(txt, txt.get_rect(center=(list_cx, cy + r + self._s(18))))
 
     def _draw_song_list(self):
-        mx, my = pygame.mouse.get_pos()
-        row_h = self._s(70)
-        start_y = self._s(120)
-        margin_l = self._sx_v(360)
+        from ..game.constants import DIFFICULTY_DEFS, DIFFICULTY_DEFAULT_COLOR
+
+        def get_diff_label(chart):
+            f = chart['filepath'].lower()
+            for d in DIFFICULTY_DEFS:
+                if any(kw in f for kw in d['keywords']):
+                    return d['label']
+            return "LV."
+
+        def get_diff_color(label):
+            for d in DIFFICULTY_DEFS:
+                if label == d['label']:
+                    return d['color']
+            return DIFFICULTY_DEFAULT_COLOR
+
+        mx, my  = pygame.mouse.get_pos()
+        row_h   = self._s(70)
+        start_y = self._s(70)
+        margin_l  = self._sx_v(360)
         content_w = self._sx_v(400)
         end = min(len(self.song_groups), self.scroll_offset + VISIBLE_ITEMS)
 
-        # Glass Panel for List (Using Surface for correct blending)
-        panel_rect = (margin_l - 10, start_y - 10, content_w + 20, VISIBLE_ITEMS * row_h + 20)
-        psurf = pygame.Surface((panel_rect[2], panel_rect[3]), pygame.SRCALPHA)
-        psurf.fill(COLOR_PANEL_BG)
-        self.screen.blit(psurf, (panel_rect[0], panel_rect[1]))
-        pygame.draw.rect(self.screen, (COLOR_ACCENT[0], COLOR_ACCENT[1], COLOR_ACCENT[2], 60), panel_rect, 1, border_radius=10)
+        # Glass panel behind the whole list
+        panel_rect = pygame.Rect(margin_l - self._sx_v(8), start_y - self._s(8),
+                                 content_w + self._sx_v(16),
+                                 VISIBLE_ITEMS * row_h + self._s(16))
+        draw_glass_panel(self.screen, panel_rect,
+                         border_color=(*C_GLOW_CYAN, 55), radius=12, fill_alpha=10)
 
         for i in range(self.scroll_offset, end):
             row = i - self.scroll_offset
-            y = start_y + row * row_h
-            hovered = margin_l <= mx <= margin_l + content_w and y <= my <= y + row_h - 5
+            y   = start_y + row * row_h
+            is_sel = (i == self.selected_group_idx)
+            hovered = (margin_l <= mx <= margin_l + content_w and y <= my <= y + row_h - 5
+                       and not is_sel)
 
-            rect = pygame.Rect(margin_l, y, content_w, row_h - 5)
-            
-            if i == self.selected_group_idx:
-                pygame.draw.rect(self.screen, COLOR_SELECTED_BG, rect, border_radius=5)
-                pygame.draw.rect(self.screen, COLOR_ACCENT, rect, 2, border_radius=5)
-                color = COLOR_ACCENT
+            rect = pygame.Rect(margin_l, y, content_w, row_h - self._s(5))
+
+            if is_sel:
+                fill   = (*C_GLOW_CYAN, 20)
+                border = (*C_GLOW_CYAN, 200)
+                draw_outer_glow(self.screen, rect, C_GLOW_CYAN, radius=8, passes=3, max_alpha=30)
+                # Selected pip
+                pip_h = rect.height - 10
+                pygame.draw.rect(self.screen, C_GLOW_CYAN,
+                                 pygame.Rect(rect.x + 3, rect.y + 5, 3, pip_h), border_radius=2)
             elif hovered:
-                pygame.draw.rect(self.screen, COLOR_HOVERED_BG, rect, border_radius=5)
-                color = COLOR_TEXT_PRIMARY
+                fill   = (*C_GLOW_CYAN, 10)
+                border = (*C_GLOW_CYAN, 80)
             else:
-                color = COLOR_TEXT_SECONDARY
+                fill   = C_GLASS_FILL
+                border = C_BORDER_DIM
+
+            bg = pygame.Surface(rect.size, pygame.SRCALPHA)
+            pygame.draw.rect(bg, fill, (0, 0, *rect.size), border_radius=8)
+            self.screen.blit(bg, rect.topleft)
+            pygame.draw.rect(self.screen, border, rect, 1, border_radius=8)
 
             group = self.song_groups[i]
-            # Truncate Title if needed
+
+            # Title
             title_text = group['title']
-            max_title_w = content_w - self._sx_v(180) # Reserve more space for circles
+            max_title_w = content_w - self._sx_v(185)
             if self.font.size(title_text)[0] > max_title_w:
                 while self.font.size(title_text + "...")[0] > max_title_w and len(title_text) > 0:
                     title_text = title_text[:-1]
                 title_text += "..."
-                
-            title_surf = self.font.render(title_text, True, color)
-            self.screen.blit(title_surf, (margin_l + self._sx_v(15), y + self._s(8)))
-            
-            artist_surf = self.small_font.render(group['artist'], True, COLOR_TEXT_SECONDARY)
-            self.screen.blit(artist_surf, (margin_l + self._sx_v(15), y + self._s(42)))
-            
-            # Difficulty indicators (Text badges in list)
-            base_dx = rect.right - self._sx_v(40)
-            charts = group['charts']
-            
-            # Map levels to short labels if possible
-            from ..game.constants import DIFFICULTY_DEFS, DIFFICULTY_DEFAULT_COLOR
-            def get_diff_label(chart):
-                f = chart['filepath'].lower()
-                for d in DIFFICULTY_DEFS:
-                    if any(kw in f for kw in d['keywords']):
-                        return d['label']
-                return "LV."
 
-            def get_diff_color(label):
-                for d in DIFFICULTY_DEFS:
-                    if label == d['label']:
-                        return d['color']
-                return DIFFICULTY_DEFAULT_COLOR
-            
-            # Store badge rects for clicking
-            group['badge_rects'] = []
-            
-            # Scrollable window of badges
+            title_col  = C_GLOW_CYAN if is_sel else C_TEXT_PRIMARY
+            title_surf = self.font.render(title_text, True, title_col)
+            self.screen.blit(title_surf, (margin_l + self._sx_v(14), y + self._s(8)))
+
+            artist_surf = self.small_font.render(group['artist'], True, C_TEXT_SECONDARY)
+            self.screen.blit(artist_surf, (margin_l + self._sx_v(14), y + self._s(42)))
+
+            # Difficulty badges
+            charts     = group['charts']
             num_badges = 4
             num_charts = len(charts)
-            
-            # Find window range to show
             if i == self.selected_group_idx:
-                # Center around selected_chart_idx
                 start = max(0, self.selected_chart_idx - 1)
                 if start + num_badges > num_charts:
                     start = max(0, num_charts - num_badges)
                 end_idx = min(num_charts, start + num_badges)
             else:
-                start = 0
+                start   = 0
                 end_idx = min(num_charts, num_badges)
 
             group['badge_rects'] = []
-            dx = base_dx
-            
-            # Show "more" indicator if there are charts before the window
-            if start > 0:
-                self.screen.blit(self.small_font.render("<", True, COLOR_TEXT_SECONDARY), (dx - self._sx_v(15), y + row_h // 2 - 10))
-                dx -= self._sx_v(20)
+            base_dx = rect.right - self._sx_v(38)
+            dx      = base_dx
 
-            # Draw badges from left to right (actually anchor right and go left but in order)
-            # Wait, it's easier to just draw them consistently.
-            # Let's draw from dx going left-ish but let's calculate total width first or just iterate.
-            
-            visible_charts = charts[start:end_idx]
-            # To keep right-alignment, we still iterate reversed(visible_charts) or similar.
-            for v_idx, chart in enumerate(reversed(visible_charts)):
-                actual_idx = start + (len(visible_charts) - 1 - v_idx)
-                
-                label = get_diff_label(chart)
-                lv = str(chart['playlevel'])
-                    
-                label = get_diff_label(chart)
-                lv = str(chart['playlevel'])
-                txt = f"{label} {lv}"
-                
-                # Colors based on difficulty
+            if start > 0:
+                self.screen.blit(self.small_font.render("<", True, C_TEXT_DIM),
+                                 (dx - self._sx_v(14), y + row_h // 2 - 10))
+                dx -= self._sx_v(18)
+
+            for v_idx, chart in enumerate(reversed(charts[start:end_idx])):
+                actual_idx = start + (len(charts[start:end_idx]) - 1 - v_idx)
+                label   = get_diff_label(chart)
+                lv      = str(chart['playlevel'])
+                txt     = f"{label} {lv}"
                 bg_color = get_diff_color(label)
-                
-                t_surf = self.small_font.render(txt, True, (255, 255, 255))
-                tw, th = t_surf.get_width() + self._sx_v(10), self._s(20)
-                br = pygame.Rect(dx - tw, y + row_h // 2 - th // 2, tw, th)
-                
-                # Highlight if this is the selected chart for the *selected* group
+
+                t_surf  = self.small_font.render(txt, True, (255, 255, 255))
+                tw, th  = t_surf.get_width() + self._sx_v(10), self._s(20)
+                br      = pygame.Rect(dx - tw, y + row_h // 2 - th // 2, tw, th)
+
                 is_sel_chart = (self.selected_group_idx == i and self.selected_chart_idx == actual_idx)
                 if is_sel_chart:
                     pygame.draw.rect(self.screen, (255, 255, 255), br.inflate(4, 4), border_radius=4)
-                
+
                 pygame.draw.rect(self.screen, bg_color, br, border_radius=4)
                 self.screen.blit(t_surf, t_surf.get_rect(center=br.center))
-                
-                # Save hitbox (relative to screen)
+
                 if self.selected_group_idx == i:
                     group['badge_rects'].append((br, actual_idx))
-                
-                dx -= tw + self._sx_v(8)
-                
-            # Show "more" indicator if there are charts after the window
+
+                dx -= tw + self._sx_v(7)
+
             if end_idx < num_charts:
-                self.screen.blit(self.small_font.render(">", True, COLOR_TEXT_SECONDARY), (base_dx + self._sx_v(5), y + row_h // 2 - 10))
+                self.screen.blit(self.small_font.render(">", True, C_TEXT_DIM),
+                                 (base_dx + self._sx_v(4), y + row_h // 2 - 10))
+
+        # Scrollbar
+        if len(self.song_groups) > VISIBLE_ITEMS:
+            sb_x = margin_l + content_w + self._sx_v(4)
+            r0   = self.scroll_offset / len(self.song_groups)
+            r1   = min(1.0, (self.scroll_offset + VISIBLE_ITEMS) / len(self.song_groups))
+            draw_scrollbar(self.screen, sb_x, start_y, VISIBLE_ITEMS * row_h, r0, r1)
 
     def _draw_info_panel(self):
         if not self.song_groups: return
         mx, my = pygame.mouse.get_pos()
-        group = self.song_groups[self.selected_group_idx]
-        chart = group['charts'][self.selected_chart_idx]
-        
-        panel_x = self._sx_v(40)
-        panel_y = self._s(85) # Moved up from 110
-        panel_w = self._sx_v(290)
-        panel_h = self.h - panel_y - self._s(40) # Slightly taller panel
-        
-        # Glass Panel for Info (Using Surface for correct blending)
-        psurf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-        psurf.fill(COLOR_PANEL_BG)
-        self.screen.blit(psurf, (panel_x, panel_y))
-        pygame.draw.rect(self.screen, (COLOR_ACCENT[0], COLOR_ACCENT[1], COLOR_ACCENT[2], 60), (panel_x, panel_y, panel_w, panel_h), 1, border_radius=15)
+        group  = self.song_groups[self.selected_group_idx]
+        chart  = group['charts'][self.selected_chart_idx]
 
-        # Content
-        cx = panel_x + 20
-        y = panel_y + 20
-        
-        # Genre
-        self.screen.blit(self.small_font.render(group['genre'].upper(), True, COLOR_ACCENT), (cx, y))
-        y += self._s(25)
-        
-        # Title (Use chart specific title, limit to 1 line to prevent vertical overflow)
+        panel_x = self._sx_v(30)
+        panel_y = self._s(62)
+        panel_w = self._sx_v(300)
+        panel_h = self.h - panel_y - self._s(50)
+        draw_glass_panel(self.screen, pygame.Rect(panel_x, panel_y, panel_w, panel_h),
+                         border_color=(*C_GLOW_CYAN, 65), radius=14, fill_alpha=12)
+
+        cx = panel_x + self._sx_v(16)
+        y  = panel_y + self._s(16)
+
+        # Genre pill
+        genre_s = self.small_font.render(group['genre'].upper(), True, C_GLOW_CYAN)
+        self.screen.blit(genre_s, (cx, y))
+        y += genre_s.get_height() + self._s(8)
+
+        # Title
         title_text = chart['title']
-        if self.title_font.size(title_text)[0] > (panel_w - 40):
-            while self.title_font.size(title_text + "...")[0] > (panel_w - 40) and len(title_text) > 0:
+        max_w = panel_w - self._sx_v(32)
+        if self.title_font.size(title_text)[0] > max_w:
+            while self.title_font.size(title_text + "...")[0] > max_w and len(title_text) > 0:
                 title_text = title_text[:-1]
             title_text += "..."
-        self.screen.blit(self.title_font.render(title_text.strip(), True, COLOR_TEXT_PRIMARY), (cx, y))
-        y += self._s(50) # Tighter spacing
-        
-        # Artist (Use chart specific artist, truncate if too long)
+        t_surf = self.title_font.render(title_text.strip(), True, C_TEXT_PRIMARY)
+        self.screen.blit(t_surf, (cx, y))
+        y += t_surf.get_height() + self._s(6)
+
+        # Artist
         artist_text = chart['artist']
-        if self.font.size(artist_text)[0] > (panel_w - 40):
-            while self.font.size(artist_text + "...")[0] > (panel_w - 40) and len(artist_text) > 0:
+        if self.font.size(artist_text)[0] > max_w:
+            while self.font.size(artist_text + "...")[0] > max_w and len(artist_text) > 0:
                 artist_text = artist_text[:-1]
             artist_text += "..."
-        self.screen.blit(self.font.render(artist_text, True, COLOR_TEXT_SECONDARY), (cx, y))
-        y += self._s(55) # Tighter spacing
-        
-        # Stats Grid
-        stats = [
-            ("BPM", str(chart['bpm'])),
-            ("NOTES", str(chart['total_notes'])),
-            ("LEVEL", f"Lv.{chart['playlevel']}")
-        ]
-        
-        y += self._s(10) # Add some breathing room before the grid
-        stat_x = cx
-        stat_spacing = self._sx_v(85)
-        for label, val in stats:
-            self.screen.blit(self.small_font.render(label, True, COLOR_ACCENT_DIM), (stat_x, y))
-            self.screen.blit(self.font_bold.render(val, True, COLOR_TEXT_PRIMARY), (stat_x, y + self._s(24)))
-            stat_x += stat_spacing
-        
-        y += self._s(100) # Tighter gap before Gameplay Options
-        
-        # ── GAMEPLAY OPTIONS ──
-        self.screen.blit(self.small_font.render(_t("gameplay_options"), True, COLOR_ACCENT), (cx, y))
-        y += self._s(25)
-        
-        opt_rects = []
-        # Item spacing
-        iy = self._s(28)
-        
-        # Speed
-        speed = self.settings.get('speed', 1.0)
-        s_rect = pygame.Rect(cx, y, panel_w - 40, iy)
-        if s_rect.collidepoint(mx, my):
-            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, s_rect, border_radius=5)
-        self.screen.blit(self.small_font.render(f"{_t('speed_label')}: x{speed:.1f} (1/2)", True, COLOR_TEXT_SECONDARY), (cx, y))
-        opt_rects.append((s_rect, "SPEED"))
-        y += iy
-        
-        y += iy
-        
-        # Player Note Type
-        n_type = "CIRCLE" if self.settings.get('note_type', 0) == 1 else "BAR"
-        t_rect = pygame.Rect(cx, y, panel_w - 40, iy)
-        if t_rect.collidepoint(mx, my):
-            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, t_rect, border_radius=5)
-        self.screen.blit(self.small_font.render(f"{_t('player_note')}: {n_type} (T)", True, COLOR_TEXT_SECONDARY), (cx, y))
-        opt_rects.append((t_rect, "TYPE"))
-        y += iy
+        a_surf = self.font.render(artist_text, True, C_TEXT_SECONDARY)
+        self.screen.blit(a_surf, (cx, y))
+        y += a_surf.get_height() + self._s(18)
 
-        # Extra opts injected by caller (e.g. mods)
-        for opt in self.extra_opts:
-            label = opt['label_fn']()
-            e_rect = pygame.Rect(cx, y, panel_w - 40, iy)
-            if e_rect.collidepoint(mx, my):
-                pygame.draw.rect(self.screen, COLOR_HOVERED_BG, e_rect, border_radius=5)
-            self.screen.blit(self.small_font.render(label, True, COLOR_TEXT_SECONDARY), (cx, y))
-            opt_rects.append((e_rect, opt['action']))
+        # Divider
+        dw = panel_w - self._sx_v(32)
+        div = pygame.Surface((dw, 1), pygame.SRCALPHA)
+        for x in range(dw):
+            t = 1.0 - abs(x - dw / 2) / (dw / 2 + 1)
+            div.set_at((x, 0), (*C_GLOW_CYAN, int(40 * t)))
+        self.screen.blit(div, (cx, y))
+        y += self._s(14)
+
+        # Stats grid
+        stats = [("BPM", str(chart['bpm'])), ("NOTES", str(chart['total_notes'])),
+                 ("LEVEL", f"Lv.{chart['playlevel']}")]
+        stat_x = cx
+        stat_col_w = (panel_w - self._sx_v(32)) // 3
+        for label, val in stats:
+            self.screen.blit(self.small_font.render(label, True, C_TEXT_DIM), (stat_x, y))
+            self.screen.blit(self.font_bold.render(val, True, C_TEXT_PRIMARY),
+                             (stat_x, y + self._s(22)))
+            stat_x += stat_col_w
+        y += self._s(64)
+
+        # ── Gameplay Options ──
+        opt_hdr = self.small_font.render(_t("gameplay_options"), True, C_GLOW_CYAN)
+        self.screen.blit(opt_hdr, (cx, y))
+        y += opt_hdr.get_height() + self._s(8)
+
+        opt_rects = []
+        iy        = self._s(30)
+
+        def _opt_row(label_text, action, color=C_TEXT_SECONDARY):
+            nonlocal y
+            r = pygame.Rect(cx - self._sx_v(4), y, panel_w - self._sx_v(24), iy - self._s(2))
+            hov = r.collidepoint(mx, my)
+            if hov:
+                bg = pygame.Surface(r.size, pygame.SRCALPHA)
+                pygame.draw.rect(bg, (*C_GLOW_CYAN, 10), (0, 0, *r.size), border_radius=6)
+                self.screen.blit(bg, r.topleft)
+            s = self.small_font.render(label_text, True, C_GLOW_CYAN if hov else color)
+            self.screen.blit(s, (cx, y + (iy - s.get_height()) // 2))
+            opt_rects.append((r, action))
             y += iy
 
-        # Note Skin
+        speed  = self.settings.get('speed', 1.0)
+        _opt_row(f"{_t('speed_label')}: x{speed:.1f}  (1 / 2)", "SPEED")
+
+        n_type = "CIRCLE" if self.settings.get('note_type', 0) == 1 else "BAR"
+        _opt_row(f"{_t('player_note')}: {n_type}  (T)", "TYPE")
+
+        for opt in self.extra_opts:
+            _opt_row(opt['label_fn'](), opt['action'])
+
+        # Note skin
         from ..game.skins import get_skin, get_available_skins
-        available_skins = get_available_skins(self._cm)
-        current_skin_id = self.settings.get('note_skin', 'default')
-        # Validate: reset if current skin is no longer unlocked
+        available_skins  = get_available_skins(self._cm)
+        current_skin_id  = self.settings.get('note_skin', 'default')
         current_skin_obj = get_skin(current_skin_id)
         if current_skin_obj and not current_skin_obj.is_unlocked(self._cm):
             self.settings['note_skin'] = 'default'
-            current_skin_id = 'default'
+            current_skin_id  = 'default'
             current_skin_obj = None
-
-        skin_rect = pygame.Rect(cx, y, panel_w - 40, iy)
-        if skin_rect.collidepoint(mx, my):
-            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, skin_rect, border_radius=5)
-
         if available_skins:
-            if current_skin_obj:
-                skin_label = current_skin_obj.get_display_name()
-                skin_color = current_skin_obj.ui_color
-            else:
-                skin_label = _t("note_skin_default")
-                skin_color = COLOR_TEXT_SECONDARY
-            self.screen.blit(self.small_font.render(f"{_t('note_skin_label')}: {skin_label} (G)", True, skin_color), (cx, y))
+            skin_label = current_skin_obj.get_display_name() if current_skin_obj else _t("note_skin_default")
+            skin_color = current_skin_obj.ui_color if current_skin_obj else C_TEXT_SECONDARY
+            _opt_row(f"{_t('note_skin_label')}: {skin_label}  (G)", "SKIN", color=skin_color)
         else:
-            self.screen.blit(self.small_font.render(f"{_t('note_skin_label')}: {_t('note_skin_default')}", True, COLOR_TEXT_SECONDARY), (cx, y))
-        opt_rects.append((skin_rect, "SKIN"))
-        
-        self._opt_rects = opt_rects # Store for click handler
+            _opt_row(f"{_t('note_skin_label')}: {_t('note_skin_default')}", "SKIN")
 
-        # ── NOTE MOD ──
-        # Adding some space since records are gone
-        y += self._s(40)
-        self.screen.blit(self.small_font.render(_t("note_mod_label"), True, COLOR_ACCENT_DIM), (cx, y))
-        y += self._s(25)
-        mod_rect = pygame.Rect(cx, y, panel_w - 40, self._s(28))
+        self._opt_rects = opt_rects
+
+        # ── Note Mod ──
+        y += self._s(10)
+        self.screen.blit(self.small_font.render(_t("note_mod_label"), True, C_TEXT_DIM), (cx, y))
+        y += self._s(22)
+        mod_rect  = pygame.Rect(cx - self._sx_v(4), y, panel_w - self._sx_v(24), self._s(30))
         hover_mod = mod_rect.collidepoint(mx, my)
         if hover_mod:
-            pygame.draw.rect(self.screen, COLOR_HOVERED_BG, mod_rect, border_radius=5)
-        
+            bg = pygame.Surface(mod_rect.size, pygame.SRCALPHA)
+            pygame.draw.rect(bg, (*C_GLOW_CYAN, 10), (0, 0, *mod_rect.size), border_radius=6)
+            self.screen.blit(bg, mod_rect.topleft)
         mod_text = self.note_mods[self.note_mod_idx]
-        mod_surf = self.small_font.render(mod_text, True, COLOR_ACCENT if hover_mod else COLOR_TEXT_PRIMARY)
-        self.screen.blit(mod_surf, (cx + 10, y + 2))
+        mod_surf = self.small_font.render(mod_text, True, C_GLOW_CYAN if hover_mod else C_TEXT_PRIMARY)
+        self.screen.blit(mod_surf, (cx, y + (self._s(30) - mod_surf.get_height()) // 2))
         self._nav_buttons.append((mod_rect, "MOD"))
 
     def _wrap_text(self, text, font, max_w):
@@ -993,14 +966,40 @@ class SongSelectMenu:
         self.screen.blit(overlay, (0, 0))
 
     def _draw_search_overlay(self):
-        self._draw_overlay(200)
-        cx = self.w // 2
-        pygame.draw.rect(self.screen, (255, 255, 255),
-                         (cx - self._sx_v(300), self._s(250), self._sx_v(600), self._s(60)), 2)
-        self.screen.blit(self.font.render(_t("search_web_title"), True, (255, 255, 255)),
-                         (cx - self._sx_v(300), self._s(200)))
-        self.screen.blit(self.font.render(self.search_query + "_", True, (200, 255, 200)),
-                         (cx - self._sx_v(280), self._s(265)))
-        self.screen.blit(
-            self.small_font.render(_t("search_hint"), True, COLOR_TEXT_SECONDARY),
-            (cx - self._sx_v(300), self._s(320)))
+        # Dim overlay
+        dim = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+        dim.fill((0, 0, 0, 200))
+        self.screen.blit(dim, (0, 0))
+
+        # Modal panel
+        pw, ph = self._sx_v(580), self._s(180)
+        px = (self.w - pw) // 2
+        py = self.h // 2 - ph // 2 - self._s(20)
+        panel = pygame.Rect(px, py, pw, ph)
+
+        base = pygame.Surface(panel.size, pygame.SRCALPHA)
+        pygame.draw.rect(base, (10, 8, 22, 235), (0, 0, *panel.size), border_radius=14)
+        self.screen.blit(base, panel.topleft)
+        draw_glass_panel(self.screen, panel, border_color=(*C_GLOW_CYAN, 180), radius=14, fill_alpha=18)
+
+        y = py + self._s(18)
+        title_s = self.font.render(_t("search_web_title"), True, C_GLOW_CYAN)
+        self.screen.blit(title_s, title_s.get_rect(centerx=self.w // 2, top=y))
+        y += title_s.get_height() + self._s(14)
+
+        # Input box
+        bw = pw - self._sx_v(40)
+        bx = px + self._sx_v(20)
+        bh = self._s(44)
+        box_r = pygame.Rect(bx, y, bw, bh)
+        box_bg = pygame.Surface((bw, bh), pygame.SRCALPHA)
+        pygame.draw.rect(box_bg, (*C_GLOW_CYAN, 10), (0, 0, bw, bh), border_radius=8)
+        self.screen.blit(box_bg, (bx, y))
+        pygame.draw.rect(self.screen, (*C_GLOW_CYAN, 160), box_r, 1, border_radius=8)
+
+        q_surf = self.font.render(self.search_query + "_", True, C_TEXT_PRIMARY)
+        self.screen.blit(q_surf, (bx + self._sx_v(10), y + (bh - q_surf.get_height()) // 2))
+        y += bh + self._s(14)
+
+        hint_s = self.small_font.render(_t("search_hint"), True, C_TEXT_DIM)
+        self.screen.blit(hint_s, hint_s.get_rect(centerx=self.w // 2, top=y))

@@ -1,7 +1,17 @@
 import pygame
+import time
 from only4bms.i18n import get as _host_t
 from only4bms import i18n as _i18n
 from .i18n import t as _t
+from only4bms.ui.components import (
+    make_bg_cache, draw_glass_panel, draw_outer_glow,
+    draw_glow_text, draw_hint_bar,
+    C_TEXT_PRIMARY, C_TEXT_SECONDARY, C_TEXT_DIM,
+    C_GLOW_CYAN, C_GLASS_FILL, C_BORDER_DIM, BASE_W, BASE_H,
+)
+
+_ROW_H_BASE = 82
+
 
 class CourseMenu:
     def __init__(self, settings, renderer, window):
@@ -9,31 +19,33 @@ class CourseMenu:
         self.renderer = renderer
         self.window = window
         self.w, self.h = window.size
-        self.sx, self.sy = self.w / 800.0, self.h / 600.0
+        self.sx, self.sy = self.w / BASE_W, self.h / BASE_H
 
         self.screen = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
-        self.font = _i18n.font("menu_option", self.sy)
-        self.title_font = _i18n.font("menu_title", self.sy, bold=True)
-        self.small_font = _i18n.font("menu_small", self.sy)
-        self.desc_font = _i18n.font("menu_small", self.sy)
+        self._bg    = make_bg_cache(self.w, self.h)
 
-        # Options format: (Label lambda, Desc lambda, difficulty_str, duration_ms)
+        self.font       = _i18n.font("menu_option", self.sy)
+        self.title_font = _i18n.font("menu_title",  self.sy, bold=True)
+        self.small_font = _i18n.font("menu_small",  self.sy)
+        self.desc_font  = _i18n.font("menu_small",  self.sy)
+
         self.options = [
-            (lambda: _t("course_beg_title"), lambda: _t("course_beg_desc"), "BEGINNER", 30000),
+            (lambda: _t("course_beg_title"), lambda: _t("course_beg_desc"), "BEGINNER",     30000),
             (lambda: _t("course_int_title"), lambda: _t("course_int_desc"), "INTERMEDIATE", 30000),
-            (lambda: _t("course_adv_title"), lambda: _t("course_adv_desc"), "ADVANCED", 30000),
-            (lambda: _t("course_ord_title"), lambda: _t("course_ord_desc"), "ORDEAL", 30000),
+            (lambda: _t("course_adv_title"), lambda: _t("course_adv_desc"), "ADVANCED",     30000),
+            (lambda: _t("course_ord_title"), lambda: _t("course_ord_desc"), "ORDEAL",       30000),
         ]
         self.selected_index = 0
         self.running = True
-        self.result = None
+        self.result  = None
 
     def _s(self, v): return max(1, int(v * self.sy))
-    def _cx(self, surf): return (self.w - surf.get_width()) // 2
+
+    # ── Main loop ─────────────────────────────────────────────────────────────
 
     def run(self):
         from pygame._sdl2.video import Texture
-        clock = pygame.time.Clock()
+        clock   = pygame.time.Clock()
         texture = None
         pygame.key.set_repeat(300, 50)
 
@@ -49,90 +61,29 @@ class CourseMenu:
                         self.selected_index = (self.selected_index + 1) % len(self.options)
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         opt = self.options[self.selected_index]
-                        if opt[2] is None:
-                            self.result = ("QUIT", None, None)
-                        else:
-                            self.result = ("START", opt[2], opt[3])
+                        self.result = ("QUIT", None, None) if opt[2] is None else ("START", opt[2], opt[3])
                         self.running = False
                     elif event.key == pygame.K_ESCAPE:
                         self.result = ("QUIT", None, None)
                         self.running = False
                 elif event.type == pygame.JOYHATMOTION:
                     vx, vy = event.value
-                    if vy == 1:
-                        self.selected_index = (self.selected_index - 1) % len(self.options)
-                    elif vy == -1:
-                        self.selected_index = (self.selected_index + 1) % len(self.options)
+                    if   vy ==  1: self.selected_index = (self.selected_index - 1) % len(self.options)
+                    elif vy == -1: self.selected_index = (self.selected_index + 1) % len(self.options)
                 elif event.type == pygame.JOYBUTTONDOWN:
                     if event.button == 0:
                         opt = self.options[self.selected_index]
-                        if opt[2] is None:
-                            self.result = ("QUIT", None, None)
-                        else:
-                            self.result = ("START", opt[2], opt[3])
+                        self.result = ("QUIT", None, None) if opt[2] is None else ("START", opt[2], opt[3])
                         self.running = False
                     elif event.button == 1:
                         self.result = ("QUIT", None, None)
                         self.running = False
 
-            # Draw
-            for y in range(self.h):
-                grad = 1.0 - (y / self.h)
-                c = [int(25 * grad), int(25 * grad), int(45 * grad + 25)]
-                pygame.draw.line(self.screen, c, (0, y), (self.w, y))
-
-            title = self.title_font.render(_t("menu_course"), True, (0, 255, 200))
-            self.screen.blit(title, (self._cx(title), self._s(60)))
-
-            panel_w, panel_h = self._s(500), self._s(380)
-            px, py = (self.w - panel_w) // 2, (self.h - panel_h) // 2 + self._s(40)
-
-            pygame.draw.rect(self.screen, (15, 15, 25, 230), (px, py, panel_w, panel_h), border_radius=10)
-            pygame.draw.rect(self.screen, (0, 255, 200), (px, py, panel_w, panel_h), 2, border_radius=10)
-
-            opt_y = py + self._s(20)
-            spacing = self._s(82)
-
-            for i, opt in enumerate(self.options):
-                box_h = self._s(76)
-                rect = pygame.Rect(px + self._s(10), opt_y + i * spacing, panel_w - self._s(20), box_h)
-
-                if i == self.selected_index:
-                    pygame.draw.rect(self.screen, (40, 50, 80, 225), rect, border_radius=5)
-                    pygame.draw.rect(self.screen, (0, 255, 200), rect, 1, border_radius=5)
-                    color = (0, 255, 200)
-                else:
-                    color = (180, 180, 200)
-
-                text = self.font.render(opt[0](), True, color)
-
-                desc_text = opt[1]()
-                if desc_text:
-                    # Truncate description if too long for the box
-                    max_w = panel_w - self._s(70)
-                    while self.desc_font.size(desc_text)[0] > max_w and len(desc_text) > 5:
-                        desc_text = desc_text[:-1]
-                    if desc_text != opt[1]():
-                        desc_text += "..."
-
-                    # Draw Title slightly higher to avoid overlap
-                    self.screen.blit(text, (px + self._s(30), rect.top + self._s(6)))
-                    # Draw Description below with enough margin
-                    desc_surf = self.desc_font.render(desc_text, True, (130, 150, 170))
-                    self.screen.blit(desc_surf, (px + self._s(35), rect.top + self._s(46)))
-                else:
-                    self.screen.blit(text, (px + self._s(30), rect.centery - text.get_height() // 2))
-
-            # Back button hint (localized)
-            back_hint_txt = _t("course_back_hint")
-            back_hint = self.small_font.render(back_hint_txt, True, (100, 110, 140))
-            self.screen.blit(back_hint, (px + panel_w - back_hint.get_width() - self._s(20), py + panel_h - self._s(35)))
-
+            self._draw()
             if not texture:
                 texture = Texture.from_surface(self.renderer, self.screen)
             else:
                 texture.update(self.screen)
-
             self.renderer.clear()
             self.renderer.blit(texture, pygame.Rect(0, 0, self.w, self.h))
             self.renderer.present()
@@ -140,3 +91,77 @@ class CourseMenu:
 
         pygame.key.set_repeat(0)
         return self.result
+
+    # ── Drawing ───────────────────────────────────────────────────────────────
+
+    def _draw(self):
+        self.screen.blit(self._bg, (0, 0))
+
+        # ── Title ──
+        draw_glow_text(self.screen, _t("menu_course"), self.title_font,
+                       C_GLOW_CYAN, C_GLOW_CYAN,
+                       (self.w // 2, self._s(32)), anchor="center", glow_radius=4)
+
+        # Accent line
+        lw = self._s(200)
+        lx = (self.w - lw) // 2
+        ly = self._s(88)
+        for x in range(lw):
+            t = 1.0 - abs(x - lw / 2) / (lw / 2 + 1)
+            self.screen.set_at((lx + x, ly), (*C_GLOW_CYAN, int(60 * t)))
+
+        # ── Panel ──
+        panel_w = self._s(540)
+        panel_h = self._s(370)
+        px      = (self.w - panel_w) // 2
+        py      = self._s(106)
+        draw_glass_panel(self.screen, pygame.Rect(px, py, panel_w, panel_h),
+                         border_color=(*C_GLOW_CYAN, 70), radius=14, fill_alpha=10)
+
+        row_h   = self._s(_ROW_H_BASE)
+        pad_top = self._s(12)
+
+        for i, opt in enumerate(self.options):
+            is_sel = (i == self.selected_index)
+            rect   = pygame.Rect(px + self._s(10),
+                                 py + pad_top + i * row_h,
+                                 panel_w - self._s(20),
+                                 row_h - self._s(8))
+
+            if is_sel:
+                fill   = (*C_GLOW_CYAN, 18)
+                border = (*C_GLOW_CYAN, 200)
+                draw_outer_glow(self.screen, rect, C_GLOW_CYAN, radius=10, passes=4, max_alpha=32)
+            else:
+                fill   = C_GLASS_FILL
+                border = C_BORDER_DIM
+
+            bg = pygame.Surface(rect.size, pygame.SRCALPHA)
+            pygame.draw.rect(bg, fill, (0, 0, *rect.size), border_radius=10)
+            self.screen.blit(bg, rect.topleft)
+            pygame.draw.rect(self.screen, border, rect, 1, border_radius=10)
+
+            if is_sel:
+                pip_h = rect.height - 16
+                pygame.draw.rect(self.screen, C_GLOW_CYAN,
+                                 pygame.Rect(rect.x + 4, rect.y + 8, 3, pip_h),
+                                 border_radius=2)
+
+            # Title
+            title_col = C_GLOW_CYAN if is_sel else C_TEXT_PRIMARY
+            self.screen.blit(self.font.render(opt[0](), True, title_col),
+                             (rect.x + self._s(18), rect.y + self._s(8)))
+
+            # Description
+            desc_text = opt[1]()
+            max_w = panel_w - self._s(70)
+            if self.desc_font.size(desc_text)[0] > max_w:
+                while self.desc_font.size(desc_text + "...")[0] > max_w and len(desc_text) > 5:
+                    desc_text = desc_text[:-1]
+                desc_text += "..."
+            desc_col = C_TEXT_SECONDARY if is_sel else C_TEXT_DIM
+            self.screen.blit(self.desc_font.render(desc_text, True, desc_col),
+                             (rect.x + self._s(22), rect.y + self._s(44)))
+
+        # ── Hint bar ──
+        draw_hint_bar(self.screen, _t("course_back_hint"), self.small_font, self.h, self.w)

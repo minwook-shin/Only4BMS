@@ -588,3 +588,153 @@ def run(settings, renderer, window, **ctx):
         if save_settings_fn:
             save_settings_fn(settings)
 ```
+
+---
+
+## UI Design System
+
+All built-in screens use a shared glassmorphism design system in `only4bms.ui.components`.
+Mods should use the same system so they blend visually with the host UI.
+
+### Import
+
+```python
+from only4bms.ui.components import (
+    make_bg_cache, draw_glass_panel, draw_outer_glow,
+    draw_glow_text, draw_hint_bar, draw_scrollbar,
+    draw_pill_button, draw_modal, draw_modal_button,
+    draw_row, draw_category,
+    # Colour palette
+    C_TEXT_PRIMARY, C_TEXT_SECONDARY, C_TEXT_DIM,
+    C_GLOW_CYAN, C_GLOW_PURPLE, C_BORDER_DIM,
+    C_GLASS_FILL, C_GLASS_HOVER,
+    BASE_W, BASE_H,
+)
+```
+
+### Colour Palette
+
+| Token | RGB | Usage |
+|---|---|---|
+| `C_GLOW_CYAN` | `(0, 212, 255)` | Primary accent — titles, selected rows, active inputs |
+| `C_GLOW_PURPLE` | `(180, 80, 255)` | Secondary accent — modals, waiting state |
+| `C_TEXT_PRIMARY` | `(232, 240, 255)` | Main readable text |
+| `C_TEXT_SECONDARY` | `(140, 155, 195)` | Subtitles, labels, inactive values |
+| `C_TEXT_DIM` | `(70, 85, 125)` | Hints, disabled items |
+| `C_GLASS_FILL` | `(255,255,255, 12)` | Default glass panel fill (SRCALPHA) |
+| `C_GLASS_HOVER` | `(255,255,255, 22)` | Hovered row fill |
+| `C_BORDER_DIM` | `(255,255,255, 32)` | Unselected border |
+
+### Minimum Mod Screen Template
+
+```python
+import pygame
+import time
+from only4bms import i18n as _i18n
+from only4bms.ui.components import (
+    make_bg_cache, draw_glass_panel, draw_glow_text, draw_hint_bar,
+    C_GLOW_CYAN, C_TEXT_PRIMARY, C_TEXT_SECONDARY, BASE_W, BASE_H,
+)
+
+class MyModMenu:
+    def __init__(self, settings, renderer, window):
+        self.settings = settings
+        self.renderer = renderer
+        self.window   = window
+        self.w, self.h = window.size
+        self.sx, self.sy = self.w / BASE_W, self.h / BASE_H
+
+        self.screen = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+        self._bg    = make_bg_cache(self.w, self.h)   # pre-rendered once
+
+        self.title_font = _i18n.font("menu_title",  self.sy, bold=True)
+        self.body_font  = _i18n.font("ui_body",     self.sy)
+        self.small_font = _i18n.font("menu_small",  self.sy)
+
+        self.running = True
+
+    def _s(self, v): return max(1, int(v * self.sy))
+
+    def run(self):
+        from pygame._sdl2.video import Texture
+        clock   = pygame.time.Clock()
+        texture = None
+
+        while self.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.running = False
+
+            self._draw()
+
+            if not texture:
+                texture = Texture.from_surface(self.renderer, self.screen)
+            else:
+                texture.update(self.screen)
+            self.renderer.clear()
+            self.renderer.blit(texture, pygame.Rect(0, 0, self.w, self.h))
+            self.renderer.present()
+            clock.tick(60)
+
+    def _draw(self):
+        # 1. Background
+        self.screen.blit(self._bg, (0, 0))
+
+        # 2. Title with glow
+        draw_glow_text(self.screen, "My Mod", self.title_font,
+                       C_GLOW_CYAN, C_GLOW_CYAN,
+                       (self.w // 2, self._s(32)), anchor="center", glow_radius=4)
+
+        # 3. Content panel
+        panel_w, panel_h = self._s(500), self._s(300)
+        panel = pygame.Rect((self.w - panel_w) // 2, self._s(110), panel_w, panel_h)
+        draw_glass_panel(self.screen, panel,
+                         border_color=(*C_GLOW_CYAN, 70), radius=14, fill_alpha=10)
+
+        # 4. Content inside panel
+        msg = self.body_font.render("Hello from my mod!", True, C_TEXT_PRIMARY)
+        self.screen.blit(msg, msg.get_rect(center=panel.center))
+
+        # 5. Hint bar (always last)
+        draw_hint_bar(self.screen, "ESC  Back", self.small_font, self.h, self.w)
+```
+
+### Common Components
+
+#### `draw_glass_panel(surf, rect, border_color, radius, fill_alpha)`
+Renders a frosted-glass card. Use `border_color=(*C_GLOW_CYAN, 70)` for cyan-themed panels,
+`(*C_GLOW_PURPLE, 70)` for purple-themed ones.
+
+#### `draw_outer_glow(surf, rect, color, radius, passes, max_alpha)`
+Soft glow halo around a selected / focused element. Typical: `passes=4, max_alpha=32`.
+
+#### `draw_glow_text(surf, text, font, color, glow_color, pos, anchor, glow_radius)`
+Layered glow effect for titles and important labels.
+`anchor` can be `'topleft'` (default), `'center'`, `'topright'`, `'midleft'`.
+
+#### `draw_hint_bar(surf, text, font, y_bottom, w)`
+Full-width translucent strip at the bottom of the screen. Always call last in `_draw()`.
+
+#### `draw_pill_button(surf, rect, label, font, hovered, accent)`
+Small rounded button. Use for toolbar / nav buttons. Pass `hovered=rect.collidepoint(mx, my)`.
+
+#### `draw_scrollbar(surf, x, y, h, ratio_start, ratio_end)`
+3px slim scrollbar. Compute ratios from `scroll_offset / total` and `(scroll_offset + visible) / total`.
+
+#### `draw_modal(surf, rect, title, title_font, radius, accent)` → `div_y`
+Dark glass modal dialog with title and divider. Returns `div_y` so you can place body content below.
+Combine with `draw_modal_button` for confirm dialogs.
+
+### Font Size Keys (`only4bms.i18n.font(key, scale)`)
+
+| Key | Base px | Typical use |
+|---|---|---|
+| `"menu_title"` | 76 | Screen titles |
+| `"menu_option"` | 36 | List item titles |
+| `"menu_small"` | 20 | Labels, hints |
+| `"ui_title"` | 38 | Panel headers |
+| `"ui_body"` | 27 | Body text, option values |
+| `"ui_small"` | 18 | Secondary labels |
