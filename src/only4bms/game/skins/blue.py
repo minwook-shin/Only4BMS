@@ -27,30 +27,32 @@ class BlueNoteSkin(NoteSkinBase):
     def draw_lane_ambient(self, r, left_x, right_x, current_time, fade_mult):
         if fade_mult <= 0:
             return
-        # Left and right pulse slightly out of phase → flowing aurora feel
+        # Left/right pulse out of phase → flowing aurora feel
         t = current_time / 750.0
-        alpha_l = int(fade_mult * (32 + 20 * (math.sin(t) + 1) / 2))
-        alpha_r = int(fade_mult * (32 + 20 * (math.sin(t + math.pi * 0.5) + 1) / 2))
+        alpha_l = int(fade_mult * (28 + 16 * (math.sin(t) + 1) / 2))
+        alpha_r = int(fade_mult * (28 + 16 * (math.sin(t + math.pi * 0.5) + 1) / 2))
 
-        left_w  = left_x
-        right_w = r.width - right_x
+        # Narrow strip right at the lane border only
+        strip_w = r._s(80)
         h = r.height
 
-        if left_w > 8 and alpha_l > 0:
-            key = ('L', left_w, h)
+        sw_l = min(strip_w, left_x)
+        if sw_l > 4 and alpha_l > 0:
+            key = ('L', sw_l, h)
             if key not in self._ambient_cache:
-                self._ambient_cache[key] = self._build_ambient(r, left_w, h, bright_right=True)
+                self._ambient_cache[key] = self._build_ambient(r, sw_l, h, bright_right=True)
             tex = self._ambient_cache[key]
             tex.alpha = alpha_l
-            r.renderer.blit(tex, pygame.Rect(0, 0, left_w, h))
+            r.renderer.blit(tex, pygame.Rect(left_x - sw_l, 0, sw_l, h))
 
-        if right_w > 8 and alpha_r > 0:
-            key = ('R', right_w, h)
+        sw_r = min(strip_w, r.width - right_x)
+        if sw_r > 4 and alpha_r > 0:
+            key = ('R', sw_r, h)
             if key not in self._ambient_cache:
-                self._ambient_cache[key] = self._build_ambient(r, right_w, h, bright_right=False)
+                self._ambient_cache[key] = self._build_ambient(r, sw_r, h, bright_right=False)
             tex = self._ambient_cache[key]
             tex.alpha = alpha_r
-            r.renderer.blit(tex, pygame.Rect(right_x, 0, right_w, h))
+            r.renderer.blit(tex, pygame.Rect(right_x, 0, sw_r, h))
 
     def _build_ambient(self, r, w, h, bright_right: bool):
         """Gradient panel with baked diagonal aurora bands.
@@ -61,7 +63,7 @@ class BlueNoteSkin(NoteSkinBase):
         grad_row = pygame.Surface((w, 1), pygame.SRCALPHA)
         for x in range(w):
             t = x / max(w - 1, 1) if bright_right else 1.0 - x / max(w - 1, 1)
-            a  = int(255 * (t ** 1.8))
+            a  = int(255 * (t ** 2.5))
             rc = int(20 * t)
             gc = int(80 + 140 * t)    # dull blue(80) → vivid cyan(220)
             grad_row.set_at((x, 0), (rc, gc, 255, a))

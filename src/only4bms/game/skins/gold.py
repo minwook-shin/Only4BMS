@@ -27,31 +27,35 @@ class GoldNoteSkin(NoteSkinBase):
     def draw_lane_ambient(self, r, left_x, right_x, current_time, fade_mult):
         if fade_mult <= 0:
             return
-        # Slow golden heartbeat — period ~2s, breathes between dim and bright
-        pulse = (math.sin(current_time / 1000.0) + 1) / 2   # 0..1
-        alpha = int(fade_mult * (38 + 22 * pulse))
+        # Slow golden heartbeat — period ~2s
+        pulse = (math.sin(current_time / 1000.0) + 1) / 2
+        alpha = int(fade_mult * (35 + 18 * pulse))
         if alpha <= 0:
             return
 
-        left_w  = left_x
-        right_w = r.width - right_x
+        # Narrow strip right at the lane border — does NOT cover the whole BGA area
+        strip_w = r._s(80)
         h = r.height
 
-        if left_w > 8:
-            key = ('L', left_w, h)
+        # Left strip: right edge touches left lane border
+        sw_l = min(strip_w, left_x)
+        if sw_l > 4:
+            key = ('L', sw_l, h)
             if key not in self._ambient_cache:
-                self._ambient_cache[key] = self._build_ambient(r, left_w, h, bright_right=True)
+                self._ambient_cache[key] = self._build_ambient(r, sw_l, h, bright_right=True)
             tex = self._ambient_cache[key]
             tex.alpha = alpha
-            r.renderer.blit(tex, pygame.Rect(0, 0, left_w, h))
+            r.renderer.blit(tex, pygame.Rect(left_x - sw_l, 0, sw_l, h))
 
-        if right_w > 8:
-            key = ('R', right_w, h)
+        # Right strip: left edge touches right lane border
+        sw_r = min(strip_w, r.width - right_x)
+        if sw_r > 4:
+            key = ('R', sw_r, h)
             if key not in self._ambient_cache:
-                self._ambient_cache[key] = self._build_ambient(r, right_w, h, bright_right=False)
+                self._ambient_cache[key] = self._build_ambient(r, sw_r, h, bright_right=False)
             tex = self._ambient_cache[key]
             tex.alpha = alpha
-            r.renderer.blit(tex, pygame.Rect(right_x, 0, right_w, h))
+            r.renderer.blit(tex, pygame.Rect(right_x, 0, sw_r, h))
 
     def _build_ambient(self, r, w, h, bright_right: bool):
         """Build a gradient panel with baked metallic sheen streaks.
@@ -62,7 +66,7 @@ class GoldNoteSkin(NoteSkinBase):
         grad_row = pygame.Surface((w, 1), pygame.SRCALPHA)
         for x in range(w):
             t = x / max(w - 1, 1) if bright_right else 1.0 - x / max(w - 1, 1)
-            a = int(255 * (t ** 2.0))          # quadratic: very dim far out, rich near lane
+            a = int(255 * (t ** 2.5))          # steep fade: very dim far out, glows near lane
             gc = int(160 + 60 * t)             # amber(160) → gold(220) near lane
             grad_row.set_at((x, 0), (255, gc, 0, a))
         surf.blit(pygame.transform.scale(grad_row, (w, h)), (0, 0))
