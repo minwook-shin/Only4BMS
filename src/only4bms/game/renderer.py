@@ -674,6 +674,12 @@ class GameRenderer:
             r = self._s(eff['radius'])
             tx = lanes_x[eff['lane']] + lane_w // 2
 
+            # Lane flash — universal, applies to all skins and note types
+            flash_a = max(0, int((eff['alpha'] - 130) / 125.0 * 60))
+            if flash_a > 0:
+                self.renderer.draw_color = (*eff['color'], flash_a)
+                self.renderer.fill_rect((lanes_x[eff['lane']], 0, lane_w, self.height))
+
             skin_obj = self._get_note_skin(skin_id, False)
             if skin_obj:
                 skin_obj.render_effect(self, eff, tx, ty, lane_w)
@@ -681,9 +687,8 @@ class GameRenderer:
                 tex = self._get_bar_effect_texture(eff['color'], lane_w)
                 tex.alpha = eff['alpha']
                 bw = int(lane_w * 0.8) + r * 2
-                bh = self._s(15 + r // 6)
+                bh = self._s(15) + r
                 self.renderer.blit(tex, pygame.Rect(tx - bw // 2, ty - bh // 2, bw, bh))
-                
             else: # ── Circle Effect ──
                 tex = self._get_circle_effect_texture(eff['color'])
                 tex.alpha = eff['alpha']
