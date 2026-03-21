@@ -199,7 +199,6 @@ class GameRenderer:
         note_skin = game_state.get('note_skin', 'default')  # 'default' or 'gold'
         current_visual_time = game_state.get('current_visual_time', current_time)
         lane_w = lx[1] - lx[0] if len(lx) > 1 else self._sx(75)
-        ltw = game_state['lane_total_w']
         note_h = self.note_h
         hit_y = self.hit_y
 

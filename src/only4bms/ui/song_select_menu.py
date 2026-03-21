@@ -85,6 +85,10 @@ class SongSelectMenu:
         # Input debouncing
         self.ignore_enter = pygame.key.get_pressed()[pygame.K_RETURN]
 
+        # ChallengeManager is loaded once — reading disk every frame was causing microstutters
+        from ..game.challenge import ChallengeManager
+        self._cm = ChallengeManager()
+
         # Core data
         self.song_groups = []
         self._scanning = False
@@ -120,10 +124,8 @@ class SongSelectMenu:
 
     def _cycle_skin(self):
         """Advance note_skin to the next unlocked skin (wraps back to default)."""
-        from ..game.challenge import ChallengeManager
         from ..game.skins import get_available_skins
-        cm = ChallengeManager()
-        options = ['default'] + [s.id for s in get_available_skins(cm)]
+        options = ['default'] + [s.id for s in get_available_skins(self._cm)]
         current = self.settings.get('note_skin', 'default')
         if current not in options:
             current = 'default'
@@ -928,14 +930,12 @@ class SongSelectMenu:
             y += iy
 
         # Note Skin
-        from ..game.challenge import ChallengeManager
         from ..game.skins import get_skin, get_available_skins
-        _cm = ChallengeManager()
-        available_skins = get_available_skins(_cm)
+        available_skins = get_available_skins(self._cm)
         current_skin_id = self.settings.get('note_skin', 'default')
         # Validate: reset if current skin is no longer unlocked
         current_skin_obj = get_skin(current_skin_id)
-        if current_skin_obj and not current_skin_obj.is_unlocked(_cm):
+        if current_skin_obj and not current_skin_obj.is_unlocked(self._cm):
             self.settings['note_skin'] = 'default'
             current_skin_id = 'default'
             current_skin_obj = None

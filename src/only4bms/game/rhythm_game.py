@@ -364,8 +364,6 @@ class RhythmGame:
                     # We use the midpoint of the sub-step for logic to balance jitter
                     sim_time_ms = (simulated_real_time - self.start_time) * 1000.0
                     
-                    sim_time_ms = (simulated_real_time - self.start_time) * 1000.0
-                    
                     if self.engine.update(sim_time_ms, self.lane_pressed):
                         self.state = "RESULT"
                         pygame.mouse.set_visible(True)
