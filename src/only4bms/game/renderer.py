@@ -55,74 +55,128 @@ class GameRenderer:
     def _get_circle_note_texture(self, color, lane_w):
         key = (color, lane_w)
         if key not in self.circle_note_cache:
-            cr = int(lane_w * 0.4)
+            cr  = int(lane_w * 0.42)
+            cx  = lane_w // 2
             surf = pygame.Surface((lane_w, lane_w), pygame.SRCALPHA)
-            # 1. Circular Shadow
-            shadow_color = (0, 0, 0, 160)
-            pygame.draw.circle(surf, shadow_color, (lane_w // 2, lane_w // 2 + 2), cr)
-            # 2. Main Body
-            pygame.draw.circle(surf, (*color, 255), (lane_w // 2, lane_w // 2), cr)
-            # 3. Top highlight
-            pygame.draw.circle(surf, (255, 255, 255, 160), (lane_w // 2, lane_w // 2 - 1), cr - 1, 3)
-            # 4. Inner small circle
-            pygame.draw.circle(surf, (255, 255, 255, 110), (lane_w // 2, lane_w // 2), cr // 3, 2)
+            # Outer soft glow rings
+            pygame.draw.circle(surf, (*color, 28), (cx, cx), cr + max(2, self._s(4)))
+            pygame.draw.circle(surf, (*color, 55), (cx, cx), cr + max(1, self._s(2)))
+            # Drop shadow (offset down slightly)
+            pygame.draw.circle(surf, (0, 0, 0, 150), (cx, cx + max(1, self._s(2))), cr)
+            # Main body
+            pygame.draw.circle(surf, (*color, 255), (cx, cx), cr)
+            # Inner ring (darker rim for depth)
+            inner_c = tuple(max(0, int(c * 0.65)) for c in color)
+            pygame.draw.circle(surf, (*inner_c, 210), (cx, cx), cr - max(1, self._s(1)), max(1, self._s(2)))
+            # Specular highlight lobe (upper-left)
+            spec_r  = max(2, cr // 3)
+            spec_cx = cx - cr // 4
+            spec_cy = cx - cr // 3
+            pygame.draw.circle(surf, (255, 255, 255, 150), (spec_cx, spec_cy), spec_r)
+            pygame.draw.circle(surf, (255, 255, 255, 210), (spec_cx, spec_cy), max(1, spec_r // 2))
+            # Center pip
+            pygame.draw.circle(surf, (255, 255, 255, 110), (cx, cx), max(2, cr // 5), max(1, self._s(1)))
             self.circle_note_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.circle_note_cache[key]
 
     def _get_bar_note_texture(self, color, alpha, lane_w):
         key = (color, alpha, lane_w)
         if key not in self.bar_note_cache:
-            bw, bh = int(lane_w * 0.8), int(self._s(NOTE_H) * 1.5)
+            bw  = int(lane_w * 0.88)
+            bh  = max(4, int(self._s(NOTE_H) * 1.5))
             surf = pygame.Surface((bw, bh), pygame.SRCALPHA)
-            
-            # Draw the bar head primitives onto this surface ONCE
-            pygame.draw.rect(surf, (0, 0, 0, int(180 * (alpha/255))), (0, bh - 4, bw, 4))
-            pygame.draw.rect(surf, (*color, alpha), (0, 0, bw, bh - 2))
-            pygame.draw.rect(surf, (255, 255, 255, int(150 * (alpha/255))), (0, 0, bw, 2))
-            pygame.draw.line(surf, (255, 255, 255, int(110 * (alpha/255))), (0, bh // 2), (bw, bh // 2))
-            
+            af  = alpha / 255
+
+            # Two-tone body: bright top half, darker bottom half
+            half  = bh // 2 + 1
+            top_c = tuple(min(255, int(c * 1.2)) for c in color)
+            bot_c = tuple(max(0,   int(c * 0.75)) for c in color)
+            pygame.draw.rect(surf, (*top_c, alpha), (0, 0, bw, half))
+            pygame.draw.rect(surf, (*bot_c, alpha), (0, half, bw, bh - half))
+
+            # White top rim
+            rim_h = max(2, self._s(2))
+            pygame.draw.rect(surf, (255, 255, 255, int(220 * af)), (0, 0, bw, rim_h))
+
+            # Shine highlight (upper-left semi-transparent bright area)
+            shine_w = bw // 3
+            shine_h = half - rim_h
+            if shine_w > 0 and shine_h > 0:
+                sh_surf = pygame.Surface((shine_w, shine_h), pygame.SRCALPHA)
+                sh_surf.fill((255, 255, 255, int(55 * af)))
+                surf.blit(sh_surf, (0, rim_h))
+
+            # Center accent line
+            pygame.draw.rect(surf, (255, 255, 255, int(45 * af)), (0, bh // 3, bw, max(1, self._s(1))))
+
+            # Bottom shadow line
+            shad_h = max(2, self._s(2))
+            pygame.draw.rect(surf, (0, 0, 0, int(150 * af)), (0, bh - shad_h, bw, shad_h))
+
             self.bar_note_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.bar_note_cache[key]
         
     def _get_ln_body_texture(self, color, alpha, lane_w):
         key = (color, alpha, lane_w)
         if key not in self.ln_body_cache:
-            # We create a 1-pixel high texture that can be stretched by the renderer.blit destination rect
-            # This completely avoids drawing rectangles/lines every frame
+            # 1px tall — stretched by renderer.blit for performance
             surf = pygame.Surface((lane_w, 1), pygame.SRCALPHA)
-            b_alpha = int(alpha * 0.6)
-            body_margin = int(lane_w * 0.12)
-            
-            # Fill center
-            pygame.draw.rect(surf, (*color, b_alpha), (body_margin, 0, lane_w - body_margin * 2, 1))
-            # Draw borders
-            pygame.draw.rect(surf, (*color, alpha), (body_margin, 0, 1, 1))
-            pygame.draw.rect(surf, (*color, alpha), (lane_w - body_margin - 1, 0, 1, 1))
-            
+            margin  = int(lane_w * 0.14)
+            inner_w = lane_w - margin * 2
+            mid     = lane_w // 2
+
+            # Dim fill body
+            pygame.draw.rect(surf, (*color, int(alpha * 0.45)), (margin, 0, inner_w, 1))
+            # Center bright stripe (inner third)
+            cw = max(1, inner_w // 3)
+            pygame.draw.rect(surf, (*color, int(alpha * 0.85)), (mid - cw // 2, 0, cw, 1))
+            # White center highlight line
+            pygame.draw.rect(surf, (255, 255, 255, int(alpha * 0.35)), (mid - 1, 0, 2, 1))
+            # Bright edge glow lines
+            pygame.draw.rect(surf, (*color, alpha), (margin,          0, 1, 1))
+            pygame.draw.rect(surf, (*color, alpha), (lane_w - margin - 1, 0, 1, 1))
+
             self.ln_body_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.ln_body_cache[key]
 
     def _get_bar_effect_texture(self, color, lane_w):
         key = (color, lane_w)
         if key not in self.bar_effect_cache:
-            base_r = self._s(50)
-            bw = int(lane_w * 0.8) + base_r * 2
-            bh = self._s(15 + base_r // 6)
+            # Texture is stretched by draw_effects; keep it a simple horizontal glow
+            # that looks clean at any aspect ratio
+            bw   = int(lane_w * 0.88)
+            bh   = self._s(18)
             surf = pygame.Surface((bw, bh), pygame.SRCALPHA)
-            pygame.draw.rect(surf, (*color, 255), (0, 0, bw, bh), width=self._s(3), border_radius=self._s(4))
-            core_w = int(lane_w * 0.8); core_h = max(1, bh // 3)
-            pygame.draw.rect(surf, (255, 255, 255, 255), (base_r, (bh - core_h) // 2, core_w, core_h), border_radius=self._s(2))
+            rr   = max(2, bh // 3)
+            # Outer glow fill
+            pygame.draw.rect(surf, (*color, 50), (0, 0, bw, bh), border_radius=rr)
+            # Bright core (white + color blend)
+            ch = max(2, bh // 3)
+            cy = (bh - ch) // 2
+            pygame.draw.rect(surf, (255, 255, 255, 230), (0, cy, bw, ch), border_radius=max(1, rr // 2))
+            pygame.draw.rect(surf, (*color, 170),        (0, cy, bw, ch), border_radius=max(1, rr // 2))
             self.bar_effect_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.bar_effect_cache[key]
 
     def _get_circle_effect_texture(self, color):
         key = color
         if key not in self.circle_effect_cache:
-            base_r = self._s(50)
-            surf = pygame.Surface((base_r * 2, base_r * 2), pygame.SRCALPHA)
-            pygame.draw.circle(surf, (*color, 255), (base_r, base_r), base_r, self._s(3))
-            core_r = max(1, base_r // 2)
-            pygame.draw.circle(surf, (255, 255, 255, 255), (base_r, base_r), core_r)
+            base_r  = self._s(50)
+            size    = base_r * 2
+            cx      = base_r
+            surf    = pygame.Surface((size, size), pygame.SRCALPHA)
+            # Soft fill glow
+            pygame.draw.circle(surf, (*color, 18),  (cx, cx), base_r)
+            # Outer ring
+            pygame.draw.circle(surf, (*color, 200), (cx, cx), base_r - self._s(2), self._s(2))
+            # Mid ring
+            inner_r = max(1, base_r * 2 // 3)
+            pygame.draw.circle(surf, (*color, 110), (cx, cx), inner_r, self._s(2))
+            # Inner ring
+            inner2_r = max(1, base_r // 3)
+            pygame.draw.circle(surf, (255, 255, 255, 75), (cx, cx), inner2_r, self._s(1))
+            # Center flash
+            pygame.draw.circle(surf, (255, 255, 255, 210), (cx, cx), max(2, base_r // 5))
             self.circle_effect_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.circle_effect_cache[key]
 
@@ -149,25 +203,73 @@ class GameRenderer:
         return self.text_cache[key]
 
     def _ensure_lane_bg_texture(self, lane_w):
-        if self.lane_bg_texture and self.lane_bg_texture.width == lane_w * NUM_LANES:
+        if self.lane_bg_texture and self.lane_bg_texture.width == lane_w * NUM_LANES + 4:
             return
-        
-        ltw = lane_w * NUM_LANES
+
+        ltw  = lane_w * NUM_LANES
         surf = pygame.Surface((ltw + 4, self.height), pygame.SRCALPHA)
-        # Boundaries (lx[0]-2 to lx[0]+ltw+2) -> relative (0 to ltw+4)
-        pygame.draw.rect(surf, (60, 60, 60, 100), (0, 0, ltw + 4, self.height), 2)
-        
-        # Lanes and Dividers
-        for i in range(NUM_LANES):
-            lx_rel = i * lane_w + 2
-            # Lane BG (use LANE_BG_ALPHA from constants)
-            pygame.draw.rect(surf, (30, 30, 30, LANE_BG_ALPHA), (lx_rel, 0, lane_w, self.height))
-            # Divider
-            pygame.draw.line(surf, (60, 60, 60, 100), (lx_rel + lane_w, 0), (lx_rel + lane_w, self.height))
-            
+
+        # Gradient lane background (dark depth + floor glow near hit zone)
+        num_bands = 28
+        band_h    = max(1, self.height // num_bands)
+        hit_t     = self.hit_y / max(1, self.height)
+
+        for band in range(num_bands + 1):
+            yy = band * band_h
+            ph = min(band_h, self.height - yy)
+            if ph <= 0:
+                break
+            t          = yy / max(1, self.height)
+            floor_prox = max(0.0, 1.0 - abs(t - hit_t) / 0.28)
+            base_v     = int(12 + 6 * t)
+            glow_b     = int(22 * floor_prox)
+            r          = base_v + int(glow_b * 0.3)
+            g          = base_v + int(glow_b * 0.5)
+            b          = base_v + glow_b + 20
+            for i in range(NUM_LANES):
+                lx_rel = i * lane_w + 2
+                pygame.draw.rect(surf, (r, g, b, LANE_BG_ALPHA), (lx_rel, yy, lane_w, ph))
+
+        # Glowing cyan lane dividers
+        for i in range(1, NUM_LANES):
+            dx = i * lane_w + 2
+            pygame.draw.line(surf, (0, 212, 255, 12),  (dx - 1, 0), (dx - 1, self.height))
+            pygame.draw.line(surf, (0, 212, 255, 38),  (dx,     0), (dx,     self.height))
+            pygame.draw.line(surf, (0, 212, 255, 12),  (dx + 1, 0), (dx + 1, self.height))
+
+        # Outer border glow
+        pygame.draw.line(surf, (0, 212, 255, 75), (1, 0),       (1,       self.height))
+        pygame.draw.line(surf, (0, 212, 255, 38), (0, 0),       (0,       self.height))
+        pygame.draw.line(surf, (0, 212, 255, 75), (ltw + 2, 0), (ltw + 2, self.height))
+        pygame.draw.line(surf, (0, 212, 255, 38), (ltw + 3, 0), (ltw + 3, self.height))
+
         self.lane_bg_texture = Texture.from_surface(self.renderer, surf)
         self.note_head_bw = int(lane_w * 0.8)
         self.note_head_bh = int(self.note_h * 1.5)
+
+    def _ensure_pressed_lane_texture(self, lane_w):
+        """Gradient glow rising from hit zone when a lane key is held."""
+        if getattr(self, '_pressed_lane_key', None) == lane_w:
+            return self._pressed_lane_tex
+        surf     = pygame.Surface((lane_w, self.height), pygame.SRCALPHA)
+        num_bands = 32
+        band_h    = max(1, self.height // num_bands)
+        for band in range(num_bands + 1):
+            yy = band * band_h
+            ph = min(band_h, self.height - yy)
+            if ph <= 0:
+                break
+            if yy >= self.hit_y:
+                dist_down = (yy - self.hit_y) / max(1, self.height - self.hit_y)
+                alpha     = max(0, int(28 * (1.0 - dist_down)))
+            else:
+                dist_up = (self.hit_y - yy) / max(1, self.hit_y)
+                alpha   = max(0, int(60 * (1.0 - dist_up ** 0.6)))
+            if alpha > 0:
+                pygame.draw.rect(surf, (50, 160, 255, alpha), (0, yy, lane_w, ph))
+        self._pressed_lane_tex = Texture.from_surface(self.renderer, surf)
+        self._pressed_lane_key = lane_w
+        return self._pressed_lane_tex
 
     def draw_playing(self, current_time, game_state):
         """
@@ -226,17 +328,17 @@ class GameRenderer:
             if _skin_obj is not None:
                 _skin_obj.draw_lane_ambient(self, lx[0], lx[0] + ltw, current_time, fade_mult)
 
-            # Active Lane Highlights
-            highlight_alpha = int(LANE_BG_ALPHA * fade_mult * 0.25) # Subtle brightness boost
-            self.renderer.draw_color = (100, 100, 120, highlight_alpha)
+            # Active Lane Highlights — gradient glow rising from hit zone
             for i in range(NUM_LANES):
                 if pressed[i]:
-                    self.renderer.fill_rect((lx[i], 0, lane_w, self.height))
+                    tex = self._ensure_pressed_lane_texture(lane_w)
+                    tex.alpha = int(255 * fade_mult)
+                    self.renderer.blit(tex, pygame.Rect(lx[i], 0, lane_w, self.height))
 
-            # Hit Zone
+            # Hit Zone — dark floor below line
             self.renderer.draw_color = (0, 0, 0, int(150 * fade_mult))
             self.renderer.fill_rect((lx[0], hit_y, ltw, self.height - hit_y))
-            # Judgment line sits ABOVE hit_y (bottom edge at hit_y)
+            # Judgment line — red (original style)
             j_alpha = int(hit_alpha * fade_mult)
             self.renderer.draw_color = (255, 40, 40, j_alpha)
             self.renderer.fill_rect((lx[0], hit_y - perf_h, ltw, perf_h))
@@ -295,7 +397,9 @@ class GameRenderer:
                     tex.alpha = alpha
                     scale = get_bounce(j_timer)
                     tw, th = int(tex.width * scale), int(tex.height * scale)
-                    self.renderer.blit(tex, pygame.Rect(lx[0] + ltw // 2 - tw // 2, self.height // 2 - self._s(70) - th // 2, tw, th))
+                    jx = lx[0] + ltw // 2 - tw // 2
+                    jy = self.height // 2 - self._s(70) - th // 2
+                    self.renderer.blit(tex, pygame.Rect(jx, jy, tw, th))
 
                     # FAST / SLOW Indicator (Only for Player 1)
                     if _show_fast_slow and not is_opponent:
