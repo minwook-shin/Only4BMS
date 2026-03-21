@@ -118,6 +118,17 @@ class SongSelectMenu:
         from ..main import save_settings
         save_settings(self.settings)
 
+    def _cycle_skin(self):
+        """Advance note_skin to the next unlocked skin (wraps back to default)."""
+        from ..game.challenge import ChallengeManager
+        from ..game.skins import get_available_skins
+        cm = ChallengeManager()
+        options = ['default'] + [s.id for s in get_available_skins(cm)]
+        current = self.settings.get('note_skin', 'default')
+        if current not in options:
+            current = 'default'
+        self.settings['note_skin'] = options[(options.index(current) + 1) % len(options)]
+
     # ── Song Scanning ────────────────────────────────────────────────────
 
     def _start_scan(self):
@@ -500,17 +511,7 @@ class SongSelectMenu:
             self.running = False
             pygame.mixer.music.stop()
         elif key == pygame.K_g: # Toggle Note Skin
-            from ..game.challenge import ChallengeManager
-            _cm = ChallengeManager()
-            gold_unlocked = _cm.is_golden_skin_unlocked()
-            blue_unlocked = _cm.is_blue_skin_unlocked()
-            current = self.settings.get('note_skin', 'default')
-            if current == 'default' and gold_unlocked:
-                self.settings['note_skin'] = 'gold'
-            elif current == 'gold' and blue_unlocked:
-                self.settings['note_skin'] = 'blue'
-            elif current == 'gold' or current == 'blue':
-                self.settings['note_skin'] = 'default'
+            self._cycle_skin()
             self._save()
 
     def _handle_click(self, pos, button=1):
@@ -529,17 +530,7 @@ class SongSelectMenu:
                     self.settings['speed'] = max(0.1, min(2.0, self.settings.get('speed', 1.0) + delta))
                 elif action == "TYPE": self.settings['note_type'] = 1 if self.settings.get('note_type', 0) == 0 else 0
                 elif action == "SKIN":
-                    from ..game.challenge import ChallengeManager
-                    _cm = ChallengeManager()
-                    gold_unlocked = _cm.is_golden_skin_unlocked()
-                    blue_unlocked = _cm.is_blue_skin_unlocked()
-                    current = self.settings.get('note_skin', 'default')
-                    if current == 'default' and gold_unlocked:
-                        self.settings['note_skin'] = 'gold'
-                    elif current == 'gold' and blue_unlocked:
-                        self.settings['note_skin'] = 'blue'
-                    elif current in ('gold', 'blue'):
-                        self.settings['note_skin'] = 'default'
+                    self._cycle_skin()
                 else:
                     for opt in self.extra_opts:
                         if action == opt['action']:
@@ -956,29 +947,25 @@ class SongSelectMenu:
 
         # Note Skin
         from ..game.challenge import ChallengeManager
+        from ..game.skins import get_skin, get_available_skins
         _cm = ChallengeManager()
-        gold_unlocked = _cm.is_golden_skin_unlocked()
-        blue_unlocked = _cm.is_blue_skin_unlocked()
-        current_skin = self.settings.get('note_skin', 'default')
-        if current_skin == 'gold' and not gold_unlocked:
+        available_skins = get_available_skins(_cm)
+        current_skin_id = self.settings.get('note_skin', 'default')
+        # Validate: reset if current skin is no longer unlocked
+        current_skin_obj = get_skin(current_skin_id)
+        if current_skin_obj and not current_skin_obj.is_unlocked(_cm):
             self.settings['note_skin'] = 'default'
-            current_skin = 'default'
-        if current_skin == 'blue' and not blue_unlocked:
-            self.settings['note_skin'] = 'default'
-            current_skin = 'default'
-        
+            current_skin_id = 'default'
+            current_skin_obj = None
+
         skin_rect = pygame.Rect(cx, y, panel_w - 40, iy)
         if skin_rect.collidepoint(mx, my):
             pygame.draw.rect(self.screen, COLOR_HOVERED_BG, skin_rect, border_radius=5)
-        
-        any_skin_unlocked = gold_unlocked or blue_unlocked
-        if any_skin_unlocked:
-            if current_skin == 'gold':
-                skin_label = _t("note_skin_gold")
-                skin_color = (255, 215, 0)
-            elif current_skin == 'blue':
-                skin_label = _t("note_skin_blue")
-                skin_color = (0, 180, 255)
+
+        if available_skins:
+            if current_skin_obj:
+                skin_label = current_skin_obj.get_display_name()
+                skin_color = current_skin_obj.ui_color
             else:
                 skin_label = _t("note_skin_default")
                 skin_color = COLOR_TEXT_SECONDARY
