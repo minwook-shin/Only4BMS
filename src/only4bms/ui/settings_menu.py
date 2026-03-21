@@ -1,83 +1,84 @@
 import pygame
 from only4bms.i18n import get as _t, FONT_NAME, LANGUAGES, LANGUAGE_CODES
 from only4bms import i18n as _i18n
+from .components import (
+    make_bg_cache, draw_glass_panel, draw_row, draw_category,
+    draw_pill_button, draw_glow_text, draw_hint_bar, draw_scrollbar,
+    C_TEXT_ACCENT, C_TEXT_PRIMARY, C_TEXT_SECONDARY, C_TEXT_DIM,
+    C_GLOW_CYAN, C_GLOW_PURPLE, C_BORDER_DIM, C_BORDER_ACCENT,
+    # Legacy exports used by calibration_menu.py
+    COLOR_ACCENT, COLOR_SELECTED_BG, COLOR_TEXT_PRIMARY, COLOR_PANEL_BG,
+    BASE_W, BASE_H,
+)
 
-# ── Colors & Aesthetics ──────────────────────────────────────────────────
-COLOR_ACCENT = (0, 255, 200)       # Cyan/Neon
-COLOR_ACCENT_DIM = (0, 150, 120)
-COLOR_SELECTED_BG = (40, 50, 80, 225)
-COLOR_HOVERED_BG = (35, 35, 60, 160)
-COLOR_TEXT_PRIMARY = (255, 255, 255)
-COLOR_TEXT_SECONDARY = (180, 180, 200)
-COLOR_PANEL_BG = (15, 15, 25, 230)
-
-BASE_W, BASE_H = 800, 600
 MAX_CHOICE_NAME_LEN = 30
-INT_KEYS = frozenset(("fps", "audio_freq", "audio_buffer", "audio_channels", "input_polling_rate", "visual_offset"))
+INT_KEYS = frozenset((
+    "fps", "audio_freq", "audio_buffer", "audio_channels",
+    "input_polling_rate", "visual_offset",
+))
+
+_ROW_H_BASE  = 64   # unified height used by both drawing and hit-testing
+_START_Y_BASE = 112  # top of the scrollable panel
 
 
 class SettingsMenu:
     def __init__(self, settings, renderer, window):
         from pygame._sdl2.video import Texture
         self.renderer = renderer
-        self.window = window
-        
+        self.window   = window
         self.w, self.h = self.window.size
-        self.sx, self.sy = self.w / BASE_W, self.h / BASE_H  # scale factors
-        
-        # Offscreen surface for hybrid rendering
-        self.screen = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+        self.sx, self.sy = self.w / BASE_W, self.h / BASE_H
+
+        self.screen  = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
         self.texture = None
-        
+        self._bg     = make_bg_cache(self.w, self.h)
+
         pygame.display.set_caption("Settings")
-        self.clock = pygame.time.Clock()
+        self.clock      = pygame.time.Clock()
         self.title_font = _i18n.font("ui_title", self.sy, bold=True)
-        self.font = _i18n.font("ui_body", self.sy)
+        self.font       = _i18n.font("ui_body",  self.sy)
         self.small_font = _i18n.font("ui_small", self.sy)
 
         self.settings = settings
         self.items = [
-            # SYSTEM Category
+            # SYSTEM
             {"type": "category", "label_key": "cat_system"},
-            {"key": "language",         "label_key": "language",          "type": "choice", "choices_key": "_language_opts"},
-            {"key": "fps",             "label_key": "fps_limit",         "step": 10,  "min": 30,    "max": 360},
-            {"key": "vsync",           "label_key": "vsync",             "type": "choice", "choices_key": "_bool_opts"},
-            {"key": "input_polling_rate", "label_key": "input_polling",  "step": 100, "min": 125,   "max": 2000},
-            {"key": "fullscreen",      "label_key": "fullscreen",        "type": "choice", "choices_key": "_fullscreen_opts"},
-            {"key": "audio_device_idx","label_key": "audio_device",      "type": "choice", "choices_key": "audio_devices"},
-            
-            # AUDIO Category
+            {"key": "language",          "label_key": "language",         "type": "choice", "choices_key": "_language_opts"},
+            {"key": "fps",               "label_key": "fps_limit",        "step": 10,  "min": 30,    "max": 360},
+            {"key": "vsync",             "label_key": "vsync",            "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "input_polling_rate","label_key": "input_polling",    "step": 100, "min": 125,   "max": 2000},
+            {"key": "fullscreen",        "label_key": "fullscreen",       "type": "choice", "choices_key": "_fullscreen_opts"},
+            {"key": "audio_device_idx",  "label_key": "audio_device",     "type": "choice", "choices_key": "audio_devices"},
+            # AUDIO
             {"type": "category", "label_key": "cat_audio"},
-            {"key": "volume",          "label_key": "volume",            "step": 0.1, "min": 0.0,   "max": 1.0},
-            {"key": "audio_freq",      "label_key": "sample_rate",       "step": 100, "min": 22050, "max": 48000},
-            {"key": "audio_buffer",    "label_key": "audio_buffer",      "step": 256, "min": 256,   "max": 4096},
-            {"key": "audio_channels",  "label_key": "audio_channels",    "step": 1,   "min": 1,     "max": 2},
-            
-            # GAMEPLAY Category
+            {"key": "volume",        "label_key": "volume",       "step": 0.1, "min": 0.0,   "max": 1.0},
+            {"key": "audio_freq",    "label_key": "sample_rate",  "step": 100, "min": 22050, "max": 48000},
+            {"key": "audio_buffer",  "label_key": "audio_buffer", "step": 256, "min": 256,   "max": 4096},
+            {"key": "audio_channels","label_key": "audio_channels","step": 1,  "min": 1,     "max": 2},
+            # GAMEPLAY
             {"type": "category", "label_key": "cat_gameplay"},
-            {"key": "visual_offset",   "label_key": "visual_offset",     "step": 1,   "min": -200,  "max": 200},
-            {"key": "hit_window_mult", "label_key": "hit_window_mult",   "step": 0.1, "min": 0.5,   "max": 3.0},
-            {"key": "judge_delay",     "label_key": "judge_delay",       "step": 1,   "min": -200,  "max": 200},
-
-            # UI VISIBILITY Category
+            {"key": "visual_offset",   "label_key": "visual_offset",   "step": 1,   "min": -200, "max": 200},
+            {"key": "hit_window_mult", "label_key": "hit_window_mult", "step": 0.1, "min": 0.5,  "max": 3.0},
+            {"key": "judge_delay",     "label_key": "judge_delay",     "step": 1,   "min": -200, "max": 200},
+            # UI VISIBILITY
             {"type": "category", "label_key": "cat_ui"},
-            {"key": "show_bga",            "label_key": "show_bga",          "type": "choice", "choices_key": "_bool_opts"},
-            {"key": "show_judgment_text",  "label_key": "show_judgment_text", "type": "choice", "choices_key": "_bool_opts"},
-            {"key": "show_jitter_bar",     "label_key": "show_jitter_bar",    "type": "choice", "choices_key": "_bool_opts"},
-            {"key": "show_fast_slow",      "label_key": "show_fast_slow",     "type": "choice", "choices_key": "_bool_opts"},
-            {"key": "show_combo",          "label_key": "show_combo",         "type": "choice", "choices_key": "_bool_opts"},
-            {"key": "show_effects",        "label_key": "show_effects",       "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_bga",           "label_key": "show_bga",           "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_judgment_text", "label_key": "show_judgment_text", "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_jitter_bar",    "label_key": "show_jitter_bar",    "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_fast_slow",     "label_key": "show_fast_slow",     "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_combo",         "label_key": "show_combo",         "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_effects",       "label_key": "show_effects",       "type": "choice", "choices_key": "_bool_opts"},
         ]
+
+        # Defaults
         self.settings.setdefault("_fullscreen_opts", ["Off", "On"])
         from only4bms.game.constants import NOTE_TYPE_NAMES
         self.settings["_note_type_opts"] = list(NOTE_TYPE_NAMES)
-        self.settings.setdefault("_bool_opts", ["OFF", "ON"]) # Added this line
-        # Build language choices from i18n module
+        self.settings.setdefault("_bool_opts", ["OFF", "ON"])
         self.settings["_language_opts"] = [LANGUAGES[c] for c in LANGUAGE_CODES]
-        # Sync current language setting to index
+
         current_lang = self.settings.get("language", "auto")
         if isinstance(current_lang, int):
-            # Already an index from a previous settings menu visit — keep as-is
             if current_lang < 0 or current_lang >= len(LANGUAGE_CODES):
                 self.settings["language"] = 0
         elif current_lang == "auto":
@@ -87,65 +88,65 @@ class SettingsMenu:
         elif current_lang in LANGUAGE_CODES:
             self.settings["language"] = LANGUAGE_CODES.index(current_lang)
         else:
-            self.settings["language"] = 0  # English fallback
+            self.settings["language"] = 0
+
         self.settings.setdefault("fullscreen", 0)
-        self.settings.setdefault("vsync", 0) # Default vsync to off for latency
+        self.settings.setdefault("vsync", 0)
         self.settings.setdefault("note_type", 0)
-        # UI visibility defaults (1 = ON)
         self.settings.setdefault("show_bga", 1)
         self.settings.setdefault("show_judgment_text", 1)
         self.settings.setdefault("show_jitter_bar", 1)
         self.settings.setdefault("show_fast_slow", 1)
         self.settings.setdefault("show_combo", 1)
         self.settings.setdefault("show_effects", 1)
-        self.selected_index = 1 # Start at first setting, skip SYSTEM header
-        self.view_offset = 0
-        self.max_visible = 6 # Reduced to 6 to prevent footer overlap
-        self.running = True
+
+        self.selected_index = 1
+        self.view_offset    = 0
+        self.max_visible    = max(6, int((self.h / self.sy - _START_Y_BASE - 50) // _ROW_H_BASE))
+        self.running        = True
+
+    # ── Helpers ──────────────────────────────────────────────────────────────
 
     def _s(self, v):
-        """Scale a base-800x600 value to current resolution."""
         return max(1, int(v * self.sy))
 
-    # ── Value helpers ─────────────────────────────────────────────────────
+    def _header_rects(self):
+        """Consistent rects used by both _draw and _handle_button_click."""
+        title_surf  = self.title_font.render(_t("settings_title"), True, C_TEXT_ACCENT)
+        title_rect  = title_surf.get_rect(topleft=(self._s(50), self._s(30)))
+        btn_h       = self._s(34)
+        btn_w       = self._s(138)
+        btn_cal_rect = pygame.Rect(title_rect.right + self._s(16),
+                                   title_rect.centery - btn_h // 2, btn_w, btn_h)
+        btn_key_rect = pygame.Rect(btn_cal_rect.right + self._s(10),
+                                   btn_cal_rect.top, btn_w, btn_h)
+        return title_rect, btn_cal_rect, btn_key_rect
 
     def _adjust(self, item, direction):
         if item.get("type") == "choice":
             choices = self.settings.get(item["choices_key"], ["Default"])
-            idx = (self.settings.get(item["key"], 0) + direction) % len(choices)
+            idx     = (self.settings.get(item["key"], 0) + direction) % len(choices)
             self.settings[item["key"]] = idx
         else:
             val = self.settings.get(item["key"])
-            self.settings[item["key"]] = max(item["min"], min(item["max"], round(val + item["step"] * direction, 2)))
-        
-        # Save on every adjustment for better persistence
+            self.settings[item["key"]] = max(item["min"], min(item["max"],
+                                             round(val + item["step"] * direction, 2)))
         from ..main import save_settings
         save_settings(self.settings)
-
-        # If language was changed, immediately apply
-        if item.get('key') == 'language':
+        if item.get("key") == "language":
             from only4bms import i18n
-            lang_code = LANGUAGE_CODES[self.settings['language']]
-            i18n.set_language(lang_code)
+            i18n.set_language(LANGUAGE_CODES[self.settings["language"]])
 
     def _format_value(self, item):
         if item.get("type") == "choice":
             choices = self.settings.get(item["choices_key"], ["Default"])
-            idx = self.settings.get(item["key"], 0)
-            name = choices[idx] if idx < len(choices) else "Default"
+            idx     = self.settings.get(item["key"], 0)
+            name    = choices[idx] if idx < len(choices) else "Default"
             return (name[:MAX_CHOICE_NAME_LEN - 2] + "..") if len(name) > MAX_CHOICE_NAME_LEN else name
         val = self.settings.get(item["key"], 0)
-        if item["key"] in INT_KEYS:
-            return str(int(val))
-        return f"{float(val):.1f}"
+        return str(int(val)) if item["key"] in INT_KEYS else f"{float(val):.1f}"
 
-    @staticmethod
-    def _row_color(index, selected, hovered):
-        if index == selected:
-            return COLOR_ACCENT
-        return COLOR_TEXT_PRIMARY if hovered else COLOR_TEXT_SECONDARY
-
-    # ── Main loop ─────────────────────────────────────────────────────────
+    # ── Main loop ─────────────────────────────────────────────────────────────
 
     def run(self):
         from pygame._sdl2.video import Texture
@@ -153,21 +154,18 @@ class SettingsMenu:
         while self.running:
             self._handle_events()
             self._draw()
-            
-            # Hybrid GPU presentation
             if not self.texture:
                 self.texture = Texture.from_surface(self.renderer, self.screen)
             else:
                 self.texture.update(self.screen)
-            
             self.renderer.clear()
             self.renderer.blit(self.texture, pygame.Rect(0, 0, self.w, self.h))
             self.renderer.present()
-
-            self.clock.tick(self.settings.get('fps', 60))
-            
+            self.clock.tick(self.settings.get("fps", 60))
         pygame.key.set_repeat(0)
         return self.settings
+
+    # ── Events ────────────────────────────────────────────────────────────────
 
     def _handle_events(self):
         from ..main import refresh_joysticks
@@ -184,58 +182,44 @@ class SettingsMenu:
                 self._on_click(event.pos)
                 self._handle_button_click(event.pos)
             elif event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 0: # A (Confirm)
-                    # Currently most items are sliders, no button items in list yet
-                    pass
-                elif event.button == 1: # B (Back)
+                if   event.button == 1:
                     self.running = False
             elif event.type == pygame.JOYHATMOTION:
                 vx, vy = event.value
                 if vx == 0 and vy == 0: continue
-                if vy == 1: self._on_key(pygame.K_UP)
+                if   vy ==  1: self._on_key(pygame.K_UP)
                 elif vy == -1: self._on_key(pygame.K_DOWN)
                 elif vx == -1: self._on_key(pygame.K_LEFT)
-                elif vx == 1: self._on_key(pygame.K_RIGHT)
+                elif vx ==  1: self._on_key(pygame.K_RIGHT)
 
     def _handle_button_click(self, pos):
-        title_rect = self.title_font.render(_t("settings_title"), True, COLOR_ACCENT).get_rect(topleft=(self._s(50), self._s(40)))
-        
-        # Calibrate Button
-        btn_cal_rect = pygame.Rect(title_rect.right + self._s(20), title_rect.top, self._s(150), title_rect.height)
+        _, btn_cal_rect, btn_key_rect = self._header_rects()
         if btn_cal_rect.collidepoint(pos):
             from .calibration_menu import CalibrationMenu
             CalibrationMenu(self.settings, self.renderer, self.window).run()
             pygame.display.set_caption("Settings")
             pygame.key.set_repeat(300, 50)
             return
-
-        # Key Config Button
-        btn_key_rect = pygame.Rect(btn_cal_rect.right + self._s(10), title_rect.top, self._s(150), title_rect.height)
         if btn_key_rect.collidepoint(pos):
             from .key_config_menu import KeyConfigMenu
             KeyConfigMenu(self.settings, self.renderer, self.window).run()
             pygame.display.set_caption("Settings")
             pygame.key.set_repeat(300, 50)
-            return
 
     def _on_key(self, key):
-        if key == pygame.K_UP and self.selected_index > 1: # Can't go to index 0 (SYSTEM header)
+        if key == pygame.K_UP and self.selected_index > 1:
             self.selected_index -= 1
-            # Skip categories when navigating up
             if self.items[self.selected_index].get("type") == "category":
                 self.selected_index -= 1
-            
             if self.selected_index < self.view_offset:
                 self.view_offset = self.selected_index
         elif key == pygame.K_DOWN and self.selected_index < len(self.items) - 1:
             self.selected_index += 1
-            # Skip categories when navigating
             if self.items[self.selected_index].get("type") == "category":
                 if self.selected_index < len(self.items) - 1:
                     self.selected_index += 1
                 else:
-                    self.selected_index -= 1 # Backtrack if at end
-            
+                    self.selected_index -= 1
             if self.selected_index >= self.view_offset + self.max_visible:
                 self.view_offset = self.selected_index - self.max_visible + 1
         elif key == pygame.K_LEFT:
@@ -246,92 +230,94 @@ class SettingsMenu:
             self.running = False
 
     def _on_click(self, pos):
-        mx, my = pos
-        row_h = self._s(60)
-        start_y = self._s(120)
-        margin_l, margin_r = self._s(50), self.w - self._s(50)
-        for i in range(self.view_offset, min(len(self.items), self.view_offset + self.max_visible)):
+        mx, my  = pos
+        row_h   = self._s(_ROW_H_BASE)
+        start_y = self._s(_START_Y_BASE)
+        margin_l = self._s(50)
+        margin_r = self.w - self._s(50)
+        for i in range(self.view_offset,
+                       min(len(self.items), self.view_offset + self.max_visible)):
             if self.items[i].get("type") == "category":
-                continue # Headers are not clickable for selection
-
+                continue
             ry = start_y + (i - self.view_offset) * row_h
-            if margin_l <= mx <= margin_r and ry <= my <= ry + self._s(40):
+            if margin_l <= mx <= margin_r and ry <= my <= ry + self._s(50):
                 self.selected_index = i
                 break
 
-    # ── Drawing ───────────────────────────────────────────────────────────
+    # ── Drawing ───────────────────────────────────────────────────────────────
 
     def _draw(self):
         mx, my = pygame.mouse.get_pos()
-        # Commercial Dark Gradient Background
-        for y in range(self.h):
-            grad = 1.0 - (y / self.h)
-            c = [int(30 * grad), int(30 * grad), int(50 * grad + 30)]
-            pygame.draw.line(self.screen, c, (0, y), (self.w, y))
 
-        # Header Title
-        title_surf = self.title_font.render(_t("settings_title"), True, COLOR_ACCENT)
-        title_rect = title_surf.get_rect(topleft=(self._s(50), self._s(40)))
-        self.screen.blit(title_surf, title_rect)
-        
-        # Calibrate Button
-        btn_cal_rect = pygame.Rect(title_rect.right + self._s(20), title_rect.top, self._s(150), title_rect.height)
-        cal_hovered = btn_cal_rect.collidepoint(mx, my)
-        pygame.draw.rect(self.screen, COLOR_SELECTED_BG if cal_hovered else COLOR_PANEL_BG, btn_cal_rect, border_radius=8)
-        pygame.draw.rect(self.screen, COLOR_ACCENT, btn_cal_rect, 2, border_radius=8)
-        cal_txt = self.small_font.render(_t("calibrate"), True, COLOR_ACCENT if cal_hovered else COLOR_TEXT_PRIMARY)
-        self.screen.blit(cal_txt, cal_txt.get_rect(center=btn_cal_rect.center))
+        # Background (pre-rendered)
+        self.screen.blit(self._bg, (0, 0))
 
-        # Key Config Button
-        btn_key_rect = pygame.Rect(btn_cal_rect.right + self._s(10), title_rect.top, self._s(150), title_rect.height)
-        key_hovered = btn_key_rect.collidepoint(mx, my)
-        pygame.draw.rect(self.screen, COLOR_SELECTED_BG if key_hovered else COLOR_PANEL_BG, btn_key_rect, border_radius=8)
-        pygame.draw.rect(self.screen, COLOR_ACCENT, btn_key_rect, 2, border_radius=8)
-        key_txt = self.small_font.render(_t("key_config"), True, COLOR_ACCENT if key_hovered else COLOR_TEXT_PRIMARY)
-        self.screen.blit(key_txt, key_txt.get_rect(center=btn_key_rect.center))
+        # ── Header ──
+        title_rect, btn_cal_rect, btn_key_rect = self._header_rects()
+        draw_glow_text(self.screen, _t("settings_title"), self.title_font,
+                       C_TEXT_ACCENT, C_GLOW_CYAN,
+                       title_rect.topleft, glow_radius=4)
 
-        row_h = self._s(65)
-        start_y = self._s(120)
+        draw_pill_button(self.screen, btn_cal_rect, _t("calibrate"),
+                         self.small_font, hovered=btn_cal_rect.collidepoint(mx, my))
+        draw_pill_button(self.screen, btn_key_rect, _t("key_config"),
+                         self.small_font, hovered=btn_key_rect.collidepoint(mx, my))
+
+        # Thin separator under header
+        sep_y = self._s(_START_Y_BASE) - self._s(6)
+        sep = pygame.Surface((self.w - self._s(100), 1), pygame.SRCALPHA)
+        for x in range(sep.get_width()):
+            t = 1.0 - abs(x - sep.get_width() / 2) / (sep.get_width() / 2 + 1)
+            sep.set_at((x, 0), (*C_GLOW_CYAN, int(35 * t)))
+        self.screen.blit(sep, (self._s(50), sep_y))
+
+        # ── Panel background ──
+        row_h    = self._s(_ROW_H_BASE)
+        start_y  = self._s(_START_Y_BASE)
         margin_l = self._s(50)
         content_w = self.w - margin_l * 2
-        
-        # Panel Background
-        panel_rect = (margin_l - 10, start_y - 10, content_w + 20, self.max_visible * row_h + 20)
-        pygame.draw.rect(self.screen, COLOR_PANEL_BG, panel_rect, border_radius=15)
-        pygame.draw.rect(self.screen, COLOR_HOVERED_BG, panel_rect, 1, border_radius=15)
 
+        visible_count = min(len(self.items), self.view_offset + self.max_visible) - self.view_offset
+        panel_h = visible_count * row_h + self._s(8)
+        panel_rect = pygame.Rect(margin_l - self._s(8), start_y - self._s(4),
+                                 content_w + self._s(16), panel_h)
+        draw_glass_panel(self.screen, panel_rect, radius=14,
+                         fill_alpha=8, highlight=False)
+
+        # ── Rows ──
         y = start_y
-        for i in range(self.view_offset, min(len(self.items), self.view_offset + self.max_visible)):
+        for i in range(self.view_offset,
+                       min(len(self.items), self.view_offset + self.max_visible)):
             item = self.items[i]
-            
+            rect = pygame.Rect(margin_l, y, content_w - self._s(16), row_h - self._s(6))
+
             if item.get("type") == "category":
-                # Category Header
-                rect = pygame.Rect(margin_l, y, content_w, row_h - 5)
-                pygame.draw.rect(self.screen, (COLOR_ACCENT[0], COLOR_ACCENT[1], COLOR_ACCENT[2], 25), rect, border_radius=8)
-                txt = self.small_font.render(_t(item.get('label_key', '')), True, COLOR_ACCENT)
-                self.screen.blit(txt, txt.get_rect(center=(margin_l + content_w // 2, y + row_h // 2)))
-                y += row_h
-                continue
-
-            rect = pygame.Rect(margin_l, y, content_w, row_h - 5)
-            hovered = rect.collidepoint(mx, my) or i == self.selected_index
-            
-            if i == self.selected_index:
-                pygame.draw.rect(self.screen, COLOR_SELECTED_BG, rect, border_radius=8)
-                pygame.draw.rect(self.screen, COLOR_ACCENT, rect, 2, border_radius=8)
-            elif hovered:
-                pygame.draw.rect(self.screen, COLOR_HOVERED_BG, rect, border_radius=8)
-
-            color = self._row_color(i, self.selected_index, rect.collidepoint(mx, my))
-            
-            # Label
-            lbl_surf = self.font.render(_t(item.get('label_key', '')), True, color)
-            self.screen.blit(lbl_surf, (margin_l + 20, y + 15))
-            
-            # Value Box
-            val_text = self._format_value(item)
-            val_surf = self.font.render(f"<  {val_text}  >", True, COLOR_ACCENT if i == self.selected_index else COLOR_TEXT_PRIMARY)
-            val_rect = val_surf.get_rect(midright=(margin_l + content_w - 20, y + row_h // 2))
-            self.screen.blit(val_surf, val_rect)
-
+                draw_category(self.screen, rect, _t(item.get("label_key", "")),
+                              self.small_font)
+            else:
+                is_sel = (i == self.selected_index)
+                is_hov = rect.collidepoint(mx, my) and not is_sel
+                draw_row(
+                    self.screen, rect,
+                    label      = _t(item.get("label_key", "")),
+                    font       = self.font,
+                    selected   = is_sel,
+                    hovered    = is_hov,
+                    value_text = self._format_value(item),
+                    value_font = self.font,
+                )
             y += row_h
+
+        # ── Scrollbar ──
+        if len(self.items) > self.max_visible:
+            sb_x = margin_l + content_w - self._s(4)
+            sb_y = start_y
+            sb_h = self.max_visible * row_h
+            r0   = self.view_offset / len(self.items)
+            r1   = min(1.0, (self.view_offset + self.max_visible) / len(self.items))
+            draw_scrollbar(self.screen, sb_x, sb_y, sb_h, r0, r1)
+
+        # ── Hint bar ──
+        draw_hint_bar(self.screen,
+                      "↑ ↓  Navigate    ←  →  Adjust    ESC  Back",
+                      self.small_font, self.h, self.w)
