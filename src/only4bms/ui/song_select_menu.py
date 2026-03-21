@@ -37,7 +37,8 @@ class SongSelectMenu:
         self.mode = mode
         self.extra_opts = extra_opts or []
         self.extra_nav_buttons = extra_nav_buttons or []
-        self.note_mods = ['None', 'Mirror', 'Random']
+        from ..game.note_mods import get_mod_ids
+        self.note_mods = get_mod_ids()
         self.note_mod_idx = settings.get('note_mod_idx', 0)
         
         self.w, self.h = self.window.size
@@ -79,7 +80,6 @@ class SongSelectMenu:
         # Overlays
         self.search_mode = False
         self.search_query = ""
-        self.show_guide = False
         self._nav_buttons = []
 
         # Input debouncing
@@ -413,22 +413,13 @@ class SongSelectMenu:
                 if event.key == pygame.K_RETURN:
                     self.ignore_enter = False
             elif event.type == pygame.KEYDOWN:
-                if self.show_guide:
-                    if event.key in (pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_SPACE):
-                        self.show_guide = False
-                    continue
                 if self.search_mode:
                     self._handle_search_key(event)
                     continue
                 self._handle_nav_key(event.key)
-            elif event.type == pygame.MOUSEWHEEL and not self.search_mode and not self.show_guide:
-                self._move_selection(-1 if event.y > 0 else 1)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self._handle_click(event.pos, event.button)
             elif event.type == pygame.JOYBUTTONDOWN:
-                if self.show_guide:
-                    self.show_guide = False
-                    continue
                 if self.search_mode:
                     continue
                 if event.button == 0: # A
@@ -444,7 +435,6 @@ class SongSelectMenu:
                 elif event.button == 2: # X (Mod)
                     self.note_mod_idx = (self.note_mod_idx + 1) % len(self.note_mods)
             elif event.type == pygame.JOYHATMOTION:
-                if self.show_guide or self.search_mode: continue
                 vx, vy = event.value
                 if vx == 0 and vy == 0: continue
                 if vy == 1: self._move_selection(-1)
@@ -459,7 +449,6 @@ class SongSelectMenu:
             if self.search_query.strip():
                 webbrowser.open(SEARCH_URL.format(self.search_query))
             self.search_mode = False
-            self.show_guide = True
         elif event.key == pygame.K_BACKSPACE:
             self.search_query = self.search_query[:-1]
         else:
@@ -515,9 +504,6 @@ class SongSelectMenu:
             self._save()
 
     def _handle_click(self, pos, button=1):
-        if self.show_guide:
-            self.show_guide = False
-            return
         if self.search_mode:
             return
         mx, my = pos
@@ -685,8 +671,6 @@ class SongSelectMenu:
 
         if self.search_mode:
             self._draw_search_overlay()
-        if self.show_guide:
-            self._draw_guide_overlay()
 
     def _draw_scan_spinner(self):
         """Draw a circular loading spinner during background scan."""
@@ -764,15 +748,19 @@ class SongSelectMenu:
             charts = group['charts']
             
             # Map levels to short labels if possible
+            from ..game.constants import DIFFICULTY_DEFS, DIFFICULTY_DEFAULT_COLOR
             def get_diff_label(chart):
-                lv = str(chart['playlevel'])
                 f = chart['filepath'].lower()
-                if 'beginner' in f or '7b' in f or '5b' in f: return "BEG"
-                if 'normal' in f or '7n' in f or '5n' in f: return "NOR"
-                if 'hyper' in f or '7h' in f or '5h' in f: return "HYP"
-                if 'another' in f or '7a' in f or '5a' in f: return "ANO"
-                if 'insane' in f or '7i' in f: return "INS"
+                for d in DIFFICULTY_DEFS:
+                    if any(kw in f for kw in d['keywords']):
+                        return d['label']
                 return "LV."
+
+            def get_diff_color(label):
+                for d in DIFFICULTY_DEFS:
+                    if label == d['label']:
+                        return d['color']
+                return DIFFICULTY_DEFAULT_COLOR
             
             # Store badge rects for clicking
             group['badge_rects'] = []
@@ -817,13 +805,7 @@ class SongSelectMenu:
                 txt = f"{label} {lv}"
                 
                 # Colors based on difficulty
-                l_lower = label.lower()
-                bg_color = (60, 60, 80)
-                if l_lower == "beg": bg_color = (130, 200, 130)
-                elif l_lower == "nor": bg_color = (100, 150, 255)
-                elif l_lower == "hyp": bg_color = (255, 200, 100)
-                elif l_lower == "ano": bg_color = (255, 100, 100)
-                elif l_lower == "ins": bg_color = (200, 80, 255)
+                bg_color = get_diff_color(label)
                 
                 t_surf = self.small_font.render(txt, True, (255, 255, 255))
                 tw, th = t_surf.get_width() + self._sx_v(10), self._s(20)
@@ -1022,19 +1004,3 @@ class SongSelectMenu:
         self.screen.blit(
             self.small_font.render(_t("search_hint"), True, COLOR_TEXT_SECONDARY),
             (cx - self._sx_v(300), self._s(320)))
-
-    def _draw_guide_overlay(self):
-        self._draw_overlay(220)
-        lines = [
-            _t("guide_title"), "",
-            _t("guide_step1"),
-            _t("guide_step2"),
-            _t("guide_step3"),
-            _t("guide_step4"),
-            "", _t("guide_close"),
-        ]
-        y = self._s(150)
-        for line in lines:
-            self.screen.blit(self.small_font.render(line, True, (255, 255, 255)), (self._sx_v(100), y))
-            y += self._s(35)
-

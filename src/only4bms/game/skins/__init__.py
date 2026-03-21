@@ -12,6 +12,8 @@ To add a new skin:
 class NoteSkinBase:
     id: str = ''
     ui_color: tuple = (200, 200, 200)       # color shown in UI
+    unlock_challenge_id: str = ''           # challenge id that unlocks this skin ('' = always unlocked)
+    unlock_toast_i18n_key: str = ''         # i18n key for unlock toast message
 
     def get_display_name(self) -> str:
         from only4bms.i18n import get as _t

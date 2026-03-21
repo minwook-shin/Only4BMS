@@ -42,9 +42,12 @@ class RhythmGame:
         
         # Override note_mod if network modifiers insist
         if p1_modifiers:
-            p1_mods = [m.lower() for m in p1_modifiers]
-            if "random" in p1_mods: note_mod = "Random"
-            elif "mirror" in p1_mods: note_mod = "Mirror"
+            from .note_mods import get_mod_ids
+            mod_lower_map = {m.lower(): m for m in get_mod_ids() if m != 'None'}
+            for m in [x.lower() for x in p1_modifiers]:
+                if m in mod_lower_map:
+                    note_mod = mod_lower_map[m]
+                    break
         
         # Deepcopy notes so modifications like Mirror/Random don't persist across restarts
         notes = copy.deepcopy(notes_orig)
@@ -620,16 +623,6 @@ class RhythmGame:
         self.game_renderer.draw_result(stats, t)
 
     def _apply_note_mod(self, notes, mod):
-        print(f"DEBUG: _apply_note_mod called with mod={mod}")
-        if mod == 'Mirror':
-            for n in notes:
-                n['lane'] = (NUM_LANES - 1) - n['lane']
-        elif mod == 'Random':
-            # Create a mapping for each note to shuffle lanes
-            # Actually, standardリ듬게임 Random usually shuffles the ENTIRE LANE mapping once
-            mapping = list(range(NUM_LANES))
-            import random
-            random.shuffle(mapping)
-            for n in notes:
-                n['lane'] = mapping[n['lane']]
+        from .note_mods import apply_mod
+        apply_mod(mod, notes, NUM_LANES)
 

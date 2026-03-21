@@ -9,6 +9,8 @@ from . import NoteSkinBase
 class BlueNoteSkin(NoteSkinBase):
     id = 'blue'
     ui_color = (0, 180, 255)
+    unlock_challenge_id = 'forest_of_trials'
+    unlock_toast_i18n_key = 'skin_unlocked_blue_toast'
 
     def __init__(self):
         self._bar_cache = {}

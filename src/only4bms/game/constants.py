@@ -35,3 +35,21 @@ LOADING_BAR_W, LOADING_BAR_H = 500, 16
 # Video extensions
 VIDEO_EXTS = {'.mpg', '.mpeg', '.mp4', '.avi', '.wmv', '.mkv', '.webm'}
 IMAGE_FALLBACK_EXTS = ['.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.bmp', '.BMP']
+
+# ── Difficulty badge definitions ───────────────────────────────────────────
+# Each entry: label (short), file keywords that map to it, badge bg color.
+# To add a new difficulty tier, append an entry here — no other file changes needed.
+DIFFICULTY_DEFS = [
+    {"label": "BEG", "keywords": ["beginner", "7b", "5b"], "color": (130, 200, 130)},
+    {"label": "NOR", "keywords": ["normal",   "7n", "5n"], "color": (100, 150, 255)},
+    {"label": "HYP", "keywords": ["hyper",    "7h", "5h"], "color": (255, 200, 100)},
+    {"label": "ANO", "keywords": ["another",  "7a", "5a"], "color": (255, 100, 100)},
+    {"label": "INS", "keywords": ["insane",   "7i"],        "color": (200,  80, 255)},
+]
+DIFFICULTY_DEFAULT_COLOR = (60, 60, 80)
+
+# ── Note type definitions ──────────────────────────────────────────────────
+# Index corresponds to the integer stored in settings['note_type'].
+# To add a new note shape, append its display name here and handle rendering
+# in renderer._blit_note_head().
+NOTE_TYPE_NAMES = ["Bar", "Circle"]

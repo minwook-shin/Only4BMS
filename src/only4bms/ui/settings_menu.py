@@ -60,7 +60,8 @@ class SettingsMenu:
             {"key": "judge_delay",     "label_key": "judge_delay",       "step": 1,   "min": -200,  "max": 200},
         ]
         self.settings.setdefault("_fullscreen_opts", ["Off", "On"])
-        self.settings.setdefault("_note_type_opts", ["Bar", "Circle"])
+        from only4bms.game.constants import NOTE_TYPE_NAMES
+        self.settings["_note_type_opts"] = list(NOTE_TYPE_NAMES)
         self.settings.setdefault("_bool_opts", ["OFF", "ON"]) # Added this line
         # Build language choices from i18n module
         self.settings["_language_opts"] = [LANGUAGES[c] for c in LANGUAGE_CODES]

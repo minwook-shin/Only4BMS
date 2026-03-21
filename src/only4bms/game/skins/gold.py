@@ -9,6 +9,8 @@ from . import NoteSkinBase
 class GoldNoteSkin(NoteSkinBase):
     id = 'gold'
     ui_color = (255, 215, 0)
+    unlock_challenge_id = 'perfect_player'
+    unlock_toast_i18n_key = 'skin_unlocked_toast'
 
     def __init__(self):
         self._bar_cache = {}

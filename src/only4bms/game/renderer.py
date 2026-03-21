@@ -591,11 +591,6 @@ class GameRenderer:
         self.renderer.draw_color = (10, 10, 20, 240)
         self.renderer.fill_rect((0, 0, self.width, self.height))
 
-        # Title
-        t_tex = self._get_text_texture(_t("result_title"), True, (255, 255, 255), size_override=self._s(50))
-        t_tex.alpha = 255
-        self.renderer.blit(t_tex, pygame.Rect(self.width // 2 - t_tex.width // 2, self._s(20), t_tex.width, t_tex.height))
-
         # ── Statistics Panel (Left) ──
         p1_x = self._sx(50)
         y = self._s(100)
@@ -734,18 +729,13 @@ class GameRenderer:
             compl_tex.alpha = alpha
             self.renderer.blit(compl_tex, pygame.Rect(tx + tw - compl_tex.width - self._sx(20), ty + self._s(53 + i * 30), compl_tex.width, compl_tex.height))
         
-        # If perfect_player was just completed, show skin unlock message
-        if any(ch['id'] == 'perfect_player' for ch in newly_completed):
-            skin_txt = _t("skin_unlocked_toast")
-            skin_tex = self._get_text_texture(skin_txt, True, (255, 215, 0), size_override=self._s(16))
-            skin_tex.alpha = alpha
-            sy = ty + th - self._s(25)
-            self.renderer.blit(skin_tex, pygame.Rect(tx + tw // 2 - skin_tex.width // 2, sy, skin_tex.width, skin_tex.height))
-
-        # If forest_of_trials was just completed, show blue skin unlock message
-        if any(ch['id'] == 'forest_of_trials' for ch in newly_completed):
-            skin_txt = _t("skin_unlocked_blue_toast")
-            skin_tex = self._get_text_texture(skin_txt, True, (0, 180, 255), size_override=self._s(16))
-            skin_tex.alpha = alpha
-            sy = ty + th - self._s(25)
-            self.renderer.blit(skin_tex, pygame.Rect(tx + tw // 2 - skin_tex.width // 2, sy, skin_tex.width, skin_tex.height))
+        # Skin unlock toasts — driven by skin registry, no hardcoded challenge ids
+        from .skins import _registry as _skin_registry
+        completed_ids = {ch['id'] for ch in newly_completed}
+        sy = ty + th - self._s(25)
+        for skin in _skin_registry.values():
+            if skin.unlock_challenge_id and skin.unlock_challenge_id in completed_ids and skin.unlock_toast_i18n_key:
+                skin_tex = self._get_text_texture(_t(skin.unlock_toast_i18n_key), True, skin.ui_color, size_override=self._s(16))
+                skin_tex.alpha = alpha
+                self.renderer.blit(skin_tex, pygame.Rect(tx + tw // 2 - skin_tex.width // 2, sy, skin_tex.width, skin_tex.height))
+                sy -= self._s(22)  # stack toasts if multiple unlock at once
