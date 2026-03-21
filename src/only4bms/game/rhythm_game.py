@@ -471,7 +471,8 @@ class RhythmGame:
         self.renderer.clear()
         if self.extension:
             self.extension.draw_background(self.renderer, self.window)
-        self.game_renderer.draw_bga(t, self.engine.current_bga_img, self.assets)
+        if self.settings.get('show_bga', 1) != 0:
+            self.game_renderer.draw_bga(t, self.engine.current_bga_img, self.assets)
 
         # Player 1 View
         p1_state = self._get_draw_state('p1', t)
@@ -605,7 +606,8 @@ class RhythmGame:
         self.renderer.blit(tex, pygame.Rect(self.width // 2 - tex.width // 2, self.height // 2 - tex.height // 2, tex.width, tex.height))
 
     def _draw_result(self, t):
-        self.game_renderer.draw_bga(t, self.engine.current_bga_img, self.assets)
+        if self.settings.get('show_bga', 1) != 0:
+            self.game_renderer.draw_bga(t, self.engine.current_bga_img, self.assets)
         stats = {
             'mode': self.mode, 'title': self.title, 'metadata': self.metadata,
             'judgments': self.judgments, 'max_combo': self.max_combo,

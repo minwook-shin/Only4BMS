@@ -217,6 +217,15 @@ STRINGS = {
         "visual_offset": "Visual Offset (ms)",
         "hit_window_mult": "Hit Window Multiplier",
         "judge_delay": "Judge Delay (ms)",
+
+        # UI Visibility
+        "cat_ui": "UI VISIBILITY",
+        "show_bga": "BGA",
+        "show_judgment_text": "Judgment Text",
+        "show_jitter_bar": "Jitter Bar",
+        "show_fast_slow": "Fast/Slow Text",
+        "show_combo": "Combo Count",
+        "show_effects": "Hit Effects",
         "language": "Language",
 
         # Song Select
@@ -365,6 +374,15 @@ STRINGS = {
         "visual_offset": "비주얼 오프셋 (ms)",
         "hit_window_mult": "판정 범위 배율",
         "judge_delay": "판정 딜레이 (ms)",
+
+        # UI Visibility
+        "cat_ui": "UI 표시",
+        "show_bga": "BGA",
+        "show_judgment_text": "판정 텍스트",
+        "show_jitter_bar": "판정 분포 바",
+        "show_fast_slow": "빠름/느림 텍스트",
+        "show_combo": "콤보 수",
+        "show_effects": "판정 이펙트",
         "language": "언어",
 
         "music_selection": "곡 선택",
@@ -506,6 +524,15 @@ STRINGS = {
         "visual_offset": "ビジュアルオフセット (ms)",
         "hit_window_mult": "判定幅倍率",
         "judge_delay": "判定ディレイ (ms)",
+
+        # UI Visibility
+        "cat_ui": "UI表示",
+        "show_bga": "BGA",
+        "show_judgment_text": "判定テキスト",
+        "show_jitter_bar": "ジッターバー",
+        "show_fast_slow": "速い/遅いテキスト",
+        "show_combo": "コンボ数",
+        "show_effects": "ヒットエフェクト",
         "language": "言語",
 
         "music_selection": "楽曲選択",
@@ -648,6 +675,15 @@ STRINGS = {
         "visual_offset": "视觉偏移 (ms)",
         "hit_window_mult": "判定范围倍率",
         "judge_delay": "判定延迟 (ms)",
+
+        # UI Visibility
+        "cat_ui": "界面显示",
+        "show_bga": "BGA",
+        "show_judgment_text": "判定文字",
+        "show_jitter_bar": "抖动条",
+        "show_fast_slow": "快/慢文字",
+        "show_combo": "连击数",
+        "show_effects": "击打特效",
         "language": "语言",
 
         "music_selection": "选曲",
@@ -790,6 +826,15 @@ STRINGS = {
         "visual_offset": "ออฟเซ็ตภาพ (ms)",
         "hit_window_mult": "ตัวคูณหน้าต่างตี",
         "judge_delay": "ดีเลย์การตัดสิน (ms)",
+
+        # UI Visibility
+        "cat_ui": "การแสดง UI",
+        "show_bga": "BGA",
+        "show_judgment_text": "ข้อความตัดสิน",
+        "show_jitter_bar": "แถบจิตเตอร์",
+        "show_fast_slow": "ข้อความเร็ว/ช้า",
+        "show_combo": "จำนวนคอมโบ",
+        "show_effects": "เอฟเฟกต์ตี",
         "language": "ภาษา",
 
         "music_selection": "เลือกเพลง",
@@ -932,6 +977,15 @@ STRINGS = {
         "visual_offset": "Offset visual (ms)",
         "hit_window_mult": "Multiplicador de janela",
         "judge_delay": "Atraso de julgamento (ms)",
+
+        # UI Visibility
+        "cat_ui": "VISIBILIDADE UI",
+        "show_bga": "BGA",
+        "show_judgment_text": "Texto de julgamento",
+        "show_jitter_bar": "Barra de jitter",
+        "show_fast_slow": "Texto rápido/lento",
+        "show_combo": "Contador de combo",
+        "show_effects": "Efeitos de acerto",
         "language": "Idioma",
 
         "music_selection": "SELEÇÃO DE MÚSICA",
@@ -1073,6 +1127,15 @@ STRINGS = {
         "visual_offset": "Offset Visual (ms)",
         "hit_window_mult": "Pengali Jendela Hit",
         "judge_delay": "Delay Penilaian (ms)",
+
+        # UI Visibility
+        "cat_ui": "TAMPILAN UI",
+        "show_bga": "BGA",
+        "show_judgment_text": "Teks penilaian",
+        "show_jitter_bar": "Bilah jitter",
+        "show_fast_slow": "Teks cepat/lambat",
+        "show_combo": "Jumlah kombo",
+        "show_effects": "Efek pukulan",
         "language": "Bahasa",
 
         "music_selection": "PILIH LAGU",
@@ -1214,6 +1277,15 @@ STRINGS = {
         "visual_offset": "Offset visual (ms)",
         "hit_window_mult": "Multiplicador de ventana",
         "judge_delay": "Retardo de juicio (ms)",
+
+        # UI Visibility
+        "cat_ui": "VISIBILIDAD UI",
+        "show_bga": "BGA",
+        "show_judgment_text": "Texto de juicio",
+        "show_jitter_bar": "Barra de jitter",
+        "show_fast_slow": "Texto rápido/lento",
+        "show_combo": "Contador de combo",
+        "show_effects": "Efectos de golpe",
         "language": "Idioma",
 
         "music_selection": "SELECCIÓN DE MÚSICA",
@@ -1355,6 +1427,15 @@ STRINGS = {
         "visual_offset": "Décalage visuel (ms)",
         "hit_window_mult": "Multiplicateur de fenêtre",
         "judge_delay": "Délai de jugement (ms)",
+
+        # UI Visibility
+        "cat_ui": "AFFICHAGE UI",
+        "show_bga": "BGA",
+        "show_judgment_text": "Texte de jugement",
+        "show_jitter_bar": "Barre de jitter",
+        "show_fast_slow": "Texte rapide/lent",
+        "show_combo": "Compteur de combo",
+        "show_effects": "Effets de frappe",
         "language": "Langue",
 
         "music_selection": "SÉLECTION MUSICALE",
@@ -1496,6 +1577,15 @@ STRINGS = {
         "visual_offset": "Offset visivo (ms)",
         "hit_window_mult": "Moltiplicatore finestra",
         "judge_delay": "Ritardo giudizio (ms)",
+
+        # UI Visibility
+        "cat_ui": "VISIBILITÀ UI",
+        "show_bga": "BGA",
+        "show_judgment_text": "Testo giudizio",
+        "show_jitter_bar": "Barra jitter",
+        "show_fast_slow": "Testo veloce/lento",
+        "show_combo": "Contatore combo",
+        "show_effects": "Effetti colpo",
         "language": "Lingua",
 
         "music_selection": "SELEZIONE BRANI",
@@ -1638,6 +1728,15 @@ STRINGS = {
         "visual_offset": "Visueller Offset (ms)",
         "hit_window_mult": "Trefferfenster-Multiplikator",
         "judge_delay": "Bewertungsverzögerung (ms)",
+
+        # UI Visibility
+        "cat_ui": "UI-ANZEIGE",
+        "show_bga": "BGA",
+        "show_judgment_text": "Bewertungstext",
+        "show_jitter_bar": "Jitter-Balken",
+        "show_fast_slow": "Schnell/Langsam-Text",
+        "show_combo": "Kombo-Anzeige",
+        "show_effects": "Treffereffekte",
         "language": "Sprache",
 
         "music_selection": "MUSIKAUSWAHL",

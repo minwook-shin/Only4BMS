@@ -58,6 +58,15 @@ class SettingsMenu:
             {"key": "visual_offset",   "label_key": "visual_offset",     "step": 1,   "min": -200,  "max": 200},
             {"key": "hit_window_mult", "label_key": "hit_window_mult",   "step": 0.1, "min": 0.5,   "max": 3.0},
             {"key": "judge_delay",     "label_key": "judge_delay",       "step": 1,   "min": -200,  "max": 200},
+
+            # UI VISIBILITY Category
+            {"type": "category", "label_key": "cat_ui"},
+            {"key": "show_bga",            "label_key": "show_bga",          "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_judgment_text",  "label_key": "show_judgment_text", "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_jitter_bar",     "label_key": "show_jitter_bar",    "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_fast_slow",      "label_key": "show_fast_slow",     "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_combo",          "label_key": "show_combo",         "type": "choice", "choices_key": "_bool_opts"},
+            {"key": "show_effects",        "label_key": "show_effects",       "type": "choice", "choices_key": "_bool_opts"},
         ]
         self.settings.setdefault("_fullscreen_opts", ["Off", "On"])
         from only4bms.game.constants import NOTE_TYPE_NAMES
@@ -82,6 +91,13 @@ class SettingsMenu:
         self.settings.setdefault("fullscreen", 0)
         self.settings.setdefault("vsync", 0) # Default vsync to off for latency
         self.settings.setdefault("note_type", 0)
+        # UI visibility defaults (1 = ON)
+        self.settings.setdefault("show_bga", 1)
+        self.settings.setdefault("show_judgment_text", 1)
+        self.settings.setdefault("show_jitter_bar", 1)
+        self.settings.setdefault("show_fast_slow", 1)
+        self.settings.setdefault("show_combo", 1)
+        self.settings.setdefault("show_effects", 1)
         self.selected_index = 1 # Start at first setting, skip SYSTEM header
         self.view_offset = 0
         self.max_visible = 6 # Reduced to 6 to prevent footer overlap

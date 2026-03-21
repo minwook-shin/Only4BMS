@@ -282,7 +282,12 @@ class GameRenderer:
                 t = elapsed / duration
                 return 1.4 - 0.4 * (1 - (1 - t)**2)
 
-            if j_text and current_time - j_timer < 500:
+            _show_j_text  = self.settings.get('show_judgment_text', 1) != 0
+            _show_fast_slow = self.settings.get('show_fast_slow', 1) != 0
+            _show_jitter  = self.settings.get('show_jitter_bar', 1) != 0
+            _show_combo   = self.settings.get('show_combo', 1) != 0
+
+            if _show_j_text and j_text and current_time - j_timer < 500:
                 dt = current_time - j_timer
                 alpha = int(max(0, 255 * (1 - dt / 500)) * fade_mult)
                 if alpha > 0:
@@ -292,9 +297,8 @@ class GameRenderer:
                     tw, th = int(tex.width * scale), int(tex.height * scale)
                     self.renderer.blit(tex, pygame.Rect(lx[0] + ltw // 2 - tw // 2, self.height // 2 - self._s(70) - th // 2, tw, th))
 
-
                     # FAST / SLOW Indicator (Only for Player 1)
-                    if not is_opponent:
+                    if _show_fast_slow and not is_opponent:
                         j_err = game_state.get('judgment_err', 0)
                         j_key = game_state.get('judgment_key', '')
                         if j_key in ("GREAT", "GOOD") and alpha > 50:
@@ -305,13 +309,13 @@ class GameRenderer:
                             self.renderer.blit(err_tex, pygame.Rect(lx[0] + ltw // 2 - err_tex.width // 2, self.height // 2 - self._s(30), err_tex.width, err_tex.height))
 
             # Jitter Bar (Distribution) - Only for Player 1, rendered independently of judgment text
-            if not is_opponent:
+            if _show_jitter and not is_opponent:
                 jitter = game_state.get('jitter_history', [])
                 if jitter:
                     self._draw_jitter_bar(lx[0], self.height // 2 - self._s(10), ltw, jitter, current_time)
 
             # Combo - Only for Player 1
-            if not is_opponent:
+            if _show_combo and not is_opponent:
                 c_timer = game_state.get('combo_timer', 0)
                 if comb > 0 and current_time - c_timer < 500:
                     dt = current_time - c_timer
@@ -546,6 +550,12 @@ class GameRenderer:
         self.renderer.draw_rect((x, y, w, h))
 
     def draw_effects(self, effects_list, lanes_x, lane_w):
+        if self.settings.get('show_effects', 1) == 0:
+            # Still decay alpha so effects don't linger when toggled back on
+            for eff in effects_list:
+                eff['alpha'] -= EFFECT_FADE_SPEED
+            effects_list[:] = [e for e in effects_list if e['alpha'] > 0]
+            return
         alive = []
         ty = self._s(500 - 10)  # Pre-calculate once
         for eff in effects_list:
