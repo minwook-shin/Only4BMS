@@ -560,8 +560,10 @@ class SongSelectMenu:
         margin_l, margin_r = self._sx_v(360), self._sx_v(760)
         if not self.song_groups or not (margin_l <= mx <= margin_r):
             return
-        row_h = self._s(70)
-        start_y = self._s(120)
+        panel_y = self._s(62)
+        panel_h = self.h - panel_y - self._s(50)
+        row_h   = (panel_h - self._s(8) * 2) // VISIBLE_ITEMS
+        start_y = panel_y + self._s(8)
         end = min(len(self.song_groups), self.scroll_offset + VISIBLE_ITEMS)
         for i in range(self.scroll_offset, end):
             row = i - self.scroll_offset
@@ -704,17 +706,23 @@ class SongSelectMenu:
                     return d['color']
             return DIFFICULTY_DEFAULT_COLOR
 
-        mx, my  = pygame.mouse.get_pos()
-        row_h   = self._s(70)
-        start_y = self._s(70)
+        # ── Panel geometry — must match _draw_info_panel exactly ──
+        panel_y = self._s(62)
+        panel_h = self.h - panel_y - self._s(50)
+
+        mx, my    = pygame.mouse.get_pos()
         margin_l  = self._sx_v(360)
         content_w = self._sx_v(400)
-        end = min(len(self.song_groups), self.scroll_offset + VISIBLE_ITEMS)
 
-        # Glass panel behind the whole list
-        panel_rect = pygame.Rect(margin_l - self._sx_v(8), start_y - self._s(8),
-                                 content_w + self._sx_v(16),
-                                 VISIBLE_ITEMS * row_h + self._s(16))
+        # Distribute available height across VISIBLE_ITEMS rows
+        pad_v   = self._s(8)
+        row_h   = (panel_h - pad_v * 2) // VISIBLE_ITEMS
+        start_y = panel_y + pad_v
+        end     = min(len(self.song_groups), self.scroll_offset + VISIBLE_ITEMS)
+
+        # Glass panel — same top/bottom as info panel
+        panel_rect = pygame.Rect(margin_l - self._sx_v(8), panel_y,
+                                 content_w + self._sx_v(16), panel_h)
         draw_glass_panel(self.screen, panel_rect,
                          border_color=(*C_GLOW_CYAN, 55), radius=12, fill_alpha=10)
 
@@ -749,69 +757,97 @@ class SongSelectMenu:
 
             group = self.song_groups[i]
 
-            # Title
-            title_text = group['title']
-            max_title_w = content_w - self._sx_v(185)
-            if self.font.size(title_text)[0] > max_title_w:
-                while self.font.size(title_text + "...")[0] > max_title_w and len(title_text) > 0:
-                    title_text = title_text[:-1]
-                title_text += "..."
+            # ── Layout constants for this row ──
+            text_x   = margin_l + self._sx_v(14)
+            title_y  = y + self._s(8)
+            meta_y   = y + self._s(42)   # artist + badges share this line
+            badge_h  = self._s(18)
+            badge_gap = self._sx_v(6)
 
-            title_col  = C_GLOW_CYAN if is_sel else C_TEXT_PRIMARY
-            title_surf = self.font.render(title_text, True, title_col)
-            self.screen.blit(title_surf, (margin_l + self._sx_v(14), y + self._s(8)))
-
-            artist_surf = self.small_font.render(group['artist'], True, C_TEXT_SECONDARY)
-            self.screen.blit(artist_surf, (margin_l + self._sx_v(14), y + self._s(42)))
-
-            # Difficulty badges
+            # ── Difficulty badges (calculate width first, right-aligned on meta line) ──
             charts     = group['charts']
-            num_badges = 4
             num_charts = len(charts)
-            if i == self.selected_group_idx:
+            num_show   = 5 if is_sel else 4
+            if is_sel:
                 start = max(0, self.selected_chart_idx - 1)
-                if start + num_badges > num_charts:
-                    start = max(0, num_charts - num_badges)
-                end_idx = min(num_charts, start + num_badges)
+                if start + num_show > num_charts:
+                    start = max(0, num_charts - num_show)
+                end_idx = min(num_charts, start + num_show)
             else:
                 start   = 0
-                end_idx = min(num_charts, num_badges)
+                end_idx = min(num_charts, num_show)
 
+            visible_charts = charts[start:end_idx]
+
+            # Pre-render badge surfaces to know total width
+            badge_items = []
+            for chart in visible_charts:
+                lbl  = get_diff_label(chart)
+                lv   = str(chart['playlevel'])
+                col  = get_diff_color(lbl)
+                s    = self.small_font.render(f"{lbl} {lv}", True, (255, 255, 255))
+                bw   = s.get_width() + self._sx_v(10)
+                badge_items.append((s, bw, col))
+
+            overflow_left  = start > 0
+            overflow_right = end_idx < num_charts
+            overflow_w = self._sx_v(12) if (overflow_left or overflow_right) else 0
+            total_badge_w = sum(bw for _, bw, _ in badge_items) + badge_gap * max(0, len(badge_items) - 1) + overflow_w
+
+            # ── Title (full content width, no truncation for badges) ──
+            max_title_w = content_w - self._sx_v(22)
+            title_text  = group['title']
+            if self.font.size(title_text)[0] > max_title_w:
+                while self.font.size(title_text + "…")[0] > max_title_w and len(title_text) > 0:
+                    title_text = title_text[:-1]
+                title_text += "…"
+
+            title_col = C_GLOW_CYAN if is_sel else C_TEXT_PRIMARY
+            self.screen.blit(self.font.render(title_text, True, title_col), (text_x, title_y))
+
+            # ── Artist (meta line, truncated to leave room for badges) ──
+            badge_area_w = total_badge_w + self._sx_v(10)
+            max_artist_w = content_w - badge_area_w - self._sx_v(22)
+            artist_text  = group['artist']
+            if self.small_font.size(artist_text)[0] > max_artist_w:
+                while self.small_font.size(artist_text + "…")[0] > max_artist_w and len(artist_text) > 0:
+                    artist_text = artist_text[:-1]
+                artist_text += "…"
+            artist_s = self.small_font.render(artist_text, True, C_TEXT_SECONDARY)
+            self.screen.blit(artist_s, (text_x, meta_y + (badge_h - artist_s.get_height()) // 2))
+
+            # ── Draw badges right-aligned on meta line ──
             group['badge_rects'] = []
-            base_dx = rect.right - self._sx_v(38)
-            dx      = base_dx
+            dx = rect.right - self._sx_v(10)
 
-            if start > 0:
-                self.screen.blit(self.small_font.render("<", True, C_TEXT_DIM),
-                                 (dx - self._sx_v(14), y + row_h // 2 - 10))
-                dx -= self._sx_v(18)
+            if overflow_right:
+                more_s = self.small_font.render("›", True, C_TEXT_DIM)
+                dx -= more_s.get_width()
+                self.screen.blit(more_s, (dx, meta_y + (badge_h - more_s.get_height()) // 2))
+                dx -= self._sx_v(4)
 
-            for v_idx, chart in enumerate(reversed(charts[start:end_idx])):
-                actual_idx = start + (len(charts[start:end_idx]) - 1 - v_idx)
-                label   = get_diff_label(chart)
-                lv      = str(chart['playlevel'])
-                txt     = f"{label} {lv}"
-                bg_color = get_diff_color(label)
-
-                t_surf  = self.small_font.render(txt, True, (255, 255, 255))
-                tw, th  = t_surf.get_width() + self._sx_v(10), self._s(20)
-                br      = pygame.Rect(dx - tw, y + row_h // 2 - th // 2, tw, th)
+            for v_idx, (b_surf, bw, bg_col) in enumerate(reversed(badge_items)):
+                actual_idx = start + (len(badge_items) - 1 - v_idx)
+                dx -= bw
+                br = pygame.Rect(dx, meta_y, bw, badge_h)
 
                 is_sel_chart = (self.selected_group_idx == i and self.selected_chart_idx == actual_idx)
                 if is_sel_chart:
-                    pygame.draw.rect(self.screen, (255, 255, 255), br.inflate(4, 4), border_radius=4)
+                    # White halo for the active difficulty
+                    pygame.draw.rect(self.screen, (255, 255, 255), br.inflate(3, 3), border_radius=4)
 
-                pygame.draw.rect(self.screen, bg_color, br, border_radius=4)
-                self.screen.blit(t_surf, t_surf.get_rect(center=br.center))
+                pygame.draw.rect(self.screen, bg_col, br, border_radius=4)
+                self.screen.blit(b_surf, b_surf.get_rect(center=br.center))
 
                 if self.selected_group_idx == i:
                     group['badge_rects'].append((br, actual_idx))
 
-                dx -= tw + self._sx_v(7)
+                dx -= badge_gap
 
-            if end_idx < num_charts:
-                self.screen.blit(self.small_font.render(">", True, C_TEXT_DIM),
-                                 (base_dx + self._sx_v(4), y + row_h // 2 - 10))
+            if overflow_left:
+                more_s = self.small_font.render("‹", True, C_TEXT_DIM)
+                dx -= more_s.get_width() + self._sx_v(2)
+                self.screen.blit(more_s, (dx, meta_y + (badge_h - more_s.get_height()) // 2))
 
         # Scrollbar
         if len(self.song_groups) > VISIBLE_ITEMS:
