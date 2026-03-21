@@ -17,9 +17,74 @@ class BlueNoteSkin(NoteSkinBase):
         self._circle_cache = {}
         self._ln_cache = {}
         self._effect_cache = {}
+        self._ambient_cache = {}   # (facing, w, h) -> Texture
 
     def is_unlocked(self, challenge_manager) -> bool:
         return challenge_manager.is_blue_skin_unlocked()
+
+    # ── Ambient Lane Glow ────────────────────────────────────────────────────
+
+    def draw_lane_ambient(self, r, left_x, right_x, current_time, fade_mult):
+        if fade_mult <= 0:
+            return
+        # Left and right pulse slightly out of phase → flowing aurora feel
+        t = current_time / 750.0
+        alpha_l = int(fade_mult * (32 + 20 * (math.sin(t) + 1) / 2))
+        alpha_r = int(fade_mult * (32 + 20 * (math.sin(t + math.pi * 0.5) + 1) / 2))
+
+        left_w  = left_x
+        right_w = r.width - right_x
+        h = r.height
+
+        if left_w > 8 and alpha_l > 0:
+            key = ('L', left_w, h)
+            if key not in self._ambient_cache:
+                self._ambient_cache[key] = self._build_ambient(r, left_w, h, bright_right=True)
+            tex = self._ambient_cache[key]
+            tex.alpha = alpha_l
+            r.renderer.blit(tex, pygame.Rect(0, 0, left_w, h))
+
+        if right_w > 8 and alpha_r > 0:
+            key = ('R', right_w, h)
+            if key not in self._ambient_cache:
+                self._ambient_cache[key] = self._build_ambient(r, right_w, h, bright_right=False)
+            tex = self._ambient_cache[key]
+            tex.alpha = alpha_r
+            r.renderer.blit(tex, pygame.Rect(right_x, 0, right_w, h))
+
+    def _build_ambient(self, r, w, h, bright_right: bool):
+        """Gradient panel with baked diagonal aurora bands.
+        bright_right=True → cyan edge on the right (touching lane)."""
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+
+        # Horizontal gradient: transparent → deep blue → bright cyan at lane edge
+        grad_row = pygame.Surface((w, 1), pygame.SRCALPHA)
+        for x in range(w):
+            t = x / max(w - 1, 1) if bright_right else 1.0 - x / max(w - 1, 1)
+            a  = int(255 * (t ** 1.8))
+            rc = int(20 * t)
+            gc = int(80 + 140 * t)    # dull blue(80) → vivid cyan(220)
+            grad_row.set_at((x, 0), (rc, gc, 255, a))
+        surf.blit(pygame.transform.scale(grad_row, (w, h)), (0, 0))
+
+        # Baked diagonal aurora bands suggesting upward energy flow
+        rng = random.Random(0x1CE)
+        for _ in range(h // 28 + 5):
+            y0    = rng.randint(0, h - 1)
+            band_a = rng.randint(25, 70)
+            slant  = rng.choice([-2, -1, 0, 1, 2])   # diagonal tilt
+            thickness = rng.randint(1, 3)
+            for dy in range(thickness + 2):
+                py = (y0 + dy) % h
+                # x-shift from slant; clamp to panel
+                xs = int(dy * slant * w / max(h, 1))
+                x0 = max(0, xs)
+                x1 = min(w - 1, w - 1 + xs)
+                fade_a = max(0, band_a - dy * 18)
+                if fade_a > 0:
+                    pygame.draw.line(surf, (80, 220, 255, fade_a), (x0, py), (x1, py), 1)
+
+        return Texture.from_surface(r.renderer, surf)
 
     # ── Textures ──────────────────────────────────────────────────────────────
 

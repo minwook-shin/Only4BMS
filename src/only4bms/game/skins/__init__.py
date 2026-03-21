@@ -22,6 +22,10 @@ class NoteSkinBase:
     def is_unlocked(self, challenge_manager) -> bool:
         return True
 
+    def draw_lane_ambient(self, r, left_x, right_x, current_time, fade_mult) -> None:
+        """Draw themed ambient glow in the panels left of left_x and right of right_x.
+        Called once per frame after the lane background is drawn. Default: no-op."""
+
     # Texture getters — skin owns its own cache dicts
     def get_bar_texture(self, r, lane_w):
         raise NotImplementedError

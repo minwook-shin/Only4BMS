@@ -17,9 +17,66 @@ class GoldNoteSkin(NoteSkinBase):
         self._circle_cache = {}
         self._ln_cache = {}
         self._effect_cache = {}
+        self._ambient_cache = {}   # (facing, w, h) -> Texture
 
     def is_unlocked(self, challenge_manager) -> bool:
         return challenge_manager.is_golden_skin_unlocked()
+
+    # ── Ambient Lane Glow ────────────────────────────────────────────────────
+
+    def draw_lane_ambient(self, r, left_x, right_x, current_time, fade_mult):
+        if fade_mult <= 0:
+            return
+        # Slow golden heartbeat — period ~2s, breathes between dim and bright
+        pulse = (math.sin(current_time / 1000.0) + 1) / 2   # 0..1
+        alpha = int(fade_mult * (38 + 22 * pulse))
+        if alpha <= 0:
+            return
+
+        left_w  = left_x
+        right_w = r.width - right_x
+        h = r.height
+
+        if left_w > 8:
+            key = ('L', left_w, h)
+            if key not in self._ambient_cache:
+                self._ambient_cache[key] = self._build_ambient(r, left_w, h, bright_right=True)
+            tex = self._ambient_cache[key]
+            tex.alpha = alpha
+            r.renderer.blit(tex, pygame.Rect(0, 0, left_w, h))
+
+        if right_w > 8:
+            key = ('R', right_w, h)
+            if key not in self._ambient_cache:
+                self._ambient_cache[key] = self._build_ambient(r, right_w, h, bright_right=False)
+            tex = self._ambient_cache[key]
+            tex.alpha = alpha
+            r.renderer.blit(tex, pygame.Rect(right_x, 0, right_w, h))
+
+    def _build_ambient(self, r, w, h, bright_right: bool):
+        """Build a gradient panel with baked metallic sheen streaks.
+        bright_right=True → bright end on the right (touching lane), fades left."""
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+
+        # Horizontal gradient: transparent → warm amber → gold at lane edge
+        grad_row = pygame.Surface((w, 1), pygame.SRCALPHA)
+        for x in range(w):
+            t = x / max(w - 1, 1) if bright_right else 1.0 - x / max(w - 1, 1)
+            a = int(255 * (t ** 2.0))          # quadratic: very dim far out, rich near lane
+            gc = int(160 + 60 * t)             # amber(160) → gold(220) near lane
+            grad_row.set_at((x, 0), (255, gc, 0, a))
+        surf.blit(pygame.transform.scale(grad_row, (w, h)), (0, 0))
+
+        # Baked horizontal metallic sheen streaks (fixed seed → same every run)
+        rng = random.Random(0xAA55)
+        for _ in range(h // 20 + 6):
+            sy    = rng.randint(0, h - 1)
+            sa    = rng.randint(40, 110)
+            sw    = rng.randint(w // 3, w)
+            sx    = w - sw if bright_right else 0
+            pygame.draw.line(surf, (255, 235, 140, sa), (sx, sy), (sx + sw - 1, sy), 1)
+
+        return Texture.from_surface(r.renderer, surf)
 
     # ── Textures ──────────────────────────────────────────────────────────────
 

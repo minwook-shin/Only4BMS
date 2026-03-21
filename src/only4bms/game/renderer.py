@@ -222,6 +222,11 @@ class GameRenderer:
             self.lane_bg_texture.alpha = int(255 * fade_mult)
             self.renderer.blit(self.lane_bg_texture, pygame.Rect(lx[0] - 2, 0, ltw + 4, self.height))
 
+            # Skin ambient glow — drawn in the side panels, outside the lane area
+            _skin_obj = self._get_note_skin(note_skin, False)
+            if _skin_obj is not None:
+                _skin_obj.draw_lane_ambient(self, lx[0], lx[0] + ltw, current_time, fade_mult)
+
             # Active Lane Highlights
             highlight_alpha = int(LANE_BG_ALPHA * fade_mult * 0.25) # Subtle brightness boost
             self.renderer.draw_color = (100, 100, 120, highlight_alpha)
