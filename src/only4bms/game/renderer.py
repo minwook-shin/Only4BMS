@@ -289,7 +289,7 @@ class GameRenderer:
 
             if _show_j_text and j_text and current_time - j_timer < 500:
                 dt = current_time - j_timer
-                alpha = int(max(0, 255 * (1 - dt / 500)) * fade_mult)
+                alpha = min(255, int(max(0, 255 * (1 - dt / 500)) * fade_mult))
                 if alpha > 0:
                     tex = self._get_text_texture(j_text, False, j_color)
                     tex.alpha = alpha
@@ -319,7 +319,7 @@ class GameRenderer:
                 c_timer = game_state.get('combo_timer', 0)
                 if comb > 0 and current_time - c_timer < 500:
                     dt = current_time - c_timer
-                    alpha = int(max(0, 255 * (1 - dt / 500)) * fade_mult)
+                    alpha = min(255, int(max(0, 255 * (1 - dt / 500)) * fade_mult))
                     if alpha > 0:
                         c_tex = self._get_text_texture(str(comb), True, (255, 255, 255))
                         c_tex.alpha = alpha
