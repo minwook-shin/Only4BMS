@@ -318,12 +318,12 @@ class TwoKeyExtension(GameExtension):
                              (rect.right - 1, rect.y + 1))
         else:               # ── Circle ───────────────────────────────────────
             r = nh // 2
-            pygame.draw.circle(surf, (*color, int(32 * alpha / 255)), (nx, cy), r + 7)
-            pygame.draw.circle(surf, (*color, int(65 * alpha / 255)), (nx, cy), r + 4)
-            pygame.draw.circle(surf, (*color, alpha), (nx, cy), r)
-            pygame.draw.circle(surf,
-                               (255, 255, 255, int(175 * alpha / 255)),
-                               (nx - r // 3, cy - r // 3), max(1, r // 3))
+            pygame.draw.aacircle(surf, (*color, int(32 * alpha / 255)), (nx, cy), r + 7)
+            pygame.draw.aacircle(surf, (*color, int(65 * alpha / 255)), (nx, cy), r + 4)
+            pygame.draw.aacircle(surf, (*color, alpha), (nx, cy), r)
+            pygame.draw.aacircle(surf,
+                                 (255, 255, 255, int(175 * alpha / 255)),
+                                 (nx - r // 3, cy - r // 3), max(1, r // 3))
 
     def _draw_hit_zone(self, surf: pygame.Surface,
                        lane_pressed: list, gs: dict | None) -> None:
@@ -334,9 +334,8 @@ class TwoKeyExtension(GameExtension):
                        (1, 185), (2, 130), (3, 60), (4, 20)):
             pygame.draw.line(surf, (255, 55, 55, a),
                              (hx + off, 0), (hx + off, self._h))
-        # Main hit lines
-        pygame.draw.line(surf, (255, 65, 65, 220),  (hx,     0), (hx,     self._h))
-        pygame.draw.line(surf, (255, 100, 100, 160), (hx + 1, 0), (hx + 1, self._h))
+        # Main hit line (aaline with width=2 for clean antialiased edge)
+        pygame.draw.aaline(surf, (255, 75, 75, 220), (hx, 0), (hx, self._h), width=2)
 
         j_timer = gs.get("judgment_timer", 0)  if gs else 0
         j_color = gs.get("judgment_color", (255, 255, 255)) if gs else (255, 255, 255)
@@ -350,17 +349,17 @@ class TwoKeyExtension(GameExtension):
             # Judgment flash ring
             if 0 <= age_ms < 250:
                 fa = int(170 * (1 - age_ms / 250))
-                pygame.draw.circle(surf, (*j_color, fa), (hx, cy), r + 14)
+                pygame.draw.aacircle(surf, (*j_color, fa), (hx, cy), r + 14)
 
             # Background fill
-            pygame.draw.circle(surf, (0, 0, 0, 130), (hx, cy), r)
+            pygame.draw.aacircle(surf, (0, 0, 0, 130), (hx, cy), r)
             # Outer ring
             ring_c = (255, 195, 50, 220) if pressed else (255, 65, 65, 190)
-            pygame.draw.circle(surf, ring_c, (hx, cy), r, max(2, r // 5))
+            pygame.draw.aacircle(surf, ring_c, (hx, cy), r, max(2, r // 5))
             # Inner highlight when pressed
             if pressed:
-                pygame.draw.circle(surf, (255, 195, 50, 55),
-                                   (hx, cy), r - max(2, r // 5))
+                pygame.draw.aacircle(surf, (255, 195, 50, 55),
+                                     (hx, cy), r - max(2, r // 5))
 
     def _draw_hp_bar(self, surf: pygame.Surface) -> None:
         bh    = max(6, int(self._h * _HP_H_RATIO))

@@ -59,23 +59,23 @@ class GameRenderer:
             cx  = lane_w // 2
             surf = pygame.Surface((lane_w, lane_w), pygame.SRCALPHA)
             # Outer soft glow rings
-            pygame.draw.circle(surf, (*color, 28), (cx, cx), cr + max(2, self._s(4)))
-            pygame.draw.circle(surf, (*color, 55), (cx, cx), cr + max(1, self._s(2)))
+            pygame.draw.aacircle(surf, (*color, 28), (cx, cx), cr + max(2, self._s(4)))
+            pygame.draw.aacircle(surf, (*color, 55), (cx, cx), cr + max(1, self._s(2)))
             # Drop shadow (offset down slightly)
-            pygame.draw.circle(surf, (0, 0, 0, 150), (cx, cx + max(1, self._s(2))), cr)
+            pygame.draw.aacircle(surf, (0, 0, 0, 150), (cx, cx + max(1, self._s(2))), cr)
             # Main body
-            pygame.draw.circle(surf, (*color, 255), (cx, cx), cr)
+            pygame.draw.aacircle(surf, (*color, 255), (cx, cx), cr)
             # Inner ring (darker rim for depth)
             inner_c = tuple(max(0, int(c * 0.65)) for c in color)
-            pygame.draw.circle(surf, (*inner_c, 210), (cx, cx), cr - max(1, self._s(1)), max(1, self._s(2)))
+            pygame.draw.aacircle(surf, (*inner_c, 210), (cx, cx), cr - max(1, self._s(1)), max(1, self._s(2)))
             # Specular highlight lobe (upper-left)
             spec_r  = max(2, cr // 3)
             spec_cx = cx - cr // 4
             spec_cy = cx - cr // 3
-            pygame.draw.circle(surf, (255, 255, 255, 150), (spec_cx, spec_cy), spec_r)
-            pygame.draw.circle(surf, (255, 255, 255, 210), (spec_cx, spec_cy), max(1, spec_r // 2))
+            pygame.draw.aacircle(surf, (255, 255, 255, 150), (spec_cx, spec_cy), spec_r)
+            pygame.draw.aacircle(surf, (255, 255, 255, 210), (spec_cx, spec_cy), max(1, spec_r // 2))
             # Center pip
-            pygame.draw.circle(surf, (255, 255, 255, 110), (cx, cx), max(2, cr // 5), max(1, self._s(1)))
+            pygame.draw.aacircle(surf, (255, 255, 255, 110), (cx, cx), max(2, cr // 5), max(1, self._s(1)))
             self.circle_note_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.circle_note_cache[key]
 
@@ -166,17 +166,17 @@ class GameRenderer:
             cx      = base_r
             surf    = pygame.Surface((size, size), pygame.SRCALPHA)
             # Soft fill glow
-            pygame.draw.circle(surf, (*color, 18),  (cx, cx), base_r)
+            pygame.draw.aacircle(surf, (*color, 18),  (cx, cx), base_r)
             # Outer ring
-            pygame.draw.circle(surf, (*color, 200), (cx, cx), base_r - self._s(2), self._s(2))
+            pygame.draw.aacircle(surf, (*color, 200), (cx, cx), base_r - self._s(2), self._s(2))
             # Mid ring
             inner_r = max(1, base_r * 2 // 3)
-            pygame.draw.circle(surf, (*color, 110), (cx, cx), inner_r, self._s(2))
+            pygame.draw.aacircle(surf, (*color, 110), (cx, cx), inner_r, self._s(2))
             # Inner ring
             inner2_r = max(1, base_r // 3)
-            pygame.draw.circle(surf, (255, 255, 255, 75), (cx, cx), inner2_r, self._s(1))
+            pygame.draw.aacircle(surf, (255, 255, 255, 75), (cx, cx), inner2_r, self._s(1))
             # Center flash
-            pygame.draw.circle(surf, (255, 255, 255, 210), (cx, cx), max(2, base_r // 5))
+            pygame.draw.aacircle(surf, (255, 255, 255, 210), (cx, cx), max(2, base_r // 5))
             self.circle_effect_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.circle_effect_cache[key]
 
