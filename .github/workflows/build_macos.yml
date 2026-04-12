@@ -21,9 +21,6 @@ jobs:
           - os: macos-latest
             arch: ARM
             artifact_name: Only4BMS-Mac-ARM
-          - os: macos-15-intel
-            arch: Intel
-            artifact_name: Only4BMS-Mac-Intel
     steps:
       - uses: actions/checkout@v4
 
@@ -36,19 +33,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-
-          # Mixer Stability Fix: Find and remove the conflicting libintl from opencv-python
-          # explicitly before PyInstaller scans the environment. This forces PyInstaller to 
-          # find and bundle the version from pygame/fluidsynth instead.
-          CV2_DIR=$(python -c "import cv2, os; print(os.path.dirname(cv2.__file__))")
-          echo "Purging libintl from $CV2_DIR to prevent mixer conflicts"
-          find "$CV2_DIR" -name "libintl*.dylib" -delete || true
-
-      - name: Verify Environment
-        run: |
-          python -c "import numpy; print(f'NUMPY_VERSION: {numpy.__version__}')"
-          python -c "import numpy; assert numpy.__version__.startswith('1.'), f'FATAL: Expected NumPy 1.x, got {numpy.__version__}'"
-          python -c "import pygame; print(f'PYGAME_VERSION: {pygame.version.ver}')"
 
       - name: Train AI Models
         run: |
