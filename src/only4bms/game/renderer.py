@@ -202,11 +202,14 @@ class GameRenderer:
             self.text_cache[key] = Texture.from_surface(self.renderer, surf)
         return self.text_cache[key]
 
-    def _ensure_lane_bg_texture(self, lane_w):
-        if self.lane_bg_texture and self.lane_bg_texture.width == lane_w * NUM_LANES + 4:
+    def _ensure_lane_bg_texture(self, lane_w, num_lanes=None):
+        if num_lanes is None:
+            num_lanes = NUM_LANES
+        cache_key = (lane_w, num_lanes)
+        if self.lane_bg_texture and getattr(self, '_lane_bg_key', None) == cache_key:
             return
 
-        ltw  = lane_w * NUM_LANES
+        ltw  = lane_w * num_lanes
         surf = pygame.Surface((ltw + 4, self.height), pygame.SRCALPHA)
 
         # Gradient lane background (dark depth + floor glow near hit zone)
@@ -226,12 +229,12 @@ class GameRenderer:
             r          = base_v + int(glow_b * 0.3)
             g          = base_v + int(glow_b * 0.5)
             b          = base_v + glow_b + 20
-            for i in range(NUM_LANES):
+            for i in range(num_lanes):
                 lx_rel = i * lane_w + 2
                 pygame.draw.rect(surf, (r, g, b, LANE_BG_ALPHA), (lx_rel, yy, lane_w, ph))
 
         # Glowing cyan lane dividers
-        for i in range(1, NUM_LANES):
+        for i in range(1, num_lanes):
             dx = i * lane_w + 2
             pygame.draw.line(surf, (0, 212, 255, 12),  (dx - 1, 0), (dx - 1, self.height))
             pygame.draw.line(surf, (0, 212, 255, 38),  (dx,     0), (dx,     self.height))
@@ -244,6 +247,7 @@ class GameRenderer:
         pygame.draw.line(surf, (0, 212, 255, 38), (ltw + 3, 0), (ltw + 3, self.height))
 
         self.lane_bg_texture = Texture.from_surface(self.renderer, surf)
+        self._lane_bg_key = cache_key
         self.note_head_bw = int(lane_w * 0.8)
         self.note_head_bh = int(self.note_h * 1.5)
 
@@ -319,7 +323,7 @@ class GameRenderer:
 
         if fade_mult > 0:
             # Pre-rendered Lane Background
-            self._ensure_lane_bg_texture(lane_w)
+            self._ensure_lane_bg_texture(lane_w, len(lx))
             self.lane_bg_texture.alpha = int(255 * fade_mult)
             self.renderer.blit(self.lane_bg_texture, pygame.Rect(lx[0] - 2, 0, ltw + 4, self.height))
 
@@ -329,8 +333,8 @@ class GameRenderer:
                 _skin_obj.draw_lane_ambient(self, lx[0], lx[0] + ltw, current_time, fade_mult)
 
             # Active Lane Highlights — gradient glow rising from hit zone
-            for i in range(NUM_LANES):
-                if pressed[i]:
+            for i in range(len(lx)):
+                if i < len(pressed) and pressed[i]:
                     tex = self._ensure_pressed_lane_texture(lane_w)
                     tex.alpha = int(255 * fade_mult)
                     self.renderer.blit(tex, pygame.Rect(lx[i], 0, lane_w, self.height))

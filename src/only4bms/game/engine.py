@@ -5,7 +5,7 @@ from .constants import JUDGMENT_DEFS, SONG_END_PADDING_MS
 LN_COMBO_TICK_MS = 80
 
 class GameEngine:
-    def __init__(self, notes, bgms, bgas, hw_mult, play_sound_cb, set_judgment_cb, max_time, visual_timing_map=None, last_note_time=0, on_ln_tick_cb=None):
+    def __init__(self, notes, bgms, bgas, hw_mult, play_sound_cb, set_judgment_cb, max_time, visual_timing_map=None, last_note_time=0, on_ln_tick_cb=None, num_lanes=4):
         self.notes = notes
         self.bgms = bgms
         self.bgas = bgas
@@ -17,21 +17,22 @@ class GameEngine:
         self.last_note_time = last_note_time
         self.visual_timing_map = visual_timing_map or [(0.0, 0.0, 1.0)]
         self.current_visual_time = 0.0
-        
+        self.num_lanes = num_lanes
+
         self.current_bga_img = None
         self.state = "PLAYING"
-        self.held_lns = [None] * 4 # lane -> active LN note
+        self.held_lns = [None] * num_lanes  # lane -> active LN note
         self.bgm_idx = 0
         self.bga_idx = 0
         self.note_idx = 0
         self.all_notes_passed = False
         self.all_notes_passed_time = None
         self.ln_tick_timer = 0.0
-        self.last_note_time_per_lane = [-9999.0] * 4 # lane -> time of last processed note
-        
+        self.last_note_time_per_lane = [-9999.0] * num_lanes  # lane -> time of last processed note
+
         # Pre-calculate Jack (Holding Hit) adjacencies for visualization
-        last_t_per_lane = [-9999.0] * 4
-        last_v_t_per_lane = [-9999.0] * 4
+        last_t_per_lane = [-9999.0] * num_lanes
+        last_v_t_per_lane = [-9999.0] * num_lanes
         for note in self.notes:
             if not note.get('is_auto'):
                 lane = note['lane']
@@ -137,7 +138,7 @@ class GameEngine:
         return obs
 
     def update(self, current_time, lane_presses=None):
-        if lane_presses is None: lane_presses = [False] * 4
+        if lane_presses is None: lane_presses = [False] * self.num_lanes
         self.current_visual_time = self.get_visual_time(current_time)
         miss_window = JUDGMENT_DEFS["MISS"]["threshold_ms"] * self.hw_mult
         

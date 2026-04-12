@@ -277,9 +277,11 @@ def main():
     # Initialize i18n from settings
     i18n.set_language(settings.get("language", "auto"))
 
-    # Detect audio devices
-    settings["audio_devices"] = _detect_audio_devices()
-    settings["audio_device_idx"] = 0
+    # Detect audio devices — preserve saved selection if the device still exists
+    detected = _detect_audio_devices()
+    settings["audio_devices"] = detected
+    saved_idx = settings.get("audio_device_idx", 0)
+    settings["audio_device_idx"] = saved_idx if 0 <= saved_idx < len(detected) else 0
     _init_mixer(settings)
 
     # Detect monitor refresh rate (pygame-ce feature)

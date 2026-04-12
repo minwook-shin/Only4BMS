@@ -156,10 +156,10 @@ game = RhythmGame(
     mode='single',            # 'single' | 'ai_multi' | 'online_multi' (label only)
     renderer=renderer,
     window=window,
-    ai_difficulty='normal',   # 'normal' | 'hard'
     note_mod='None',          # 'None' | 'Mirror' | 'Random'
     challenge_manager=challenge_manager,
     extension=my_extension,   # GameExtension subclass, or None
+    num_lanes=4,              # number of playable lanes (default 4)
 )
 result = game.run()           # returns dict with 'action', plus get_stats() keys
 ```
@@ -168,6 +168,55 @@ result = game.run()           # returns dict with 'action', plus get_stats() key
 > conditions. All mode-specific behaviour (dual-player layout, AI engine,
 > network sync) is now owned by the `extension`. `RhythmGame` itself has no
 > mode-specific branches.
+
+#### `num_lanes` — variable lane count
+
+Pass `num_lanes=N` to run the game engine with N lanes instead of the default 4.
+The renderer adapts automatically — lane background, dividers, and hit-zone
+effects all scale to whatever value you provide.
+
+```python
+# 2-key mode: remap BMS notes to 2 lanes, then run with num_lanes=2
+for note in notes:
+    note['lane'] = 0 if note['lane'] < 2 else 1
+
+game = RhythmGame(
+    notes, ..., num_lanes=2,
+    extension=my_two_lane_extension,
+)
+```
+
+Key rules when using a non-default lane count:
+
+- **Notes**: remap `note['lane']` values to `[0, num_lanes)` before passing to `RhythmGame`.
+  Notes that land on the same `(time_ms, lane)` after remapping should be converted to
+  `is_auto=True` so their keysounds still fire without requiring a key press.
+- **Keys**: pass a `settings` dict whose `'keys'` list has `num_lanes` entries
+  (or fewer — `handle_input` only iterates entries that exist).
+- **Lane width**: override `game.lane_w`, `game.lane_total_w`, and `game.lane_x`
+  inside `on_attach_init` to give each lane the width you want.
+  The renderer reads lane width as `lx[1] - lx[0]` and adapts all note/effect sizes accordingly.
+
+#### Secondary / alias keys (`key_aliases`)
+
+`settings['key_aliases']` is a `dict[int, int]` that maps extra pygame key codes to lane
+indices.  Use this to let multiple physical keys trigger the same lane — exactly how
+`mods/two_key/` makes D an alias for F (lane 0) and K an alias for J (lane 1).
+
+```python
+# F (lane 0) and J (lane 1) are primary; D and K are aliases.
+settings_copy['keys']        = [pygame.K_f, pygame.K_j]   # 2 primary keys
+settings_copy['key_aliases'] = {pygame.K_d: 0,            # D → lane 0
+                                 pygame.K_k: 1}            # K → lane 1
+```
+
+Release logic: a lane is released only when **all** keys for that lane
+(primary + aliases) are up simultaneously, so long-note holding works
+correctly no matter which combination of keys the player holds.
+
+`key_aliases` is optional and defaults to `{}` — existing mods are unaffected.
+
+See `mods/two_key/` for a complete reference implementation.
 
 #### `get_stats()` return value
 
@@ -306,10 +355,27 @@ class MyExtension(GameExtension):
         return {}
 ```
 
-#### Dual-player layout via `on_attach_init`
+#### Lane layout via `on_attach_init`
 
-Extensions that render two players (e.g. `AiMultiExtension`, `OnlineGameExtension`)
-set up the dual-column layout by writing directly onto `game` in `on_attach_init`:
+Use `on_attach_init` to override the lane geometry that `RhythmGame.__init__`
+sets up.  Write directly onto `game`:
+
+**2-key wide-lane layout** (as used by `mods/two_key/`):
+
+```python
+def on_attach_init(self, game) -> None:
+    new_lane_w        = game.lane_w * 2        # double width per lane
+    game.lane_total_w = new_lane_w * 2         # 2 lanes
+    start_x           = (game.width - game.lane_total_w) // 2
+    game.lane_x       = [start_x, start_x + new_lane_w]
+    game.lane_w       = new_lane_w             # effects use this value
+```
+
+The renderer reads lane width as `lx[1] - lx[0]` and the hit-effect system
+reads `game.lane_w`, so updating both is sufficient — no renderer subclassing
+needed.
+
+**Dual-player layout** (e.g. `AiMultiExtension`, `OnlineGameExtension`):
 
 ```python
 def on_attach_init(self, game) -> None:
@@ -327,8 +393,8 @@ def on_attach_init(self, game) -> None:
     ...
 ```
 
-Then override `get_all_lanes`, `get_p1_lane_x`, `get_p1_draw_extras`, and
-`draw_mid_hud` to render the full dual-player HUD.
+For dual-player, also override `get_all_lanes`, `get_p1_lane_x`, `get_p1_draw_extras`,
+and `draw_mid_hud` to render the full dual-player HUD.
 
 #### `game_state` dict passed to `draw_overlay` (phase `'playing'`)
 
@@ -555,6 +621,7 @@ Users extract it into the `mods/` directory next to the Only4BMS executable (or 
 | `ai_multi/` | Local AI opponent — `AiMultiExtension` (dual layout, 120 Hz inference, opponent HUD). Model files live here for easy user replacement. |
 | `course_mode/` | Roguelike HP training mode — `CourseSession` + `CourseGameExtension` + `setup()` for challenge registration |
 | `online_multiplay/` | Socket.IO 1v1 multiplayer — `MultiplayerMenu` + `OnlineGameExtension` |
+| `two_key/` | 2-key mode — merges 4-lane BMS charts into 2 wide lanes, HP drain system. Reference for `num_lanes` + lane geometry override. |
 
 Reading `extension.py` in each mod is the best way to see how to wire the full interface together.
 

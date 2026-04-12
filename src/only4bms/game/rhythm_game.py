@@ -14,7 +14,7 @@ from .game_extension import GameExtension
 
 class RhythmGame:
     def __init__(self, notes_orig, bgms, bgas, wav_map, bmp_map, title, settings, visual_timing_map=None, measures=None, mode='single', metadata=None, renderer=None, window=None, note_mod='None',
-                 challenge_manager=None, p1_modifiers=None, extension: GameExtension = None):
+                 challenge_manager=None, p1_modifiers=None, extension: GameExtension = None, num_lanes=None):
         self.mode = mode
         self.renderer = renderer
         self.window = window
@@ -37,6 +37,7 @@ class RhythmGame:
         self.first_note_miss = False
         self.has_hit_first_note = False
         self.start_speed     = self.settings.get('speed', 1.0)
+        self.num_lanes       = num_lanes if num_lanes is not None else NUM_LANES
         self.lanes_compressed = self.metadata.get('lanes_compressed', False)
         self.used_dfjk       = self.settings.get('keybinds', ['d', 'f', 'j', 'k']) == ['d', 'f', 'j', 'k']
         
@@ -60,7 +61,7 @@ class RhythmGame:
         self.hw_mult = self.settings.get('hit_window_mult', 1.0)
         self.speed = self.settings.get('speed', 1.0) * (self.height / BASE_H)
         self.lane_w = int(LANE_W * (self.width / BASE_W))
-        self.lane_total_w = NUM_LANES * self.lane_w
+        self.lane_total_w = self.num_lanes * self.lane_w
         
         # Cache frequently accessed settings
         self.note_type = self.settings.get('note_type', 0)
@@ -69,7 +70,7 @@ class RhythmGame:
         # Lane grouping — default single-player (centred).
         # Dual-player extensions override lane_x / p1_lane_x / p2_lane_x in on_attach_init.
         start_x = (self.width - self.lane_total_w) // 2
-        self.lane_x = [start_x + i * self.lane_w for i in range(NUM_LANES)]
+        self.lane_x = [start_x + i * self.lane_w for i in range(self.num_lanes)]
 
         # Engines
         last_note_time = max((n.get('end_time_ms', n['time_ms']) for n in notes), default=0)
@@ -99,7 +100,7 @@ class RhythmGame:
             self._apply_note_mod(notes, note_mod)
         self.note_mod = note_mod
 
-        self.engine = GameEngine(notes, bgms, bgas, self.hw_mult, self._play_sound, self.set_judgment, max_time, visual_timing_map, last_note_time, self.on_ln_tick)
+        self.engine = GameEngine(notes, bgms, bgas, self.hw_mult, self._play_sound, self.set_judgment, max_time, visual_timing_map, last_note_time, self.on_ln_tick, num_lanes=self.num_lanes)
         self.has_ln = any(n.get('is_ln', False) for n in notes)
         
         # Calculate total judgments (LN counts twice: hit + release)
@@ -133,7 +134,7 @@ class RhythmGame:
         self.hit_history = [] # List of (time_ms, err_ms, key)
         
         
-        self.lane_pressed = [False] * NUM_LANES
+        self.lane_pressed = [False] * self.num_lanes
         self.effects = []
         self.needs_restart = False
 
@@ -230,19 +231,46 @@ class RhythmGame:
                 return
                 
             for i, k in enumerate(self.keys):
-                if event.key == k:
+                if event.key == k and i < len(self.lane_pressed):
                     self.lane_pressed[i] = True
                     # Use high precision timing directly
                     t_now = time.perf_counter()
                     delay_ms = self.settings.get('judge_delay', 30.0)
                     t_ms = (t_now - self.start_time) * 1000.0 - delay_ms
                     self.engine.process_hit(i, t_ms)
+            # Alias keys — secondary triggers for the same lane (e.g. D/K in 2-key mode)
+            _aliases = self.settings.get('key_aliases', {})
+            if event.key in _aliases:
+                i = _aliases[event.key]
+                if 0 <= i < len(self.lane_pressed) and not self.lane_pressed[i]:
+                    self.lane_pressed[i] = True
+                    t_now = time.perf_counter()
+                    delay_ms = self.settings.get('judge_delay', 30.0)
+                    t_ms = (t_now - self.start_time) * 1000.0 - delay_ms
+                    self.engine.process_hit(i, t_ms)
         elif event.type == pygame.KEYUP:
+            _aliases = self.settings.get('key_aliases', {})
+            _pk = pygame.key.get_pressed()
             for i, k in enumerate(self.keys):
-                if event.key == k:
-                    self.lane_pressed[i] = False
-                    t_ms = (time.perf_counter() - self.start_time) * 1000.0
-                    self.engine.process_release(i, t_ms)
+                if event.key == k and i < len(self.lane_pressed):
+                    # Keep lane held if any alias key for this lane is still pressed
+                    alias_held = any(_pk[ak] for ak, al in _aliases.items() if al == i)
+                    if not alias_held:
+                        self.lane_pressed[i] = False
+                        t_ms = (time.perf_counter() - self.start_time) * 1000.0
+                        self.engine.process_release(i, t_ms)
+            if event.key in _aliases:
+                i = _aliases[event.key]
+                if 0 <= i < len(self.lane_pressed):
+                    primary_held = i < len(self.keys) and _pk[self.keys[i]]
+                    other_alias = any(
+                        _pk[ak] for ak, al in _aliases.items()
+                        if al == i and ak != event.key
+                    )
+                    if not primary_held and not other_alias:
+                        self.lane_pressed[i] = False
+                        t_ms = (time.perf_counter() - self.start_time) * 1000.0
+                        self.engine.process_release(i, t_ms)
         elif event.type == pygame.JOYBUTTONDOWN:
             for i, mapping in enumerate(self.joy_keys):
                 if isinstance(mapping, str) and mapping.startswith("BTN_"):
