@@ -39,6 +39,10 @@ jobs:
           echo "numpy<2.0" > constraints.txt
           export PIP_CONSTRAINT=$(pwd)/constraints.txt
 
+          # Install everything in one pass
+          # Use full opencv-python for better video codec support on macOS
+          pip install -e .
+
           # Fix NumPy version (sometimes upgraded by -e .)
           pip install "numpy<2.0"
 
