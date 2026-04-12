@@ -35,16 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Create a constraints file to globally enforce numpy < 2.0
-          echo "numpy<2.0" > constraints.txt
-          export PIP_CONSTRAINT=$(pwd)/constraints.txt
-
-          # Install everything in one pass
-          # Use full opencv-python for better video codec support on macOS
           pip install -e .
-
-          # Fix NumPy version (sometimes upgraded by -e .)
-          pip install "numpy<2.0"
 
           # Mixer Stability Fix: Find and remove the conflicting libintl from opencv-python
           # explicitly before PyInstaller scans the environment. This forces PyInstaller to 
