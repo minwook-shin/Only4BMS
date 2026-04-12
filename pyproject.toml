@@ -13,16 +13,16 @@ authors = [
 # maintainers = [{ name = "이름", email = "이메일" }]
 
 dependencies = [
-    "pygame-ce>=2.5.0",
-    "opencv-python>=4.8.0",
-    "stable-baselines3>=2.0.0",
-    "gymnasium>=1.0.0",
-    "torch>=2.0.0",
-    "numpy<2.0",
-    "shimmy",
-    "pyinstaller",
-    "requests",
-    "websocket-client"
+    "pygame-ce==2.5.7",
+    "opencv-python==4.13.0.92",
+    "stable-baselines3==2.8.0",
+    "gymnasium==1.2.3",
+    "torch>=2.11.0",
+    "numpy==2.4.4",
+    "shimmy==2.0.1",
+    "pyinstaller==6.19.0",
+    "requests==2.33.1",
+    "websocket-client==1.9.0"
 ]
 
 # 2. 깃허브 및 관련 링크 추가
