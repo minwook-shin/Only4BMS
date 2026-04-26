@@ -5,6 +5,6 @@ stable-baselines3==2.8.0
 shimmy==2.0.1
 gymnasium==1.2.3
 torch>=2.11.0
-pyinstaller==6.19.0
+pyinstaller==6.20.0
 requests==2.33.1
 websocket-client==1.9.0
