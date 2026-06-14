@@ -21,7 +21,7 @@ dependencies = [
     "numpy==2.4.4",
     "shimmy==2.0.1",
     "pyinstaller==6.19.0",
-    "requests==2.33.1",
+    "requests==2.34.2",
     "websocket-client==1.9.0"
 ]
 
